@@ -1,0 +1,22 @@
+{
+    "ModTitle": "Families of Daggerfall - Windows",
+    "ModVersion": "1.0",
+    "ModAuthor": "RosyTheRascal",
+    "ContactInfo": "DfU Lysandus Tomb Discord Server",
+    "DFUnity_Version": "1.1.1",
+    "ModDescription": "Adds custom NPC's with their own behavior to Daggerfall's homes",
+    "GUID": "9114bf9a-b58a-4d12-be15-145aeddda53e",
+    "Files": [
+        "Assets/Game/Mods/FamiliesOfDaggerfall/Scripts/GreetingsAndSalutations.csv",
+        "Assets/Game/Mods/FamiliesOfDaggerfall/Scripts/FactionParser.cs",
+        "Assets/Game/Mods/FamiliesOfDaggerfall/Scripts/CustomStaticNPC.cs",
+        "Assets/Game/Mods/FamiliesOfDaggerfall/Scripts/FamilyMatters.csv",
+        "Assets/Game/Mods/FamiliesOfDaggerfall/Scripts/CustomDaggerfallTalkWindow.cs",
+        "Assets/Game/Mods/FamiliesOfDaggerfall/Scripts/FamilyNameModifier.cs",
+        "Assets/Game/Mods/FamiliesOfDaggerfall/Scripts/CustomNPCBridge.cs",
+        "Assets/Game/Mods/FamiliesOfDaggerfall/Scripts/PlayerSays.csv",
+        "Assets/Game/Mods/FamiliesOfDaggerfall/Scripts/CustomTalkManager.cs",
+        "Assets/Game/Mods/FamiliesOfDaggerfall/Scripts/FactionNPCInitializer.cs",
+        "Assets/Game/Mods/FamiliesOfDaggerfall/Scripts/CustomNPCClickHandler.cs"
+    ]
+}
