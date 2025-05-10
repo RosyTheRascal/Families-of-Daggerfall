@@ -327,17 +327,31 @@ namespace CustomStaticNPCMod
 
         private Genders DetermineGender(int archiveIndex, int recordIndex)
         {
-            // Example mapping logic based on Daggerfall Unity's approach
-            // You can expand this mapping as needed
-            if ((archiveIndex == 334 && recordIndex % 2 == 0) || // Example: 334.0, 334.2, etc., are male
-                (archiveIndex == 184 && recordIndex % 2 == 1))   // Example: 184.1, 184.3, etc., are male
+            // Handle archive 184 specifically
+            if (archiveIndex == 184)
             {
-                return Genders.Male;
+                // Explicit cases for male
+                if (recordIndex == 0 || recordIndex == 2 || recordIndex == 4)
+                    return Genders.Male;
+
+                // Explicit cases for female
+                if (recordIndex == 23)
+                    return Genders.Female;
+
+                // Default rule: Even indices are male, odd indices are female
+                return (recordIndex % 2 == 0) ? Genders.Male : Genders.Female;
             }
-            else
+
+            // Handle archive 334 specifically
+            if (archiveIndex == 334)
             {
-                return Genders.Female;
+                // Default rule: Even indices are male, odd indices are female
+                return (recordIndex % 2 == 0) ? Genders.Male : Genders.Female;
             }
+
+            // Default case for other archives
+            Debug.LogWarning($"Unhandled archiveIndex: {archiveIndex}, recordIndex: {recordIndex}. Defaulting to Male.");
+            return Genders.Male;
         }
 
         // Update the Initialize method to use DetermineGender
@@ -359,11 +373,21 @@ namespace CustomStaticNPCMod
             npcData.factionID = originalNpcData.factionID;
             npcData.race = DefaultRace; // Set the default race to Breton
 
-            // Determine gender based on billboard data
+            // Determine and assign gender
             npcData.gender = DetermineGender(npcData.billboardArchiveIndex, npcData.billboardRecordIndex);
             Debug.Log($"Determining gender for archiveIndex: {npcData.billboardArchiveIndex}, recordIndex: {npcData.billboardRecordIndex}");
 
+            // Ensure gender is valid
+            if (npcData.gender != Genders.Male && npcData.gender != Genders.Female)
+            {
+                Debug.LogWarning("Invalid gender detected. Defaulting to Male.");
+                npcData.gender = Genders.Male;
+            }
+
             EnsureComponents(originalNpcData);
+
+            Debug.Log($"Final gender for NPC ID {npcId}: {npcData.gender}");
+            Debug.Log($"Final display name for NPC ID {npcId}: {customDisplayName}");
 
             // Generate and set custom display name
             string generatedName = GenerateName(npcData.nameBank, npcData.gender);
