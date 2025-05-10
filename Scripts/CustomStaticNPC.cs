@@ -325,6 +325,23 @@ namespace CustomStaticNPCMod
             //ADD OTHER CODE HERE TO HANDLE FURTHER RACES DOWN THE LINE
         }
 
+        private Genders DetermineGender(int archiveIndex, int recordIndex)
+        {
+            // Example mapping logic based on Daggerfall Unity's approach
+            // You can expand this mapping as needed
+            if ((archiveIndex == 334 && recordIndex % 2 == 0) || // Example: 334.0, 334.2, etc., are male
+                (archiveIndex == 184 && recordIndex % 2 == 1))   // Example: 184.1, 184.3, etc., are male
+            {
+                return Genders.Male;
+            }
+            else
+            {
+                return Genders.Female;
+            }
+        }
+
+        // Update the Initialize method to use DetermineGender
+
         public void Initialize(int newNpcId, StaticNPC.NPCData originalNpcData, string familyLastName)
         {
             if (isProcessed)
@@ -342,13 +359,15 @@ namespace CustomStaticNPCMod
             npcData.factionID = originalNpcData.factionID;
             npcData.race = DefaultRace; // Set the default race to Breton
 
-            // Set the gender for the NPC
-            npcData.gender = (npcData.flags & 32) == 32 ? Genders.Female : Genders.Male; // Default to male if not set
+            // Determine gender based on billboard data
+            npcData.gender = DetermineGender(npcData.billboardArchiveIndex, npcData.billboardRecordIndex);
+            Debug.Log($"Determining gender for archiveIndex: {npcData.billboardArchiveIndex}, recordIndex: {npcData.billboardRecordIndex}");
 
             EnsureComponents(originalNpcData);
 
-            SetCustomLastName(familyLastName);
-            SetCustomDisplayName(customDisplayName);
+            // Generate and set custom display name
+            string generatedName = GenerateName(npcData.nameBank, npcData.gender);
+            SetCustomDisplayName(generatedName);
 
             isProcessed = true;
             Debug.Log($"Custom NPC DisplayName: {customDisplayName}");
@@ -438,7 +457,17 @@ namespace CustomStaticNPCMod
             data.billboardArchiveIndex = archive;
             data.billboardRecordIndex = record;
             data.nameSeed = (int)position ^ buildingKey + locationIndex;
-            data.gender = ((flags & 32) == 32) ? Genders.Female : Genders.Male;
+
+            // Determine gender based on flags or billboard texture
+            if (archive == 334 && record >= 16)
+            {
+                data.gender = Genders.Male; // Example for male textures
+            }
+            else
+            {
+                data.gender = (flags & 32) == 32 ? Genders.Female : Genders.Male;
+            }
+
             data.race = StaticNPC.GetRaceFromFaction(factionId);
             data.buildingKey = buildingKey;
             data.mapID = mapId;
@@ -480,6 +509,19 @@ namespace CustomStaticNPCMod
                 DFRandom.srand(npcData.nameSeed);
                 return DaggerfallUnity.Instance.NameHelper.FullName(npcData.nameBank, npcData.gender);
             }
+        }
+
+        private string GenerateName(NameHelper.BankTypes nameBank, Genders gender)
+        {
+            // Validate gender
+            if (gender != Genders.Male && gender != Genders.Female)
+            {
+                Debug.LogError("Invalid gender for NPC. Defaulting to Male.");
+                gender = Genders.Male;
+            }
+
+            // Generate full name
+            return DaggerfallUnity.Instance.NameHelper.FullName(nameBank, gender);
         }
 
         public static bool IsChildNPCData(StaticNPC.NPCData data)
