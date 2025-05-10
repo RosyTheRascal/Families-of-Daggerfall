@@ -41,7 +41,7 @@ namespace CustomStaticNPCMod
         private int npcId;
         private string customLastName;
         private string customFirstName;
-        private string customDisplayName;
+
         private bool isProcessed = false;
 
         private static Mod mod;
@@ -378,44 +378,38 @@ namespace CustomStaticNPCMod
 
         public void Initialize(int newNpcId, StaticNPC.NPCData originalNpcData, string familyLastName)
         {
-            if (isProcessed)
-            {
-                Debug.LogWarning($"NPC ID {npcId} is already processed. Skipping re-initialization.");
-                return;
-            }
-
-            npcId = newNpcId;
-            customLastName = familyLastName;
-
             npcData = originalNpcData;
-            npcData.nameSeed = npcData.nameSeed != 0 ? npcData.nameSeed : UnityEngine.Random.Range(1, int.MaxValue);
-            npcData.nameBank = originalNpcData.nameBank;
-            npcData.factionID = originalNpcData.factionID;
-            npcData.race = DefaultRace; // Set the default race to Breton
+
+            // Assign last name
+            customLastName = familyLastName;
 
             // Determine and assign gender
             npcData.gender = DetermineGender(npcData.billboardArchiveIndex, npcData.billboardRecordIndex);
-            Debug.Log($"Determining gender for archiveIndex: {npcData.billboardArchiveIndex}, recordIndex: {npcData.billboardRecordIndex}");
+            Debug.Log($"Gender determined for NPC ID {newNpcId}: {npcData.gender}");
 
-            // Ensure gender is valid
-            if (npcData.gender != Genders.Male && npcData.gender != Genders.Female)
-            {
-                Debug.LogWarning("Invalid gender detected. Defaulting to Male.");
-                npcData.gender = Genders.Male;
-            }
+            // Generate and set display name
+            SetCustomDisplayName(GenerateName(npcData.nameBank, npcData.gender, customLastName));
+        }
 
-            EnsureComponents(originalNpcData);
+        private string GenerateName(NameHelper.BankTypes nameBank, Genders gender, string lastName)
+        {
+            string firstName = DaggerfallUnity.Instance.NameHelper.FirstName(nameBank, gender);
+            return $"{firstName} {lastName}";
+        }
 
-            Debug.Log($"Final gender for NPC ID {npcId}: {npcData.gender}");
-            Debug.Log($"Final display name for NPC ID {npcId}: {customDisplayName}");
+        private string customDisplayName; // Custom field for the display name
 
-            // Generate and set custom display name
-            string generatedName = GenerateName(npcData.nameBank, npcData.gender);
-            SetCustomDisplayName(generatedName);
+        // Method to set the custom display name
+        public void SetCustomDisplayName(string newName)
+        {
+            customDisplayName = newName; // Set the display name here
+            Debug.Log($"Custom DisplayName set to '{newName}' for NPC.");
+        }
 
-            isProcessed = true;
-            Debug.Log($"Custom NPC DisplayName: {customDisplayName}");
-            Debug.Log($"Initialize: NPC data copied for NPC ID: {npcId}");
+        // Method to get the custom display name
+        public string GetCustomDisplayName()
+        {
+            return customDisplayName;
         }
 
         private void EnsureComponents(StaticNPC.NPCData originalNpcData)
@@ -538,11 +532,7 @@ namespace CustomStaticNPCMod
             Debug.Log($"SetCustomLastName: Custom last name set to {customLastName} for NPC ID: {npcId}");
         }
 
-        public void SetCustomDisplayName(string newName)
-        {
-            customDisplayName = newName;
-            Debug.Log($"Custom DisplayName set to {newName} for NPC ID: {npcId}");
-        }
+
 
         private string GetDisplayName()
         {
@@ -571,6 +561,8 @@ namespace CustomStaticNPCMod
             // Generate full name
             return DaggerfallUnity.Instance.NameHelper.FullName(nameBank, gender);
         }
+
+
 
         public static bool IsChildNPCData(StaticNPC.NPCData data)
         {

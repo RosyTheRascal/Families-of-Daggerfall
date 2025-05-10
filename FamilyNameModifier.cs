@@ -233,6 +233,28 @@ namespace FamilyNameModifierMod
             Debug.Log($"Enabled CustomStaticNPC component for NPC ID {customNpcId}.");
         }
 
+        private string GenerateFamilyLastName(string buildingId)
+        {
+            // Ensure a consistent last name is generated for the building
+            if (!buildingLastNames.TryGetValue(buildingId, out string lastName))
+            {
+                int seed = buildingId.GetHashCode();
+                UnityEngine.Random.InitState(seed);
+                lastName = DaggerfallUnity.Instance.NameHelper.Surname(NameHelper.BankTypes.Breton);
+                buildingLastNames[buildingId] = lastName;
+            }
+            return lastName;
+        }
+
+        public void ReplaceAndRegisterNPC(DaggerfallWorkshop.Game.StaticNPC npc, string buildingId)
+        {
+            string familyLastName = GenerateFamilyLastName(buildingId);
+            // Call logic to replace NPC with shared last name
+            CustomStaticNPCMod.CustomStaticNPC customNPC = npc.gameObject.AddComponent<CustomStaticNPCMod.CustomStaticNPC>();
+            customNPC.Initialize(npc.Data.nameSeed, npc.Data, familyLastName);
+            Debug.Log($"NPC with ID {npc.GetInstanceID()} assigned to family '{familyLastName}'.");
+        }
+
         private void RemoveFromCache(GameObject gameObject)
         {
             Debug.Log($"Attempting to remove GameObject {gameObject.name} from staticNpcCache.");
