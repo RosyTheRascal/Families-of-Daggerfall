@@ -1458,25 +1458,35 @@ namespace CustomDaggerfallTalkWindowMod
                 Debug.LogError("panelPortrait is null in UpdateCustomNPCPortrait.");
                 return;
             }
-            else
-            {
-                Debug.Log("Portait is present - updating...");
-            }
 
             var customNpc = customTalkManager.GetTargetCustomNPC();
             if (customNpc != null)
             {
-
-                DaggerfallTalkWindow.FacePortraitArchive facePortraitArchive;
+                DaggerfallTalkWindow.FacePortraitArchive facePortraitArchive = DaggerfallTalkWindow.FacePortraitArchive.CommonFaces;
                 int recordIndex;
-                GetPortraitIndexFromStaticNPCBillboard(customNpc, out facePortraitArchive, out recordIndex);
+
+                // Force portrait selection for specific billboard textures
+                if (customNpc.Data.billboardArchiveIndex == 357) // Check if texture is 357.x
+                {
+                    recordIndex = 465; // Force record index to 465
+                    Debug.Log($"Forced portrait selection: Texture 357 -> CommonFaces, Record Index: {recordIndex}");
+                }
+                else
+                {
+                    // Use default logic for other textures
+                    GetPortraitIndexFromStaticNPCBillboard(customNpc, out facePortraitArchive, out recordIndex);
+                }
+
                 SetNPCPortrait(facePortraitArchive, recordIndex);
 
                 Debug.Log($"customNpc.Data.billboardArchiveIndex: {customNpc.Data.billboardArchiveIndex}");
                 Debug.Log($"recordIndex: {recordIndex}");
 
                 isChildNPC = (customNpc.Data.billboardArchiveIndex == 182) &&
-                 (recordIndex == 385 || recordIndex == 384 || recordIndex == 386 || recordIndex == 379 || recordIndex == 437 || recordIndex == 490 || recordIndex == 491 || recordIndex == 497 || recordIndex == 498 || recordIndex == 400 || recordIndex == 456 || recordIndex == 463 || recordIndex == 430);
+                             (recordIndex == 385 || recordIndex == 384 || recordIndex == 386 || recordIndex == 379 ||
+                              recordIndex == 437 || recordIndex == 490 || recordIndex == 491 || recordIndex == 497 ||
+                              recordIndex == 498 || recordIndex == 400 || recordIndex == 456 || recordIndex == 463 ||
+                              recordIndex == 430);
                 if (isChildNPC)
                 {
                     Debug.Log("Child detected");
@@ -1489,8 +1499,24 @@ namespace CustomDaggerfallTalkWindowMod
             }
         }
 
+        private static readonly Dictionary<int, int> billboardToRecordIndexMap = new Dictionary<int, int>
+        {
+        { 357, 465 }, // Example: Texture 357.1 -> Record Index 465
+        // Add other mappings as needed
+        };
+
         private void GetPortraitIndexFromStaticNPCBillboard(CustomStaticNPCMod.CustomStaticNPC customNpc, out DaggerfallTalkWindow.FacePortraitArchive facePortraitArchive, out int recordIndex)
         {
+            if (billboardToRecordIndexMap.TryGetValue(customNpc.Data.billboardArchiveIndex, out recordIndex))
+            {
+                Debug.Log($"Mapping found for billboardArchiveIndex: {customNpc.Data.billboardArchiveIndex} -> Record Index: {recordIndex}");
+            }
+            else
+            {
+                Debug.LogWarning($"No mapping found for billboardArchiveIndex: {customNpc.Data.billboardArchiveIndex}. Using default logic.");
+                // Fallback to default logic here
+            }
+
             FactionFile.FactionData factionData;
             GameManager.Instance.PlayerEntity.FactionData.GetFactionData(customNpc.Data.factionID, out factionData);
             FactionFile.FlatData factionFlatData = FactionFile.GetFlatData(factionData.flat1);

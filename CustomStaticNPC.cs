@@ -370,6 +370,16 @@ namespace CustomStaticNPCMod
                    return Genders.Female;
             }
 
+            if (archiveIndex == 357)
+            {
+                // Explicit cases for male
+                if (recordIndex == 1 || recordIndex == 3 || recordIndex == 4 || recordIndex == 5 || recordIndex == 7 || recordIndex == 12 || recordIndex == 13 || recordIndex == 14)
+                    return Genders.Male;
+
+                else
+                    return Genders.Female;
+            }
+
             // Default case for other archives
             Debug.LogWarning($"Unhandled archiveIndex: {archiveIndex}, recordIndex: {recordIndex}. Defaulting to Male.");
             return Genders.Male;
