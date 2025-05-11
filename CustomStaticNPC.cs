@@ -41,6 +41,7 @@ namespace CustomStaticNPCMod
         private int npcId;
         private string customLastName;
         private string customFirstName;
+        private string customDisplayName; // Custom field for the display name
 
         private bool isProcessed = false;
 
@@ -381,14 +382,18 @@ namespace CustomStaticNPCMod
             npcData = originalNpcData;
 
             // Assign last name
-            customLastName = familyLastName;
+            string firstName = DaggerfallUnity.Instance.NameHelper.FirstName(npcData.nameBank, npcData.gender);
+            customDisplayName = $"{firstName} {familyLastName}";
 
             // Determine and assign gender
             npcData.gender = DetermineGender(npcData.billboardArchiveIndex, npcData.billboardRecordIndex);
             Debug.Log($"Gender determined for NPC ID {newNpcId}: {npcData.gender}");
 
             // Generate and set display name
-            SetCustomDisplayName(GenerateName(npcData.nameBank, npcData.gender, customLastName));
+            SetCustomDisplayName(customDisplayName);
+
+            // Ensure NPC has all required components
+            EnsureComponents(originalNpcData);
         }
 
         private string GenerateName(NameHelper.BankTypes nameBank, Genders gender, string lastName)
@@ -396,8 +401,6 @@ namespace CustomStaticNPCMod
             string firstName = DaggerfallUnity.Instance.NameHelper.FirstName(nameBank, gender);
             return $"{firstName} {lastName}";
         }
-
-        private string customDisplayName; // Custom field for the display name
 
         // Method to set the custom display name
         public void SetCustomDisplayName(string newName)
@@ -414,14 +417,15 @@ namespace CustomStaticNPCMod
 
         private void EnsureComponents(StaticNPC.NPCData originalNpcData)
         {
-            MeshFilter meshFilter = GetComponent<MeshFilter>();
-            if (meshFilter == null)
+            // Add or ensure a MeshFilter component
+            if (GetComponent<MeshFilter>() == null)
             {
-                meshFilter = gameObject.AddComponent<MeshFilter>();
+                gameObject.AddComponent<MeshFilter>();
                 Debug.Log("Added missing MeshFilter component.");
             }
 
-            MeshRenderer meshRenderer = GetComponent<MeshRenderer>();
+            // Add or ensure a MeshRenderer component
+            var meshRenderer = GetComponent<MeshRenderer>();
             if (meshRenderer == null)
             {
                 meshRenderer = gameObject.AddComponent<MeshRenderer>();
@@ -429,7 +433,8 @@ namespace CustomStaticNPCMod
             }
             meshRenderer.enabled = true;
 
-            DaggerfallBillboard billboard = GetComponent<DaggerfallBillboard>();
+            // Add or ensure a DaggerfallBillboard component
+            var billboard = GetComponent<DaggerfallBillboard>();
             if (billboard == null)
             {
                 billboard = gameObject.AddComponent<DaggerfallBillboard>();
@@ -439,8 +444,14 @@ namespace CustomStaticNPCMod
             }
             billboard.enabled = true;
 
-            BoxCollider boxCollide = GetComponent<BoxCollider>();
-            boxCollide.enabled = true;
+            // Add or ensure a BoxCollider component
+            var boxCollider = GetComponent<BoxCollider>();
+            if (boxCollider == null)
+            {
+                boxCollider = gameObject.AddComponent<BoxCollider>();
+                Debug.Log("Added missing BoxCollider component.");
+            }
+            boxCollider.enabled = true;
         }
 
         public void SetLayoutData(int hash, Genders gender, int factionID, int nameSeed)
