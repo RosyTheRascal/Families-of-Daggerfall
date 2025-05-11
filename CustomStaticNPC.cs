@@ -332,7 +332,7 @@ namespace CustomStaticNPCMod
             if (archiveIndex == 182)
             {
                 // Explicit cases for female
-                if (recordIndex == 4 || recordIndex == 15 || recordIndex == 16 || recordIndex == 17 || recordIndex == 18 || recordIndex == 19 || recordIndex == 20 || recordIndex == 21 || recordIndex == 22 || recordIndex == 23 || recordIndex == 24 || recordIndex == 25 || recordIndex == 29 || recordIndex == 35 || recordIndex == 39 || recordIndex == 42 || recordIndex == 43 || recordIndex == 46 || recordIndex == 52)
+                if (recordIndex == 4 || recordIndex == 15 || recordIndex == 16 || recordIndex == 17 || recordIndex == 18 || recordIndex == 19 || recordIndex == 20 || recordIndex == 21 || recordIndex == 22 || recordIndex == 23 || recordIndex == 24 || recordIndex == 25 || recordIndex == 29 || recordIndex == 35 || recordIndex == 36 || recordIndex == 39 || recordIndex == 42 || recordIndex == 43 || recordIndex == 46 || recordIndex == 52)
                     return Genders.Male;
 
                 else
@@ -385,12 +385,12 @@ namespace CustomStaticNPCMod
             string firstName = DaggerfallUnity.Instance.NameHelper.FirstName(npcData.nameBank, npcData.gender);
             customDisplayName = $"{firstName} {familyLastName}";
 
-            // Determine and assign gender
             npcData.gender = DetermineGender(npcData.billboardArchiveIndex, npcData.billboardRecordIndex);
             Debug.Log($"Gender determined for NPC ID {newNpcId}: {npcData.gender}");
 
-            // Generate and set display name
-            SetCustomDisplayName(customDisplayName);
+            // Generate and set display name using gender and family last name
+            SetCustomDisplayName(GenerateName(npcData.nameBank, npcData.gender, familyLastName));
+
 
             // Ensure NPC has all required components
             EnsureComponents(originalNpcData);
