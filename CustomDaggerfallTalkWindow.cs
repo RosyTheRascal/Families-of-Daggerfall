@@ -1465,15 +1465,20 @@ namespace CustomDaggerfallTalkWindowMod
                 DaggerfallTalkWindow.FacePortraitArchive facePortraitArchive = DaggerfallTalkWindow.FacePortraitArchive.CommonFaces;
                 int recordIndex;
 
-                // Force portrait selection for specific billboard textures
-                if (customNpc.Data.billboardArchiveIndex == 357) // Check if texture is 357.x
+               
+                if (customNpc.Data.billboardArchiveIndex == 357) 
                 {
-                    recordIndex = 465; // Force record index to 465
+                    recordIndex = 465; 
+                    Debug.Log($"Forced portrait selection: Texture 357 -> CommonFaces, Record Index: {recordIndex}");
+                }
+                else if (customNpc.Data.billboardArchiveIndex == 334) 
+                {
+                    recordIndex = 438; 
                     Debug.Log($"Forced portrait selection: Texture 357 -> CommonFaces, Record Index: {recordIndex}");
                 }
                 else
                 {
-                    // Use default logic for other textures
+                    
                     GetPortraitIndexFromStaticNPCBillboard(customNpc, out facePortraitArchive, out recordIndex);
                 }
 

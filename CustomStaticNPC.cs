@@ -328,7 +328,16 @@ namespace CustomStaticNPCMod
 
         private Genders DetermineGender(int archiveIndex, int recordIndex)
         {
-            // Handle archive 182 specifically
+            if (archiveIndex == 180)
+            {
+                // Explicit cases for male
+                if (recordIndex == 2 || recordIndex == 3)
+                    return Genders.Male;
+
+                else
+                    return Genders.Female;
+            }
+
             if (archiveIndex == 182)
             {
                 // Explicit cases for female
