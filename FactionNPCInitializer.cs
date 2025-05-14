@@ -103,81 +103,76 @@ namespace FactionNPCInitializerMod
             collider.size = new Vector3(1, 2, 1); // Adjust size as needed
             collider.center = new Vector3(0, 1, 0); // Adjust position as needed
 
-            // Determine race and gender
-            string race = DetermineRace(archiveIndex);
-            string gender = DetermineGender(archiveIndex, recordIndex);
+            // Determine race and gender (using enums)
+            Races race = DetermineRace(archiveIndex);
+            Genders gender = DetermineGender(archiveIndex, recordIndex);
 
-            // Assign name using game's name generation logic
-            customNPC.Name = GenerateName(race, gender);
+            // Assign name using a placeholder logic (since NameGenerator is missing)
+            string name = GenerateName(race, gender);
 
-            // Set default portrait (placeholder for now)
-            customNPC.Portrait = null; // Load default portrait logic here
+            // Initialize NPC data
+            customNPC.InitializeNPCData(new StaticNPC.NPCData
+            {
+                nameSeed = name.GetHashCode(),
+                factionID = 0, // Placeholder for an actual faction ID
+                nameBank = NameHelper.BankTypes.Breton // Placeholder for name bank type
+            });
 
-            // Custom logic for NPC
-            customNPC.Race = race;
-            customNPC.Gender = gender;
+            Debug.Log($"Created NPC: Name = {name}, Race = {race}, Gender = {gender}");
         }
 
-        private string DetermineRace(int archiveIndex)
+        private Races DetermineRace(int archiveIndex)
         {
             switch (archiveIndex)
             {
-                case 1300:
-                    return "Dark Elf";
-                case 1301:
-                    return "High Elf";
-                case 1302:
-                    return "Wood Elf";
-                case 1305:
-                    return "Khajiit";
-                default:
-                    return "Unknown";
+                case 1300: return Races.DarkElf;
+                case 1301: return Races.HighElf;
+                case 1302: return Races.WoodElf;
+                case 1305: return Races.Khajiit;
+                default: return Races.None;
             }
         }
 
-        private string DetermineGender(int archiveIndex, int recordIndex)
+        private Genders DetermineGender(int archiveIndex, int recordIndex)
         {
             // Logic for Dark Elves
             if (archiveIndex == 1300)
             {
-                if (recordIndex == 3 || recordIndex == 5 || recordIndex == 6 || recordIndex == 7 || recordIndex == 8)
-                    return "Male";
-                else
-                    return "Female";
+                return (recordIndex == 3 || recordIndex == 5 || recordIndex == 6 || recordIndex == 7 || recordIndex == 8)
+                    ? Genders.Male
+                    : Genders.Female;
             }
 
             // Logic for High Elves
             if (archiveIndex == 1301)
             {
-                if (recordIndex == 2 || recordIndex == 3 || recordIndex == 4)
-                    return "Male";
-                else
-                    return "Female";
+                return (recordIndex == 2 || recordIndex == 3 || recordIndex == 4)
+                    ? Genders.Male
+                    : Genders.Female;
             }
 
             // Logic for Wood Elves
             if (archiveIndex == 1302)
             {
-                if (recordIndex == 1 || recordIndex == 2)
-                    return "Male";
-                else
-                    return "Female";
+                return (recordIndex == 1 || recordIndex == 2)
+                    ? Genders.Male
+                    : Genders.Female;
             }
 
-            // Logic for Khajiit
+            // Logic for Khajiit (all male)
             if (archiveIndex == 1305)
             {
-                return "Male";
+                return Genders.Male;
             }
 
-            return "Unknown";
+            return Genders.None;
         }
 
-        private string GenerateName(string race, string gender)
+        private string GenerateName(Races race, Genders gender)
         {
-            // Use the game's existing name generation logic
-            // Placeholder for now
-            return NameGenerator.GetNameForRaceAndGender(race, gender);
+            // Placeholder logic for name generation
+            // Replace this with actual logic from Daggerfall Unity's NameGenerator if available
+            return $"{race}_{gender}_{Random.Range(1000, 9999)}";
         }
     }
 
