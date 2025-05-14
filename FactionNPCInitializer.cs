@@ -93,6 +93,55 @@ namespace FactionNPCInitializerMod
 
     public class CustomNPCInitializer : MonoBehaviour
     {
+        private void OnEnable()
+        {
+            // Subscribe to interior transition event
+            PlayerEnterExit.OnTransitionToInterior += OnTransitionToInterior;
+            Debug.Log("CustomNPCInitializer: Subscribed to OnTransitionToInterior event.");
+        }
+
+        private void OnDisable()
+        {
+            // Unsubscribe to avoid memory leaks
+            PlayerEnterExit.OnTransitionToInterior -= OnTransitionToInterior;
+            Debug.Log("CustomNPCInitializer: Unsubscribed from OnTransitionToInterior event.");
+        }
+
+        private void OnTransitionToInterior()
+        {
+            Debug.Log("CustomNPCInitializer: Transitioned to an interior. Initializing Custom NPCs.");
+
+            // Find all game objects tagged as billboards (or use a specific method to find them)
+            GameObject[] billboards = FindObjectsOfType<GameObject>();
+
+            foreach (GameObject billboard in billboards)
+            {
+                // Check if the billboard has the required archive index
+                if (billboard.TryGetComponent(out DaggerfallBillboard dfBillboard))
+                {
+                    int archiveIndex = dfBillboard.Summary.Archive;
+                    int recordIndex = dfBillboard.Summary.Record;
+
+                    // Check if the archive index matches the custom NPC criteria
+                    if (IsCustomNPCArchive(archiveIndex))
+                    {
+                        Debug.Log($"CustomNPCInitializer: Found billboard with ArchiveIndex = {archiveIndex}, RecordIndex = {recordIndex}. Adding components.");
+
+                        // Add the custom NPC components
+                        AddCustomNPC(billboard, archiveIndex, recordIndex);
+                    }
+                }
+            }
+
+            Debug.Log("CustomNPCInitializer: Finished processing billboards.");
+        }
+
+        private bool IsCustomNPCArchive(int archiveIndex)
+        {
+            // Check if the archive index matches any of the defined custom NPC types
+            return archiveIndex == 1300 || archiveIndex == 1301 || archiveIndex == 1302 || archiveIndex == 1305;
+        }
+
         public void AddCustomNPC(GameObject billboard, int archiveIndex, int recordIndex)
         {
             // Add CustomStaticNPC component
@@ -118,7 +167,7 @@ namespace FactionNPCInitializerMod
                 nameBank = NameHelper.BankTypes.Breton // Placeholder for name bank type
             });
 
-            Debug.Log($"Created NPC: Name = {name}, Race = {race}, Gender = {gender}");
+            Debug.Log($"CustomNPCInitializer: Created NPC: Name = {name}, Race = {race}, Gender = {gender}");
         }
 
         private Races DetermineRace(int archiveIndex)
