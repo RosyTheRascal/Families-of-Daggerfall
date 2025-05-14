@@ -129,7 +129,7 @@ namespace FactionNPCInitializerMod
                 case 1301: return Races.HighElf;
                 case 1302: return Races.WoodElf;
                 case 1305: return Races.Khajiit;
-                default: return Races.None;
+                default: return Races.Breton; // Default to Breton as a fallback
             }
         }
 
@@ -165,14 +165,14 @@ namespace FactionNPCInitializerMod
                 return Genders.Male;
             }
 
-            return Genders.None;
+            return Genders.Female; // Default to Female as a fallback
         }
 
         private string GenerateName(Races race, Genders gender)
         {
             // Placeholder logic for name generation
             // Replace this with actual logic from Daggerfall Unity's NameGenerator if available
-            return $"{race}_{gender}_{Random.Range(1000, 9999)}";
+            return $"{race}_{gender}_{UnityEngine.Random.Range(1000, 9999)}";
         }
     }
 
