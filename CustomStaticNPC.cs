@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -400,19 +401,49 @@ namespace CustomStaticNPCMod
         {
             npcData = originalNpcData;
 
-            // Assign last name
+            // Determine the current region
+            int currentRegionIndex = GameManager.Instance.PlayerGPS.CurrentRegionIndex;
+            NameHelper.BankTypes surnameBank;
+
+            // Assign surname bank based on region
+            if (IsBretonRegion(currentRegionIndex))
+            {
+                surnameBank = NameHelper.BankTypes.Breton;
+            }
+            else if (IsRedguardRegion(currentRegionIndex))
+            {
+                surnameBank = NameHelper.BankTypes.Redguard;
+            }
+            else
+            {
+                surnameBank = NameHelper.BankTypes.Breton; // Default to Breton
+            }
+
+            // Generate first and last name
             string firstName = DaggerfallUnity.Instance.NameHelper.FirstName(npcData.nameBank, npcData.gender);
-            customDisplayName = $"{firstName} {familyLastName}";
+            string lastName = DaggerfallUnity.Instance.NameHelper.Surname(surnameBank);
+            customDisplayName = $"{firstName} {lastName}";
 
-            npcData.gender = DetermineGender(npcData.billboardArchiveIndex, npcData.billboardRecordIndex);
-            Debug.Log($"Gender determined for NPC ID {newNpcId}: {npcData.gender}");
-
-            // Generate and set display name using gender and family last name
-            SetCustomDisplayName(GenerateName(npcData.nameBank, npcData.gender, familyLastName));
-
+            // Set display name
+            SetCustomDisplayName(customDisplayName);
 
             // Ensure NPC has all required components
             EnsureComponents(originalNpcData);
+        }
+
+        // Helper methods to determine region type
+        private bool IsBretonRegion(int regionIndex)
+        {
+            // List of High Rock region indexes (example values)
+            int[] highRockRegions = { 1, 2, 3, 4, 5 }; // Replace with actual indexes
+            return highRockRegions.Contains(regionIndex);
+        }
+
+        private bool IsRedguardRegion(int regionIndex)
+        {
+            // List of Hammerfell region indexes (example values)
+            int[] hammerfellRegions = { 6, 7, 8, 9, 10 }; // Replace with actual indexes
+            return hammerfellRegions.Contains(regionIndex);
         }
 
         private string GenerateName(NameHelper.BankTypes nameBank, Genders gender, string lastName)

@@ -325,17 +325,30 @@ namespace FamilyNameModifierMod
         {
             DespawnCustomNPCs();
 
-            if (updateNPCCoroutine != null)
+            // Determine the current region
+            int currentRegionIndex = GameManager.Instance.PlayerGPS.CurrentRegionIndex;
+            NameHelper.BankTypes surnameBank;
+
+            // Assign surname bank based on region
+            if (IsBretonRegion(currentRegionIndex))
             {
-                StopCoroutine(updateNPCCoroutine);
-                Debug.Log("Stopping previous IntermediateCoroutine.");
+                surnameBank = NameHelper.BankTypes.Breton;
+            }
+            else if (IsRedguardRegion(currentRegionIndex))
+            {
+                surnameBank = NameHelper.BankTypes.Redguard;
+            }
+            else
+            {
+                surnameBank = NameHelper.BankTypes.Breton; // Default to Breton
             }
 
-            updateNPCCoroutine = StartCoroutine(IntermediateCoroutine());
-            Debug.Log("Starting new IntermediateCoroutine.");
+            // Pass the detected region to the coroutine
+            updateNPCCoroutine = StartCoroutine(IntermediateCoroutine(surnameBank));
+            Debug.Log("Starting new IntermediateCoroutine with region-specific surnames.");
         }
 
-        private IEnumerator IntermediateCoroutine()
+        private IEnumerator IntermediateCoroutine(NameHelper.BankTypes surnameBank)
         {
             Debug.Log("Waiting for 60 frames before updating NPC names.");
             for (int i = 0; i < 60; i++)
@@ -343,40 +356,36 @@ namespace FamilyNameModifierMod
                 yield return new WaitForEndOfFrame();
             }
 
-            // Check if we already scheduled an update
-            if (isUpdateScheduled)
-            {
-                Debug.Log("Update already scheduled. Exiting coroutine.");
-                yield break;
-            }
-
-            // Schedule the update
-            isUpdateScheduled = true;
-            yield return StartCoroutine(UpdateNPCNamesAfterSceneLoad());
+            // Update NPC names with the appropriate surname bank
+            UpdateNPCNamesAfterSceneLoad(surnameBank);
 
             Debug.Log("IntermediateCoroutine completed. NPC names updated.");
-
-            // Reset the flag
-            isUpdateScheduled = false;
-            updateNPCCoroutine = null;
         }
 
-        private IEnumerator UpdateNPCNamesAfterSceneLoad()
+        private void UpdateNPCNamesAfterSceneLoad(NameHelper.BankTypes surnameBank)
         {
-            Debug.Log("UpdateNPCNamesAfterSceneLoad started.");
-            yield return null;
+            // Find all custom NPCs and update their names
+            CustomStaticNPCMod.CustomStaticNPC[] customNPCs = FindObjectsOfType<CustomStaticNPCMod.CustomStaticNPC>();
+            foreach (var npc in customNPCs)
+            {
+                string firstName = DaggerfallUnity.Instance.NameHelper.FirstName(npc.NameBank, npc.Gender);
+                string lastName = DaggerfallUnity.Instance.NameHelper.Surname(surnameBank);
+                npc.CustomDisplayName = $"{firstName} {lastName}";
+                Debug.Log($"Updated NPC {npc.CustomDisplayName} with region-appropriate last name.");
+            }
+        }
 
-            if (IsInResidentialBuilding())
-            {
-                Debug.Log("Player entered a residential building.");
-                familyLastName = GenerateFamilyLastName();
-                Debug.Log($"Generated family last name: {familyLastName}");
-                ReplaceAllNPCs();
-            }
-            else
-            {
-                Debug.LogWarning("Not a residential building.");
-            }
+        // Helper methods for region detection
+        private bool IsBretonRegion(int regionIndex)
+        {
+            int[] highRockRegions = { 1, 2, 3, 4, 5 }; // Replace with actual Breton region indexes
+            return highRockRegions.Contains(regionIndex);
+        }
+
+        private bool IsRedguardRegion(int regionIndex)
+        {
+            int[] hammerfellRegions = { 6, 7, 8, 9, 10 }; // Replace with actual Redguard region indexes
+            return hammerfellRegions.Contains(regionIndex);
         }
 
         private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
