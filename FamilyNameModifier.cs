@@ -89,6 +89,88 @@ namespace FamilyNameModifierMod
             return null;
         }
 
+        //REGIONS DICTIONARY xP ;D :333
+        #region
+        private static readonly Dictionary<int, Races> RegionToRaceMap = new Dictionary<int, Races>
+        {
+    // Alik'r Desert regions (Redguard)
+    { 0, Races.Redguard }, // Alik'r Desert
+    { 1, Races.Redguard }, // Dragontail Mountains
+
+    // High Rock regions (Breton)
+    { 2, Races.Breton },   // Glenpoint Foothills
+    { 3, Races.Breton },   // Daggerfall Bluffs
+    { 4, Races.Breton },   // Yeorth Burrowland
+    { 5, Races.Breton },   // Dwynnen
+    { 6, Races.Breton },   // Ravennian Forest
+    { 7, Races.Redguard }, // Devilrock
+    { 8, Races.Redguard }, // Malekna Forest
+    { 9, Races.Breton },   // Isle of Balfiera
+
+    // More regions
+    { 10, Races.Redguard }, // Bantha
+    { 11, Races.Redguard }, // Dak'fron
+    { 12, Races.Breton },   // Islands in the Western Iliac Bay
+    { 13, Races.Breton },   // Tamarilyn Point
+    { 14, Races.Redguard }, // Lainlyn Cliffs
+    { 15, Races.Breton },   // Bjoulsae River
+    { 16, Races.Breton },   // Wrothgarian Mountains
+    { 17, Races.Breton },   // Daggerfall
+    { 18, Races.Breton },   // Glenpoint
+    { 19, Races.Breton },   // Betony
+    { 20, Races.Redguard }, // Sentinel
+    { 21, Races.Breton },   // Anticlere
+    { 22, Races.Redguard }, // Lainlyn
+    { 23, Races.Breton },   // Wayrest
+
+    // Villages and coastlines
+    { 24, Races.Breton },   // Gen Tem High Rock village
+    { 25, Races.Redguard }, // Gen Rai Hammerfell village
+    { 26, Races.Breton },   // Orsinium Area
+    { 27, Races.Breton },   // Skeffington Wood
+    { 28, Races.Redguard }, // Hammerfell Bay Coast
+    { 29, Races.Redguard }, // Hammerfell Sea Coast
+    { 30, Races.Breton },   // High Rock Bay Coast
+    { 31, Races.Breton },   // High Rock Sea Coast
+
+    // Remaining High Rock regions
+    { 32, Races.Breton }, // Northmoor
+    { 33, Races.Breton }, // Menevia
+    { 34, Races.Breton }, // Alcaire
+    { 35, Races.Breton }, // Koegria
+    { 36, Races.Breton }, // Bhoriane
+    { 37, Races.Breton }, // Kambria
+    { 38, Races.Breton }, // Phrygias
+    { 39, Races.Breton }, // Urvaius
+    { 40, Races.Breton }, // Ykalon
+    { 41, Races.Breton }, // Daenia
+    { 42, Races.Breton }, // Shalgora
+
+    // Remaining Hammerfell regions
+    { 43, Races.Redguard }, // Abibon-Gora
+    { 44, Races.Redguard }, // Kairou
+    { 45, Races.Redguard }, // Pothago
+    { 46, Races.Redguard }, // Myrkwasa
+    { 47, Races.Redguard }, // Ayasofya
+    { 48, Races.Redguard }, // Tigonus
+    { 49, Races.Redguard }, // Kozanset
+    { 50, Races.Redguard }, // Satakalaam
+    { 51, Races.Redguard }, // Totambu
+    { 52, Races.Redguard }, // Mournoth
+    { 53, Races.Redguard }, // Ephesus
+    { 54, Races.Redguard }, // Santaki
+    { 55, Races.Redguard }, // Antiphyllos
+    { 56, Races.Redguard }, // Bergama
+
+    // Miscellaneous regions
+    { 57, Races.Breton }, // Gavaudon
+    { 58, Races.Breton }, // Tulune
+    { 59, Races.Breton }, // Glenumbra Moors
+    { 60, Races.Breton }, // Ilessan Hills
+    { 61, Races.Redguard }, // Cybiades
+        };
+        #endregion
+
         public string GenerateFamilyLastName()
         {
             string buildingId = GetBuildingIdentifier();
@@ -101,17 +183,25 @@ namespace FamilyNameModifierMod
 
                 // Detect current region and assign last name bank
                 int currentRegion = GameManager.Instance.PlayerGPS.CurrentRegionIndex;
+                Races regionRace = RegionToRaceMap.ContainsKey(currentRegion) ? RegionToRaceMap[currentRegion] : Races.Breton;
+                Debug.Log($"Region race for current region index {currentRegion}: {regionRace}");
+
                 NameHelper.BankTypes nameBank;
 
-                if (MapsFile.RegionRaces[currentRegion] == (int)Races.Redguard)
+                if (regionRace == Races.Redguard)
                 {
                     Debug.Log("Detected Hammerfell region. Assigning Redguard name bank.");
                     nameBank = NameHelper.BankTypes.Redguard; // Hammerfell regions
                 }
-                else
+                else if (regionRace == Races.Breton)
                 {
                     Debug.Log("Detected High Rock region. Assigning Breton name bank.");
                     nameBank = NameHelper.BankTypes.Breton; // High Rock regions
+                }
+                else
+                {
+                    Debug.LogWarning($"Unexpected race for region index {currentRegion}: {regionRace}. Defaulting to Breton.");
+                    nameBank = NameHelper.BankTypes.Breton; // Default to Breton
                 }
 
                 lastName = DaggerfallUnity.Instance.NameHelper.Surname(nameBank);
