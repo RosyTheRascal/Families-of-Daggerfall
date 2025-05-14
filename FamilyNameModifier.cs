@@ -353,8 +353,16 @@ namespace FamilyNameModifierMod
                     {
                         Debug.Log($"FamilyNameModifier: Found billboard with ArchiveIndex = {archiveIndex}, RecordIndex = {recordIndex}. Ensuring components are added.");
 
-                        // Add the custom NPC components if they don't already exist
-                        AddCustomNPCIfMissing(billboard, archiveIndex, recordIndex);
+                        // Ensure components are added only once
+                        if (!billboard.TryGetComponent<CustomStaticNPC>(out var customNPC))
+                        {
+                            // Add the custom NPC components if they don't already exist
+                            AddCustomNPC(billboard, archiveIndex, recordIndex);
+                        }
+                        else
+                        {
+                            Debug.Log($"FamilyNameModifier: Billboard (ArchiveIndex = {archiveIndex}, RecordIndex = {recordIndex}) already has CustomStaticNPC. Skipping.");
+                        }
                     }
                 }
             }
@@ -368,28 +376,27 @@ namespace FamilyNameModifierMod
             return archiveIndex == 1300 || archiveIndex == 1301 || archiveIndex == 1302 || archiveIndex == 1305;
         }
 
-        private void AddCustomNPCIfMissing(GameObject billboard, int archiveIndex, int recordIndex)
+        private void AddCustomNPC(GameObject billboard, int archiveIndex, int recordIndex)
         {
-            // Ensure the GameObject only has one CustomStaticNPC component
-            if (!billboard.TryGetComponent<CustomStaticNPC>(out var customNPC))
-            {
-                customNPC = billboard.AddComponent<CustomStaticNPC>();
-                Debug.Log($"FamilyNameModifier: Added CustomStaticNPC component to billboard (ArchiveIndex = {archiveIndex}, RecordIndex = {recordIndex}).");
-            }
+            Debug.Log($"FamilyNameModifier: Adding CustomStaticNPC to billboard (ArchiveIndex = {archiveIndex}, RecordIndex = {recordIndex}).");
 
-            // Ensure the GameObject only has one Collider component
-            if (!billboard.TryGetComponent<CapsuleCollider>(out var collider))
+            // Add the CustomStaticNPC component
+            var customNPC = billboard.AddComponent<CustomStaticNPC>();
+
+            // Ensure the billboard has a BoxCollider
+            if (!billboard.TryGetComponent<BoxCollider>(out var collider))
             {
-                collider = billboard.AddComponent<CapsuleCollider>();
+                collider = billboard.AddComponent<BoxCollider>();
+                collider.size = new Vector3(1, 2, 1); // Adjust size as needed
                 collider.center = new Vector3(0, 1, 0); // Adjust position as needed
-                Debug.Log($"FamilyNameModifier: Added Collider component to billboard (ArchiveIndex = {archiveIndex}, RecordIndex = {recordIndex}).");
+                Debug.Log($"FamilyNameModifier: Added BoxCollider component to billboard (ArchiveIndex = {archiveIndex}, RecordIndex = {recordIndex}).");
             }
 
-            // Determine race and gender (using enums)
+            // Determine race and gender
             Races race = DetermineRace(archiveIndex);
             Genders gender = DetermineGender(archiveIndex, recordIndex);
 
-            // Assign name using a placeholder logic (since NameGenerator is missing)
+            // Generate a name using the NameHelper
             string name = GenerateName(race, gender);
 
             // Initialize NPC data
