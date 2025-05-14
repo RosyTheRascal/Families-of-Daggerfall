@@ -311,6 +311,8 @@ namespace FamilyNameModifierMod
         {
             foreach (Transform child in parentTransform)
             {
+
+                AssignCustomNPC();
                 // Check if the child has an NPC component (StaticNPC)
                 var originalNpc = child.GetComponent<DaggerfallWorkshop.Game.StaticNPC>();
                 if (originalNpc != null)
@@ -320,8 +322,6 @@ namespace FamilyNameModifierMod
                     // Replace and register the NPC using the existing method
                     ReplaceAndRegisterNPC(originalNpc);
 
-                    // Assign custom NPC components
-                    AssignCustomNPC();
                 }
                 else
                 {
@@ -452,9 +452,51 @@ namespace FamilyNameModifierMod
 
         private string GenerateName(Races race, Genders gender)
         {
-            // Placeholder logic for name generation
-            // Replace this with actual logic from Daggerfall Unity's NameGenerator if available
-            return $"{race}_{gender}_{UnityEngine.Random.Range(1000, 9999)}";
+            // Map the Races enum to NameHelper.BankTypes
+            NameHelper.BankTypes bankType;
+            switch (race)
+            {
+                case Races.Breton:
+                    bankType = NameHelper.BankTypes.Breton;
+                    break;
+                case Races.Redguard:
+                    bankType = NameHelper.BankTypes.Redguard;
+                    break;
+                case Races.Nord:
+                    bankType = NameHelper.BankTypes.Nord;
+                    break;
+                case Races.DarkElf:
+                    bankType = NameHelper.BankTypes.DarkElf;
+                    break;
+                case Races.HighElf:
+                    bankType = NameHelper.BankTypes.HighElf;
+                    break;
+                case Races.WoodElf:
+                    bankType = NameHelper.BankTypes.WoodElf;
+                    break;
+                case Races.Khajiit:
+                    bankType = NameHelper.BankTypes.Khajiit;
+                    break;
+                case Races.Argonian:
+                    bankType = NameHelper.BankTypes.Imperial;
+                    break;
+                default:
+                    Debug.LogWarning($"FamilyNameModifier: Unsupported race '{race}'. Defaulting to Breton names.");
+                    bankType = NameHelper.BankTypes.Breton;
+                    break;
+            }
+
+            // Use the NameHelper to generate a name
+            var nameHelper = DaggerfallUnity.Instance.NameHelper;
+            if (nameHelper == null)
+            {
+                Debug.LogError("FamilyNameModifier: NameHelper instance is null. Cannot generate name.");
+                return "Unknown Name";
+            }
+
+            string generatedName = nameHelper.FullName(bankType, gender);
+            Debug.Log($"FamilyNameModifier: Generated name '{generatedName}' for race '{race}' and gender '{gender}'.");
+            return generatedName;
         }
 
         public void ReplaceAndRegisterNPC(StaticNPC originalNpc)
