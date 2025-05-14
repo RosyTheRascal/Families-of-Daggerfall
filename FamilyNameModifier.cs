@@ -276,12 +276,60 @@ namespace FamilyNameModifierMod
 
         public void ReplaceAllNPCs()
         {
-            Debug.Log("Calling ReplaceAllNPCs");
-            StaticNPC[] originalNPCs = FindObjectsOfType<StaticNPC>();
-            foreach (StaticNPC originalNpc in originalNPCs)
+            Debug.Log("FamilyNameModifier: ReplaceAllNPCs triggered. Locating 'interior' parent.");
+
+            // Attempt to find the "interior" parent object using PlayerEnterExit
+            GameObject interiorParent = null;
+            if (GameManager.Instance.PlayerEnterExit != null && GameManager.Instance.PlayerEnterExit.IsPlayerInside)
             {
-                ReplaceAndRegisterNPC(originalNpc);
-                AssignCustomNPC();
+                interiorParent = GameManager.Instance.PlayerEnterExit.InteriorParent;
+            }
+
+            // Fallback to find the "interior" parent by name if not found above
+            if (interiorParent == null)
+            {
+                interiorParent = GameObject.Find("interior");
+            }
+
+            // Check if the "interior" parent was successfully found
+            if (interiorParent == null)
+            {
+                Debug.LogWarning("FamilyNameModifier: 'interior' parent not found. Skipping processing.");
+                return;
+            }
+
+            Debug.Log($"FamilyNameModifier: Found 'interior' parent: {interiorParent.name}. Searching for NPCs in the hierarchy.");
+
+            // Recursively process all child objects under the "interior" parent
+            ProcessNPCsInHierarchy(interiorParent.transform);
+
+            Debug.Log("FamilyNameModifier: Finished processing all NPCs in the 'interior' hierarchy.");
+        }
+
+        // Recursive method to process NPCs in the hierarchy
+        private void ProcessNPCsInHierarchy(Transform parentTransform)
+        {
+            foreach (Transform child in parentTransform)
+            {
+                // Check if the child has an NPC component (StaticNPC)
+                var originalNpc = child.GetComponent<DaggerfallWorkshop.Game.StaticNPC>();
+                if (originalNpc != null)
+                {
+                    Debug.Log($"FamilyNameModifier: Found NPC '{child.name}' in hierarchy. Applying ReplaceAndRegisterNPC and AssignCustomNPC.");
+
+                    // Replace and register the NPC using the existing method
+                    ReplaceAndRegisterNPC(originalNpc);
+
+                    // Assign custom NPC components
+                    AssignCustomNPC();
+                }
+                else
+                {
+                    Debug.Log($"FamilyNameModifier: Skipping '{child.name}' as it does not have a StaticNPC component.");
+                }
+
+                // Recursively process the child's children
+                ProcessNPCsInHierarchy(child);
             }
         }
 
