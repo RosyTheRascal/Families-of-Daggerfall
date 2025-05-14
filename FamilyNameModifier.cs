@@ -105,10 +105,12 @@ namespace FamilyNameModifierMod
 
                 if (MapsFile.RegionRaces[currentRegion] == (int)Races.Redguard)
                 {
+                    Debug.Log("Detected Hammerfell region. Assigning Redguard name bank.");
                     nameBank = NameHelper.BankTypes.Redguard; // Hammerfell regions
                 }
                 else
                 {
+                    Debug.Log("Detected High Rock region. Assigning Breton name bank.");
                     nameBank = NameHelper.BankTypes.Breton; // High Rock regions
                 }
 
@@ -323,6 +325,20 @@ namespace FamilyNameModifierMod
 
         private void OnTransitionToInterior(PlayerEnterExit.TransitionEventArgs args)
         {
+            Debug.Log("Player transitioning to interior.");
+
+            // Log the current region
+            int currentRegion = GameManager.Instance.PlayerGPS.CurrentRegionIndex;
+            Debug.Log($"Current region index: {currentRegion}");
+
+            // Log building type
+            if (GameManager.Instance.PlayerEnterExit.Interior != null)
+            {
+                var buildingData = GameManager.Instance.PlayerEnterExit.Interior.BuildingData;
+                Debug.Log($"Building type: {buildingData.BuildingType}");
+            }
+
+            // Existing functionality
             DespawnCustomNPCs();
 
             if (updateNPCCoroutine != null)
@@ -371,6 +387,7 @@ namespace FamilyNameModifierMod
                 Debug.Log("Player entered a residential building.");
                 familyLastName = GenerateFamilyLastName();
                 Debug.Log($"Generated family last name: {familyLastName}");
+
                 ReplaceAllNPCs();
             }
             else
@@ -412,11 +429,6 @@ namespace FamilyNameModifierMod
             var playerEnterExit = GameManager.Instance.PlayerEnterExit;
             if (playerEnterExit.IsPlayerInsideBuilding)
             {
-                // Get the current location index
-                int locationIndex = GameManager.Instance.PlayerGPS.CurrentLocationIndex;
-                if (locationIndex == -1)
-                    return false;
-
                 // Get the current building summary from the interior
                 var buildingSummary = playerEnterExit.Interior.BuildingData;
 
@@ -433,6 +445,7 @@ namespace FamilyNameModifierMod
                 Debug.Log($"Building Type: {buildingType}. Is residential: {isResidential}");
                 return isResidential;
             }
+
             return false;
         }
 
