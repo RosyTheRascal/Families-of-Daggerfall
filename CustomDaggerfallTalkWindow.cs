@@ -1465,26 +1465,27 @@ namespace CustomDaggerfallTalkWindowMod
                 DaggerfallTalkWindow.FacePortraitArchive facePortraitArchive = DaggerfallTalkWindow.FacePortraitArchive.CommonFaces;
                 int recordIndex;
 
-               
-                if (customNpc.Data.billboardArchiveIndex == 357) 
+                
+                if (customNpc.Data.billboardArchiveIndex == 357 && customNpc.Data.billboardRecordIndex == 1)
                 {
                     recordIndex = 465; 
-                    Debug.Log($"Forced portrait selection: Texture 357 -> CommonFaces, Record Index: {recordIndex}");
+                    Debug.Log($"Forced portrait selection: Archive 357, Record 1 -> CommonFaces, Record Index: {recordIndex}");
                 }
-                else if (customNpc.Data.billboardArchiveIndex == 334) 
+                else if (customNpc.Data.billboardArchiveIndex == 334 && customNpc.Data.billboardRecordIndex == 18)
                 {
                     recordIndex = 438; 
-                    Debug.Log($"Forced portrait selection: Texture 357 -> CommonFaces, Record Index: {recordIndex}");
+                    Debug.Log($"Forced portrait selection: Archive 334, Record 2 -> CommonFaces, Record Index: {recordIndex}");
                 }
                 else
                 {
-                    
+                    // Default logic for retrieving portrait
                     GetPortraitIndexFromStaticNPCBillboard(customNpc, out facePortraitArchive, out recordIndex);
                 }
 
                 SetNPCPortrait(facePortraitArchive, recordIndex);
 
                 Debug.Log($"customNpc.Data.billboardArchiveIndex: {customNpc.Data.billboardArchiveIndex}");
+                Debug.Log($"customNpc.Data.billboardRecordIndex: {customNpc.Data.billboardRecordIndex}");
                 Debug.Log($"recordIndex: {recordIndex}");
 
                 isChildNPC = (customNpc.Data.billboardArchiveIndex == 182) &&
@@ -1492,6 +1493,7 @@ namespace CustomDaggerfallTalkWindowMod
                               recordIndex == 437 || recordIndex == 490 || recordIndex == 491 || recordIndex == 497 ||
                               recordIndex == 498 || recordIndex == 400 || recordIndex == 456 || recordIndex == 463 ||
                               recordIndex == 430);
+
                 if (isChildNPC)
                 {
                     Debug.Log("Child detected");
