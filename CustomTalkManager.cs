@@ -1096,10 +1096,6 @@ namespace CustomTalkManagerMod
 
             public override string Name()
             {
-                // Used for greeting messages only: 7215, 7216, 7217
-                if (!string.IsNullOrEmpty(GameManager.Instance.TalkManager.GreetingNameNPC))
-                    return GameManager.Instance.TalkManager.GreetingNameNPC;
-
                 return MacroHelper.GetRandomFullName();
             }
 
@@ -1111,11 +1107,8 @@ namespace CustomTalkManagerMod
 
             public override string MaleName()
             {
-                DFRandom.Seed += 3547;
                 NameHelper.BankTypes nameBank = (NameHelper.BankTypes)MapsFile.RegionRaces[GameManager.Instance.PlayerGPS.CurrentRegionIndex];
-                string name = DaggerfallUnity.Instance.NameHelper.FullName(nameBank, Genders.Male);
-                DFRandom.Seed -= 3547;
-                return name;
+                return DaggerfallUnity.Instance.NameHelper.FullName(nameBank, Genders.Male);
             }
 
             public override string Direction()

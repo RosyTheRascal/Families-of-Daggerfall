@@ -71,23 +71,22 @@ namespace FactionNPCInitializerMod
         {
             GameObject npcObject = new GameObject(faction.name);
             CustomStaticNPCMod.CustomStaticNPC customStaticNPC = npcObject.AddComponent<CustomStaticNPCMod.CustomStaticNPC>();
+
+            // Assign name bank based on region
+            int currentRegion = GameManager.Instance.PlayerGPS.CurrentRegionIndex;
+            NameHelper.BankTypes nameBank = (MapsFile.RegionRaces[currentRegion] == (int)Races.Redguard)
+                ? NameHelper.BankTypes.Redguard
+                : NameHelper.BankTypes.Breton;
+
             StaticNPC.NPCData npcData = new StaticNPC.NPCData
             {
                 nameSeed = faction.id,
                 factionID = faction.id,
-                nameBank = (NameHelper.BankTypes)faction.type
+                nameBank = nameBank
             };
 
-            FactionFile.FlatData flatData = FactionFile.GetFlatData(faction.flat1);
-            DaggerfallBillboard billboard = npcObject.AddComponent<DaggerfallBillboard>();
-            billboard.SetMaterial(flatData.archive, flatData.record);
-
             customStaticNPC.InitializeNPCData(npcData);
-            customStaticNPC.SetLayoutData(npcData.hash, npcData.gender, npcData.factionID, npcData.nameSeed);
-
-            ActiveGameObjectDatabase.RegisterStaticNPC(npcObject);
-            CustomNPCBridge.Instance.RegisterCustomNPC(npcObject.GetInstanceID(), customStaticNPC);
-            Debug.Log($"Created and registered NPC for faction: {faction.name} with ID: {faction.id}");
+            Debug.Log($"Created NPC for faction: {faction.name} with name bank: {nameBank}");
         }
     }
 }

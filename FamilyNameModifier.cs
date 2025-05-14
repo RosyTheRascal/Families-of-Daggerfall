@@ -93,26 +93,26 @@ namespace FamilyNameModifierMod
         {
             string buildingId = GetBuildingIdentifier();
             string lastName = LoadFamilyLastName(buildingId);
-            string lastNameNord = LoadFamilyLastName(buildingId);
-            string lastNameRedguard = LoadFamilyLastName(buildingId);
-            string lastNameDarkElf = LoadFamilyLastName(buildingId);
-            string lastNameHighElf = LoadFamilyLastName(buildingId);
-            string lastNameWoodElf = LoadFamilyLastName(buildingId);
-            string lastNameKhajiit = LoadFamilyLastName(buildingId);
-            string lastNameArgonian = LoadFamilyLastName(buildingId);
 
             if (string.IsNullOrEmpty(lastName))
             {
                 int seed = GenerateUniqueSeed(buildingId);
                 UnityEngine.Random.InitState(seed);
-                lastName = DaggerfallUnity.Instance.NameHelper.Surname(NameHelper.BankTypes.Breton);
-                lastNameNord = DaggerfallUnity.Instance.NameHelper.Surname(NameHelper.BankTypes.Nord);
-                lastNameRedguard = DaggerfallUnity.Instance.NameHelper.Surname(NameHelper.BankTypes.Redguard);
-                lastNameDarkElf = DaggerfallUnity.Instance.NameHelper.Surname(NameHelper.BankTypes.DarkElf);
-                lastNameHighElf = DaggerfallUnity.Instance.NameHelper.Surname(NameHelper.BankTypes.HighElf);
-                lastNameWoodElf = DaggerfallUnity.Instance.NameHelper.Surname(NameHelper.BankTypes.WoodElf);
-                lastNameKhajiit = DaggerfallUnity.Instance.NameHelper.Surname(NameHelper.BankTypes.Khajiit);
-                lastNameArgonian = DaggerfallUnity.Instance.NameHelper.Surname(NameHelper.BankTypes.Imperial);
+
+                // Detect current region and assign last name bank
+                int currentRegion = GameManager.Instance.PlayerGPS.CurrentRegionIndex;
+                NameHelper.BankTypes nameBank;
+
+                if (MapsFile.RegionRaces[currentRegion] == (int)Races.Redguard)
+                {
+                    nameBank = NameHelper.BankTypes.Redguard; // Hammerfell regions
+                }
+                else
+                {
+                    nameBank = NameHelper.BankTypes.Breton; // High Rock regions
+                }
+
+                lastName = DaggerfallUnity.Instance.NameHelper.Surname(nameBank);
                 SaveFamilyLastName(buildingId, lastName);
             }
 
