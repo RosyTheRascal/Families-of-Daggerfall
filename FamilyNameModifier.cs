@@ -281,7 +281,125 @@ namespace FamilyNameModifierMod
             foreach (StaticNPC originalNpc in originalNPCs)
             {
                 ReplaceAndRegisterNPC(originalNpc);
+                AssignCustomNPC();
             }
+        }
+
+        public void AssignCustomNPC()
+        {
+            Debug.Log("FamilyNameModifier: AssignCustomNPC triggered. Initializing custom NPCs for interior.");
+
+            // Find all billboards in the scene
+            GameObject[] billboards = FindObjectsOfType<GameObject>();
+
+            foreach (GameObject billboard in billboards)
+            {
+                // Check if the billboard has the required archive index
+                if (billboard.TryGetComponent(out DaggerfallBillboard dfBillboard))
+                {
+                    int archiveIndex = dfBillboard.Summary.Archive;
+                    int recordIndex = dfBillboard.Summary.Record;
+
+                    // Check if the archive index matches the custom NPC criteria
+                    if (IsCustomNPCArchive(archiveIndex))
+                    {
+                        Debug.Log($"FamilyNameModifier: Found custom billboard with ArchiveIndex = {archiveIndex}, RecordIndex = {recordIndex}. Adding components.");
+
+                        // Add the custom NPC components
+                        AddCustomNPC(billboard, archiveIndex, recordIndex);
+                    }
+                }
+            }
+
+            Debug.Log("FamilyNameModifier: Finished processing custom  billboards.");
+        }
+
+        private bool IsCustomNPCArchive(int archiveIndex)
+        {
+            // Check if the archive index matches any of the defined custom NPC types
+            return archiveIndex == 1300 || archiveIndex == 1301 || archiveIndex == 1302 || archiveIndex == 1305;
+        }
+
+        private void AddCustomNPC(GameObject billboard, int archiveIndex, int recordIndex)
+        {
+            // Add CustomStaticNPC component
+            var customNPC = billboard.AddComponent<CustomStaticNPC>();
+
+            // Add BoxCollider for raycasting
+            var collider = billboard.AddComponent<BoxCollider>();
+            collider.size = new Vector3(1, 2, 1); // Adjust size as needed
+            collider.center = new Vector3(0, 1, 0); // Adjust position as needed
+
+            // Determine race and gender (using enums)
+            Races race = DetermineRace(archiveIndex);
+            Genders gender = DetermineGender(archiveIndex, recordIndex);
+
+            // Assign name using a placeholder logic (since NameGenerator is missing)
+            string name = GenerateName(race, gender);
+
+            // Initialize NPC data
+            customNPC.InitializeNPCData(new StaticNPC.NPCData
+            {
+                nameSeed = name.GetHashCode(),
+                factionID = 0, // Placeholder for an actual faction ID
+                nameBank = NameHelper.BankTypes.Breton // Placeholder for name bank type
+            });
+
+            Debug.Log($"FamilyNameModifier: Created NPC: Name = {name}, Race = {race}, Gender = {gender}");
+        }
+
+        private Races DetermineRace(int archiveIndex)
+        {
+            switch (archiveIndex)
+            {
+                case 1300: return Races.DarkElf;
+                case 1301: return Races.HighElf;
+                case 1302: return Races.WoodElf;
+                case 1305: return Races.Khajiit;
+                default: return Races.Breton; // Default to Breton as a fallback
+            }
+        }
+
+        private Genders DetermineGender(int archiveIndex, int recordIndex)
+        {
+            // Logic for Dark Elves
+            if (archiveIndex == 1300)
+            {
+                return (recordIndex == 3 || recordIndex == 5 || recordIndex == 6 || recordIndex == 7 || recordIndex == 8)
+                    ? Genders.Male
+                    : Genders.Female;
+            }
+
+            // Logic for High Elves
+            if (archiveIndex == 1301)
+            {
+                return (recordIndex == 2 || recordIndex == 3 || recordIndex == 4)
+                    ? Genders.Male
+                    : Genders.Female;
+            }
+
+            // Logic for Wood Elves
+            if (archiveIndex == 1302)
+            {
+                return (recordIndex == 1 || recordIndex == 2)
+                    ? Genders.Male
+                    : Genders.Female;
+            }
+
+            // Logic for Khajiit (all male)
+            if (archiveIndex == 1305)
+            {
+                return Genders.Male;
+            }
+
+            return Genders.Female; // Default to Female as a fallback
+        }
+
+        private string GenerateName(Races race, Genders gender)
+        {
+            // Placeholder logic for name generation
+            // Replace this with actual logic from Daggerfall Unity's NameGenerator if available
+            return $"{race}_{gender}_{UnityEngine.Random.Range(1000, 9999)}";
         }
 
         public void ReplaceAndRegisterNPC(StaticNPC originalNpc)
