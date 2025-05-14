@@ -95,19 +95,21 @@ namespace FactionNPCInitializerMod
     {
         private void OnEnable()
         {
-            // Subscribe to interior transition event
-            PlayerEnterExit.OnTransitionToInterior += OnTransitionToInterior;
-            Debug.Log("CustomNPCInitializer: Subscribed to OnTransitionToInterior event.");
+            // Subscribe to the transition events
+            PlayerEnterExit.OnTransitionInterior += OnTransitionToInterior;
+            PlayerEnterExit.OnTransitionExterior += OnTransitionToExterior;
+            Debug.Log("CustomNPCInitializer: Subscribed to transition events.");
         }
 
         private void OnDisable()
         {
             // Unsubscribe to avoid memory leaks
-            PlayerEnterExit.OnTransitionToInterior -= OnTransitionToInterior;
-            Debug.Log("CustomNPCInitializer: Unsubscribed from OnTransitionToInterior event.");
+            PlayerEnterExit.OnTransitionInterior -= OnTransitionToInterior;
+            PlayerEnterExit.OnTransitionExterior -= OnTransitionToExterior;
+            Debug.Log("CustomNPCInitializer: Unsubscribed from transition events.");
         }
 
-        private void OnTransitionToInterior()
+        private void OnTransitionToInterior(PlayerEnterExit.TransitionEventArgs args)
         {
             Debug.Log("CustomNPCInitializer: Transitioned to an interior. Initializing Custom NPCs.");
 
@@ -134,6 +136,11 @@ namespace FactionNPCInitializerMod
             }
 
             Debug.Log("CustomNPCInitializer: Finished processing billboards.");
+        }
+
+        private void OnTransitionToExterior(PlayerEnterExit.TransitionEventArgs args)
+        {
+            Debug.Log("CustomNPCInitializer: Transitioned to an exterior. No action needed.");
         }
 
         private bool IsCustomNPCArchive(int archiveIndex)
