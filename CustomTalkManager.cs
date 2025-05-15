@@ -242,26 +242,24 @@ namespace CustomTalkManagerMod
             return currentCustomNPC;
         }
 
-        public void SetTargetCustomNPC(CustomStaticNPC newTargetCustomNPC, ref bool sameTalkTargetAsBefore)
+        public void SetTargetCustomNPC(CustomStaticNPC targetCustomNPC, ref bool sameTalkTargetAsBefore)
         {
-            if (newTargetCustomNPC == null)
+            if (targetCustomNPC == null)
             {
-                Debug.LogError("SetTargetCustomNPC: Target NPC is null, nya~");
+                Debug.LogError("SetTargetCustomNPC: Target NPC is null.");
                 return;
             }
 
             // Check if the same NPC is being targeted
-            if (currentCustomNPC == newTargetCustomNPC)
+            if (currentCustomNPC == targetCustomNPC)
             {
                 sameTalkTargetAsBefore = true;
-                Debug.Log($"SetTargetCustomNPC: Same NPC targeted again (NameSeed: {newTargetCustomNPC.Data.nameSeed}).");
+                Debug.Log($"SetTargetCustomNPC: Same NPC targeted again (NameSeed: {targetCustomNPC.Data.nameSeed}).");
                 return;
             }
 
-            // Update the current NPC
-            currentCustomNPC = newTargetCustomNPC; // Use the passed NPC object
-            sameTalkTargetAsBefore = false; // Fix typo fow `false`
-            Debug.Log($"SetTargetCustomNPC: New target NPC set (NameSeed: {newTargetCustomNPC.Data.nameSeed}, Name: {newTargetCustomNPC.CustomDisplayName}).");
+            currentCustomNPC = targetCustomNPC;
+            Debug.Log($"SetTargetCustomNPC: New target NPC set (NameSeed: {targetCustomNPC.Data.nameSeed}, Name: {targetCustomNPC.CustomDisplayName}).");
         }
 
         public FactionFile.FactionData GetNPCData(int factionID)

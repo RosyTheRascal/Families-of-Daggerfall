@@ -810,8 +810,8 @@ namespace CustomDaggerfallTalkWindowMod
         {
             if (string.IsNullOrEmpty(displayName))
             {
-                Debug.LogWarning($"CustomDaggerfallTalkWindow: Display name is missing for NPC ID = {npcId}. Setting to 'Unknown NPC'.");
-                displayName = "Unknown NPC";
+                Debug.LogWarning($"SetupCustomNPC: Display name is missing fow NPC ID = {npcId}. Setting to 'Unknown NPC'.");
+                displayName = $"NPC_{npcId}"; // Use a defauwt unique name based on NPC ID
             }
 
             // Set NPC Name
@@ -1443,7 +1443,7 @@ namespace CustomDaggerfallTalkWindowMod
                     }
                     else
                     {
-                        Debug.Log($"StartDialogue: Found custom NPC with ID: {customNpc.GetInstanceID()}");
+                        Debug.Log($"StartDialogue: Found custom NPC with ID: {customNpc.GetInstanceID()}, Name: {customNpc.CustomDisplayName}");
                         int npcId = customNpc.GetInstanceID();
                         string greeting = CustomTalkManagerMod.CustomTalkManager.Instance.GetGreeting(npcId);
                         listboxConversation.AddItem(greeting, out textLabelGreeting);
