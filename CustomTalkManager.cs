@@ -140,7 +140,7 @@ namespace CustomTalkManagerMod
         private CustomStaticNPC lastTargetCustomNPC; // Use the correct type here
         private Dictionary<int, List<string>> customTokens = new Dictionary<int, List<string>>();
         private CustomStaticNPC currentCustomNPC;
-        int npcId = targetCustomNPC.Data.nameSeed;
+
 
         [Invoke(StateManager.StateTypes.Start, 0)]
         public static void Init(InitParams initParams)
@@ -242,26 +242,26 @@ namespace CustomTalkManagerMod
             return currentCustomNPC;
         }
 
-        public void SetTargetCustomNPC(CustomStaticNPC targetCustomNPC, ref bool sameTalkTargetAsBefore)
+        public void SetTargetCustomNPC(CustomStaticNPC newTargetCustomNPC, ref bool sameTalkTargetAsBefore)
         {
-            if (targetCustomNPC == null)
+            if (newTargetCustomNPC == null)
             {
                 Debug.LogError("SetTargetCustomNPC: Target NPC is null, nya~");
                 return;
             }
 
             // Check if the same NPC is being targeted
-            if (currentCustomNPC == targetCustomNPC)
+            if (currentCustomNPC == newTargetCustomNPC)
             {
                 sameTalkTargetAsBefore = true;
-                Debug.Log($"SetTargetCustomNPC: Same NPC targeted again (NameSeed: {targetCustomNPC.Data.nameSeed}).");
+                Debug.Log($"SetTargetCustomNPC: Same NPC targeted again (NameSeed: {newTargetCustomNPC.Data.nameSeed}).");
                 return;
             }
 
             // Update the current NPC
-            currentCustomNPC = targetCustomNPC;
+            currentCustomNPC = newTargetCustomNPC; // Use the passed NPC object
             sameTalkTargetAsBefore = false; // Fix typo fow `false`
-            Debug.Log($"SetTargetCustomNPC: New target NPC set (NameSeed: {targetCustomNPC.Data.nameSeed}, Name: {targetCustomNPC.CustomDisplayName}).");
+            Debug.Log($"SetTargetCustomNPC: New target NPC set (NameSeed: {newTargetCustomNPC.Data.nameSeed}, Name: {newTargetCustomNPC.CustomDisplayName}).");
         }
 
         public FactionFile.FactionData GetNPCData(int factionID)
