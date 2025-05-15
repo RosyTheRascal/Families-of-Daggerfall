@@ -342,7 +342,7 @@ namespace CustomTalkManagerMod
 
             // Pass Data to CustomDaggerfallTalkWindow
             CustomDaggerfallTalkWindow talkWindow = new CustomDaggerfallTalkWindow(DaggerfallUI.UIManager, null, this);
-            talkWindow.SetupCustomNPC(npcId, displayName);
+            talkWindow.SetupCustomNPC(customNpc.GetInstanceID(), customNpc.CustomDisplayName);
 
             // Open TalkWindow
             DaggerfallUI.UIManager.PushWindow(talkWindow);

@@ -810,17 +810,14 @@ namespace CustomDaggerfallTalkWindowMod
         {
             if (string.IsNullOrEmpty(displayName))
             {
-                Debug.LogWarning($"SetupCustomNPC: Display name is missing fow NPC ID = {npcId}. Setting to 'Unknown NPC'.");
-                displayName = $"NPC_{npcId}"; // Use a defauwt unique name based on NPC ID
+                Debug.LogWarning($"SetupCustomNPC: Display name is missing for NPC ID = {npcId}. Setting to 'Unknown NPC'.");
+                displayName = "Unknown NPC";
             }
 
-            // Set NPC Name
-            this.npcName = displayName;
-
-            // Update UI
-            UpdateNPCNameUI();
+            // Set the NPC name in the label
+            labelNameNPC.Text = displayName;
+            Debug.Log($"SetupCustomNPC: Updated labelNameNPC to '{displayName}' for NPC ID {npcId}.");
         }
-
 
         private void UpdateNPCNameUI()
         {
@@ -1125,7 +1122,7 @@ namespace CustomDaggerfallTalkWindowMod
             button.BackgroundTexture = subTexture;
             button.BackgroundColor = backgroundColor;
             button.OnMouseClick += (BaseScreenComponent sender, Vector2 buttonPosition) => clickHandler();
-            Debug.Log($"Button {componentName} created at (x:{position.x:0.00}, y:{position.y:0.00}, width:{size.x:0.00}, height:{size.y:0.00}) with background color RGBA({backgroundColor.r:0.000}, {backgroundColor.g:0.000}, {backgroundColor.b:0.000}, {backgroundColor.a:0.000})");
+           
             return button;
         }
 
@@ -1272,7 +1269,7 @@ namespace CustomDaggerfallTalkWindowMod
             ScalePanelAndChildren(buttonTellMeBlock, scaleFactor, false);
             ScalePanelAndChildren(buttonWhereIsBlock, scaleFactor, false);
 
-            Debug.Log("Buttons added to main panel");
+            
         }
 
         // Example action methods
@@ -1283,13 +1280,13 @@ namespace CustomDaggerfallTalkWindowMod
 
         protected Button CreateBlockers(Vector2 position, Vector2 size, Rect textureRect, Texture2D texture, Action onClickAction, string componentName)
         {
-            Debug.Log("CreateBlockers called with position: " + position + " and size: " + size);
+           
             Button button = DaggerfallUI.AddButton(new Rect(position, size), mainPanel);
             button.Size = size;
             button.Name = componentName;
             button.BackgroundTexture = ImageReader.GetSubTexture(texture, textureRect);
             button.OnMouseClick += (BaseScreenComponent sender, Vector2 buttonPosition) => onClickAction?.Invoke();
-            Debug.Log("Button " + componentName + " position: " + button.Position + ", size: " + button.Size);
+            
             return button;
         }
 
@@ -1349,6 +1346,7 @@ namespace CustomDaggerfallTalkWindowMod
         public override void OnPush()
         {
             base.OnPush();
+            Debug.Log($"OnPush: Current NPC Display Name: {labelNameNPC.Text}");
             UpdateCustomNameNPC();
             UpdateCustomNPCPortrait();
             StartDialogue();

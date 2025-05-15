@@ -425,7 +425,7 @@ namespace CustomStaticNPCMod
         public void SetCustomDisplayName(string newName)
         {
             customDisplayName = newName; // Set the display name here
-            Debug.Log($"Custom DisplayName set to '{newName}' for NPC.");
+            Debug.Log($"SetCustomDisplayName: Custom DisplayName set to '{newName}' for NPC ID {GetInstanceID()}.");
         }
 
         // Method to get the custom display name
