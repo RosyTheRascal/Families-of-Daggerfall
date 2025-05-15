@@ -43,6 +43,7 @@ namespace CustomStaticNPCMod
         private string customFirstName;
         private string customDisplayName; // Custom field for the display name
 
+
         private bool isProcessed = false;
 
         private static Mod mod;
