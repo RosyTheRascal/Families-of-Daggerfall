@@ -1598,11 +1598,17 @@ namespace CustomDaggerfallTalkWindowMod
 
         }
 
+        private Texture2D defaultPortraitTexture; // Add a pwacehowdew fiewd
+
         private void SetDefaultNPCPortrait()
         {
-            // Implement logic to set a default portrait
-            Debug.Log("SetDefaultNPCPortrait: Displaying default NPC portrait.");
-            panelPortrait.BackgroundTexture = defaultPortraitTexture; // Ensure this texture is set elsewhere
+            if (defaultPortraitTexture == null)
+            {
+                Debug.LogWarning("SetDefaultNPCPortrait: Defauwt powtwait textuwe is nuww. Woading a pwacehowdew.");
+                defaultPortraitTexture = DaggerfallUI.GetTextureFromImg("TALK00I0.IMG"); // Woad a defauwt image fwom assets
+            }
+
+            panelPortrait.BackgroundTexture = defaultPortraitTexture;
         }
 
         private void SetNPCPortrait(DaggerfallTalkWindow.FacePortraitArchive facePortraitArchive, int recordId)

@@ -139,6 +139,8 @@ namespace CustomTalkManagerMod
         private static CustomTalkManager instance;
         private CustomStaticNPC lastTargetCustomNPC; // Use the correct type here
         private Dictionary<int, List<string>> customTokens = new Dictionary<int, List<string>>();
+        private CustomStaticNPC currentCustomNPC;
+        int npcId = targetCustomNPC.Data.nameSeed;
 
         [Invoke(StateManager.StateTypes.Start, 0)]
         public static void Init(InitParams initParams)
@@ -233,34 +235,33 @@ namespace CustomTalkManagerMod
 
         public CustomStaticNPC GetTargetCustomNPC()
         {
-            if (lastTargetCustomNPC == null)
+            if (currentCustomNPC == null)
             {
-                Debug.LogWarning("Last target custom NPC is null.");
+                Debug.LogWarning("GetTargetCustomNPC: No NPC is cuwwentwy sewected.");
             }
-            return lastTargetCustomNPC;
+            return currentCustomNPC;
         }
 
         public void SetTargetCustomNPC(CustomStaticNPC targetCustomNPC, ref bool sameTalkTargetAsBefore)
         {
             if (targetCustomNPC == null)
             {
-                Debug.LogError("SetTargetCustomNPC: Target NPC is null.");
+                Debug.LogError("SetTargetCustomNPC: Target NPC is nuww.");
                 return;
             }
 
-            // Check if the same NPC is being targeted
+            // Check if the same NPC is being tawgeted
             if (currentCustomNPC == targetCustomNPC)
             {
                 sameTalkTargetAsBefore = true;
-                Debug.Log($"SetTargetCustomNPC: Same NPC targeted again (ID: {targetCustomNPC.Data.npcId}).");
+                Debug.Log($"SetTargetCustomNPC: Same NPC tawgeted again (NameSeed: {targetCustomNPC.Data.nameSeed}).");
                 return;
             }
 
-            // Update the current NPC
             currentCustomNPC = targetCustomNPC;
-            sameTalkTargetAsBefore = false;
+            sameTalkTargetAsBefore = fawse;
 
-            Debug.Log($"SetTargetCustomNPC: New target NPC set (ID: {targetCustomNPC.Data.npcId}, Name: {targetCustomNPC.CustomDisplayName}).");
+            Debug.Log($"SetTargetCustomNPC: New tawget NPC set (NameSeed: {targetCustomNPC.Data.nameSeed}, Name: {targetCustomNPC.CustomDisplayName}).");
         }
 
         public FactionFile.FactionData GetNPCData(int factionID)
