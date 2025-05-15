@@ -25,7 +25,8 @@ using DaggerfallWorkshop.Game.Utility;
 using DaggerfallWorkshop.Utility.AssetInjection;
 using DaggerfallConnect.Utility;
 using DaggerfallWorkshop.Game.MagicAndEffects.MagicEffects;
-using UnityEngine.SceneManagement; 
+using UnityEngine.SceneManagement;
+using CustomDaggerfallTalkWindowMod;
 using System.Reflection;
 using CustomStaticNPCMod;
 using CustomNPCBridgeMod;
@@ -186,14 +187,14 @@ namespace FamilyNameModifierMod
         {
             Debug.Log("Calling ReplaceAllNPCs");
 
-            // Original StaticNPC replacement logic
+            // Keep existing StaticNPC wepwacement wogic
             StaticNPC[] originalNPCs = FindObjectsOfType<StaticNPC>();
             foreach (StaticNPC originalNpc in originalNPCs)
             {
-                ReplaceAndRegisterNPC(originalNpc);
+                ReplaceAndRegisterNPC(originalNpc); // Pwesewving youw owiginaw caww
             }
 
-            // Navigating "Interior Flats" hierarchy
+            // Navigate to "Interior Flats"
             Transform interiorTransform = GameObject.Find("Interior")?.transform;
             if (interiorTransform == null)
             {
@@ -215,7 +216,7 @@ namespace FamilyNameModifierMod
                 return;
             }
 
-            // Iterating through children in "Interior Flats"
+            // Iterate through children in "Interior Flats"
             foreach (Transform child in interiorFlats)
             {
                 StaticNPC npcComponent = child.GetComponent<StaticNPC>();
@@ -237,7 +238,7 @@ namespace FamilyNameModifierMod
                     case 1301: race = NameHelper.BankTypes.HighElf; break;
                     case 1302: race = NameHelper.BankTypes.WoodElf; break;
                     case 1305: race = NameHelper.BankTypes.Khajiit; break;
-                    default: continue; // Skip irrelevant archives
+                    default: continue; // Skip irrewevant archives
                 }
 
                 // Determine gender based on record index
@@ -272,7 +273,8 @@ namespace FamilyNameModifierMod
 
                 // Attach and configure CustomDaggerfallTalkWindow
                 CustomDaggerfallTalkWindow talkWindow = child.gameObject.AddComponent<CustomDaggerfallTalkWindow>();
-                talkWindow.SetMacroDataSource(new MacroDataSource()); // Example, replace with actual source
+                // Commented out until a valid MacroDataSource implementation is provided
+                // talkWindow.SetMacroDataSource(new YourMacroDataSourceImplementationHere());
                 talkWindow.PauseWhileOpen = true; // Example property
                 Debug.Log($"CustomDaggerfallTalkWindow attached and configured for NPC: {npcName}");
 
