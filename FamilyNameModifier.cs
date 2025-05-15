@@ -270,6 +270,19 @@ namespace FamilyNameModifierMod
 
         private void SetRaceDisplayName(Billboard billboard, int archiveIndex, Dictionary<int, string> raceLastNames)
         {
+            // Map archive indices to NameHelper.BankTypes
+            NameHelper.BankTypes race;
+            switch (archiveIndex)
+            {
+                case 1300: race = NameHelper.BankTypes.DarkElf; break;
+                case 1301: race = NameHelper.BankTypes.HighElf; break;
+                case 1302: race = NameHelper.BankTypes.WoodElf; break;
+                case 1305: race = NameHelper.BankTypes.Khajiit; break;
+                default:
+                    Debug.LogWarning($"SetRaceDisplayName: Unsupported archive index {archiveIndex} for billboard '{billboard.name}'. Skipping.");
+                    return;
+            }
+
             // Determine gender based on record index
             Genders gender = Genders.Female; // Default to female
             switch (archiveIndex)
@@ -291,26 +304,16 @@ namespace FamilyNameModifierMod
                     break;
             }
 
-            // Check if the archiveIndex can be cast to NameHelper.BankTypes
-            if (!Enum.IsDefined(typeof(NameHelper.BankTypes), archiveIndex))
-            {
-                Debug.LogWarning($"SetRaceDisplayName: BankType for archive index {archiveIndex} is not valid. Skipping.");
-                return;
-            }
-
-            // Cast archiveIndex to NameHelper.BankTypes
-            NameHelper.BankTypes bankType = (NameHelper.BankTypes)archiveIndex;
-
             // Generate shared last name for the race if not already in the dictionary
             if (!raceLastNames.ContainsKey(archiveIndex))
             {
-                string lastName = DaggerfallUnity.Instance.NameHelper.Surname(bankType);
+                string lastName = DaggerfallUnity.Instance.NameHelper.Surname(race);
                 raceLastNames[archiveIndex] = lastName;
-                Debug.Log($"SetRaceDisplayName: Generated last name '{lastName}' for archive index {archiveIndex}.");
+                Debug.Log($"SetRaceDisplayName: Generated last name '{lastName}' for race {race} (archive index {archiveIndex}).");
             }
 
             // Generate a unique first name for the entity
-            string firstName = DaggerfallUnity.Instance.NameHelper.FirstName(bankType, gender);
+            string firstName = DaggerfallUnity.Instance.NameHelper.FirstName(race, gender);
 
             // Combine first and last names into a display name
             string displayName = $"{firstName} {raceLastNames[archiveIndex]}";
