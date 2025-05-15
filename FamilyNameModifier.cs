@@ -186,23 +186,20 @@ namespace FamilyNameModifierMod
         {
             Debug.Log("Calling ReplaceAllNPCs. Locating 'interior' parent.");
 
-           
             GameObject interiorParent = null;
             if (GameManager.Instance.PlayerEnterExit != null && GameManager.Instance.PlayerEnterExit.IsPlayerInside)
             {
                 interiorParent = GameManager.Instance.PlayerEnterExit.InteriorParent;
             }
 
-         
             if (interiorParent == null)
             {
                 interiorParent = GameObject.Find("Interior");
             }
 
-            
             if (interiorParent == null)
             {
-                
+                Debug.LogWarning("ReplaceAllNPCs: 'interior' parent not found. Skipping processing.");
                 return;
             }
 
@@ -217,6 +214,53 @@ namespace FamilyNameModifierMod
             }
 
             Debug.Log("ReplaceAllNPCs: Finished processing all NPCs in the 'interior' hierarchy.");
+
+            // Now process all billboards in the "interior" parent
+            Debug.Log("ReplaceAllNPCs: Processing billboards with specific archive indices.");
+            ProcessBillboards(interiorParent);
+        }
+
+        // Method to process billboards with specific archive indices
+        private void ProcessBillboards(GameObject parent)
+        {
+            Billboard[] billboards = parent.GetComponentsInChildren<Billboard>();
+            foreach (Billboard billboard in billboards)
+            {
+                // Use the summary.Archive field to check for valid archive indices
+                int archiveIndex = billboard.Summary.Archive;
+                switch (archiveIndex)
+                {
+                    case 1300: // Dark Elf
+                    case 1301: // High Elf
+                    case 1302: // Wood Elf
+                    case 1305: // Khajiit
+                        Debug.Log($"ProcessBillboards: Found billboard with archive index {archiveIndex}. Attaching components.");
+
+                        // Attach a CapsuleCollider if not already present
+                        CapsuleCollider collider = billboard.gameObject.GetComponent<CapsuleCollider>();
+                        if (collider == null)
+                        {
+                            collider = billboard.gameObject.AddComponent<CapsuleCollider>();
+                            Debug.Log($"ProcessBillboards: Added CapsuleCollider to billboard '{billboard.name}'.");
+                        }
+
+                        // Attach the CustomStaticNPC component if not already present
+                        CustomStaticNPC customNPC = billboard.gameObject.GetComponent<CustomStaticNPC>();
+                        if (customNPC == null)
+                        {
+                            customNPC = billboard.gameObject.AddComponent<CustomStaticNPC>();
+                            Debug.Log($"ProcessBillboards: Added CustomStaticNPC to billboard '{billboard.name}'.");
+                        }
+
+                        break;
+
+                    default:
+                    
+                        break;
+                }
+            }
+
+            Debug.Log("ProcessBillboards: Finished processing billboards.");
         }
 
         public void ReplaceAndRegisterNPC(StaticNPC originalNpc)
