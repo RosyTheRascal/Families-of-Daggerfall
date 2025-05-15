@@ -807,6 +807,18 @@ namespace CustomDaggerfallTalkWindowMod
             UpdateNPCNameUI();
         }
 
+        public void SetupCustomNPC(int npcId, string displayName)
+        {
+            // Setup logic specific to custom NPCs
+            Debug.Log($"CustomDaggerfallTalkWindow: Setting up custom NPC. ID = {npcId}, Name = {displayName}");
+
+            // Set the NPC's name
+            this.npcName = displayName;
+
+            // Update the UI with the NPC's name
+            UpdateNPCNameUI();
+        }
+
         private void UpdateNPCNameUI()
         {
             // Example: Update a label in the talk window

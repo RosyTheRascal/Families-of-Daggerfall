@@ -574,6 +574,11 @@ namespace CustomStaticNPCMod
             }
         }
 
+        public string FetchDisplayName()
+        {
+            return $"{customFirstName} {customLastName}";
+        }
+
         private string GenerateName(NameHelper.BankTypes nameBank, Genders gender)
         {
             // Validate gender
