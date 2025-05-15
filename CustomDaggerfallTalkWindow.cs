@@ -663,8 +663,7 @@ namespace CustomDaggerfallTalkWindowMod
                 return;
             }
 
-            Debug.Log($"Scaling component: {component.Name} with scaleFactor: {scaleFactor}");
-            Debug.Log($"Before scaling - {component.Name} Position: {component.Position}, Size: {component.Size}");
+          
 
             component.Position *= scaleFactor;
 
@@ -679,24 +678,24 @@ namespace CustomDaggerfallTalkWindowMod
             else if (component is Button button)
             {
                 button.Size *= scaleFactor;
-                Debug.Log($"Button {component.Name} scaled to - Position: {button.Position}, Size: {button.Size}");
+            
             }
             else if (component is TextLabel label)
             {
                 label.Size *= scaleFactor;
                 label.TextScale *= scaleFactor;
-                Debug.Log($"TextLabel {component.Name} scaled to - Position: {label.Position}, Size: {label.Size}, TextScale: {label.TextScale}");
+         
             }
             else if (component is ListBox listBox)
             {
                 listBox.Size *= scaleFactor;
                 listBox.TextScale *= scaleFactor;
-                Debug.Log($"ListBox {component.Name} scaled to - Position: {listBox.Position}, Size: {listBox.Size}, TextScale: {listBox.TextScale}");
+            
             }
 
             component.Tag = "Scaled";
 
-            Debug.Log($"After scaling - {component.Name} Position: {component.Position}, Size: {component.Size}");
+       
         }
 
         public override void Draw()
@@ -809,24 +808,30 @@ namespace CustomDaggerfallTalkWindowMod
 
         public void SetupCustomNPC(int npcId, string displayName)
         {
-            // Setup logic specific to custom NPCs
-            Debug.Log($"CustomDaggerfallTalkWindow: Setting up custom NPC. ID = {npcId}, Name = {displayName}");
+            if (string.IsNullOrEmpty(displayName))
+            {
+                Debug.LogWarning($"CustomDaggerfallTalkWindow: Display name is missing for NPC ID = {npcId}. Setting to 'Unknown NPC'.");
+                displayName = "Unknown NPC";
+            }
 
-            // Set the NPC's name
+            // Set NPC Name
             this.npcName = displayName;
 
-            // Update the UI with the NPC's name
+            // Update UI
             UpdateNPCNameUI();
         }
 
+
         private void UpdateNPCNameUI()
         {
-            // Example: Update a label in the talk window
-            if (!string.IsNullOrEmpty(npcName))
+            if (labelNameNPC != null)
             {
-                Debug.Log($"CustomDaggerfallTalkWindow: Updating UI with NPC Name = {npcName}");
-                // Add code here to update the talk window UI with npcName
-                // For example: npcNameLabel.Text = npcName;
+                labelNameNPC.Text = npcName;
+                Debug.Log($"CustomDaggerfallTalkWindow: NPC Name Updated to {npcName}");
+            }
+            else
+            {
+                Debug.LogError("CustomDaggerfallTalkWindow: labelNameNPC is null. Cannot update NPC name.");
             }
         }
 
