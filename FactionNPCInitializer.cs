@@ -108,8 +108,8 @@ namespace FactionNPCInitializerMod
             if (isInitialized)
                 return;
 
-            // Generate a unique NPC ID (you may want to use a more robust ID generation method)
-            npcId = GetInstanceID();
+            // Generate a unique NPC ID
+            npcId = GenerateUniqueNPCId();
 
             // Generate a display name for the NPC
             displayName = GenerateBillboardDisplayName();
@@ -120,9 +120,16 @@ namespace FactionNPCInitializerMod
             isInitialized = true;
         }
 
+        private int GenerateUniqueNPCId()
+        {
+            // Combine world position and other properties for a unique ID
+            Vector3 position = transform.position;
+            return Mathf.Abs((int)(position.x * 1000 + position.z)); // Example hash logic
+        }
+
         private string GenerateBillboardDisplayName()
         {
-            // For now, let's use a placeholder name. You can replace this with actual logic.
+            // Generate a display name based on NPC ID or some unique property
             return $"Billboard NPC {npcId}";
         }
 

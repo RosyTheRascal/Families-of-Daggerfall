@@ -288,6 +288,13 @@ namespace CustomTalkManagerMod
             int npcId = billboardNPC.GetNPCId();
             string displayName = billboardNPC.GetDisplayName();
 
+            // Validate NPC data
+            if (npcId <= 0 || string.IsNullOrEmpty(displayName))
+            {
+                Debug.LogError($"CustomTalkManager: Invalid NPC data. ID = {npcId}, Name = {displayName}");
+                return;
+            }
+
             // Log for debugging
             Debug.Log($"CustomTalkManager: Starting conversation with billboard NPC. ID = {npcId}, Name = {displayName}");
 
@@ -383,35 +390,23 @@ namespace CustomTalkManagerMod
             return dialogLines[dialogIndex];
         }
 
-        private int GenerateUniqueHash(string displayName)
+        public int GenerateUniqueHash(string displayName)
         {
-            var gps = GameManager.Instance.PlayerGPS;
-            int worldX = gps.WorldX / 500; // Reduce precision by dividing 
-            int worldZ = gps.WorldZ / 500; // Reduce precision by dividing 
-            int buildingId = gps.CurrentLocationIndex;
-
-            Debug.Log($"Generating hash for NPC ID: {displayName}");
-            Debug.Log($"Normalized WorldX: {worldX}, Normalized WorldZ: {worldZ}, BuildingID: {buildingId}, NPCID: {displayName}");
-
-            // Combine the normalized GPS coordinates, building ID, and NPC ID to generate a unique hash
-            unchecked // Allow overflow
+            if (string.IsNullOrEmpty(displayName))
             {
-                int hash = 17;
-                hash = hash * 31 + worldX;
-                hash = hash * 31 + worldZ;
-                hash = hash * 31 + buildingId;
-                foreach (char c in displayName)
-                {
-                    if (char.IsLetter(c))
-                    {
-                        hash = hash * 31 + c;
-                    }
-                }
-                Debug.Log($"Generated hash: {hash}");
-                return hash;
+                Debug.LogError("CustomTalkManager: Display name is null or empty. Cannot generate hash.");
+                return -1;
             }
-        }
 
+            // Normalize and hash display name
+            string normalizedDisplayName = displayName.ToLowerInvariant().Trim();
+            int hash = normalizedDisplayName.GetHashCode();
+
+            // Log for debugging
+            Debug.Log($"CustomTalkManager: Generated hash {hash} for display name {displayName}");
+
+            return hash;
+        }
 
         private void LoadCustomCSV(string csvFileName)
         {
