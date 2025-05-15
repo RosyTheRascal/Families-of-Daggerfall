@@ -291,16 +291,26 @@ namespace FamilyNameModifierMod
                     break;
             }
 
+            // Check if the archiveIndex can be cast to NameHelper.BankTypes
+            if (!Enum.IsDefined(typeof(NameHelper.BankTypes), archiveIndex))
+            {
+                Debug.LogWarning($"SetRaceDisplayName: BankType for archive index {archiveIndex} is not valid. Skipping.");
+                return;
+            }
+
+            // Cast archiveIndex to NameHelper.BankTypes
+            NameHelper.BankTypes bankType = (NameHelper.BankTypes)archiveIndex;
+
             // Generate shared last name for the race if not already in the dictionary
             if (!raceLastNames.ContainsKey(archiveIndex))
             {
-                string lastName = DaggerfallUnity.Instance.NameHelper.Surname((NameHelper.BankTypes)archiveIndex);
+                string lastName = DaggerfallUnity.Instance.NameHelper.Surname(bankType);
                 raceLastNames[archiveIndex] = lastName;
                 Debug.Log($"SetRaceDisplayName: Generated last name '{lastName}' for archive index {archiveIndex}.");
             }
 
             // Generate a unique first name for the entity
-            string firstName = DaggerfallUnity.Instance.NameHelper.FirstName((NameHelper.BankTypes)archiveIndex, gender);
+            string firstName = DaggerfallUnity.Instance.NameHelper.FirstName(bankType, gender);
 
             // Combine first and last names into a display name
             string displayName = $"{firstName} {raceLastNames[archiveIndex]}";
