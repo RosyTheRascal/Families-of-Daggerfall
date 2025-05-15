@@ -186,14 +186,14 @@ namespace FamilyNameModifierMod
         {
             Debug.Log("Calling ReplaceAllNPCs");
 
-            // Keep existing logic
+            // Original StaticNPC replacement logic
             StaticNPC[] originalNPCs = FindObjectsOfType<StaticNPC>();
             foreach (StaticNPC originalNpc in originalNPCs)
             {
                 ReplaceAndRegisterNPC(originalNpc);
             }
 
-            // Navigate to "Interior Flats"
+            // Navigating "Interior Flats" hierarchy
             Transform interiorTransform = GameObject.Find("Interior")?.transform;
             if (interiorTransform == null)
             {
@@ -215,7 +215,7 @@ namespace FamilyNameModifierMod
                 return;
             }
 
-            // Iterate through children
+            // Iterating through children in "Interior Flats"
             foreach (Transform child in interiorFlats)
             {
                 StaticNPC npcComponent = child.GetComponent<StaticNPC>();
@@ -227,7 +227,6 @@ namespace FamilyNameModifierMod
                     continue;
 
                 StaticNPC.NPCData npcData = npcDataNullable.Value;
-
                 int archiveIndex = npcData.billboardArchiveIndex;
 
                 // Map the archive indices to races
@@ -265,21 +264,17 @@ namespace FamilyNameModifierMod
                 // Generate a name using NameHelper
                 string npcName = DaggerfallUnity.Instance.NameHelper.FullName(race, gender);
 
-                // Attach components
+                // Attach components if needed
                 CapsuleCollider collider = child.gameObject.AddComponent<CapsuleCollider>();
                 CustomStaticNPC customNpc = child.gameObject.AddComponent<CustomStaticNPC>();
-
-                // Set up CustomStaticNPC properties
                 customNpc.Race = (Races)race;
                 customNpc.Gender = gender;
 
-                // Pass the generated name to CustomTalkWindow
-                CustomTalkWindow talkWindow = child.gameObject.GetComponent<CustomTalkWindow>();
-                if (talkWindow != null)
-                {
-                    talkWindow.NameLabel = npcName;
-                    talkWindow.Portrait = null; // Default portrait
-                }
+                // Attach and configure CustomDaggerfallTalkWindow
+                CustomDaggerfallTalkWindow talkWindow = child.gameObject.AddComponent<CustomDaggerfallTalkWindow>();
+                talkWindow.SetMacroDataSource(new MacroDataSource()); // Example, replace with actual source
+                talkWindow.PauseWhileOpen = true; // Example property
+                Debug.Log($"CustomDaggerfallTalkWindow attached and configured for NPC: {npcName}");
 
                 Debug.Log($"Configured NPC: {npcName} (Race: {race}, Gender: {gender}) at {child.name}");
             }
