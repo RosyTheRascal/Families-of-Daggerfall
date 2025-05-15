@@ -256,7 +256,12 @@ namespace FamilyNameModifierMod
                         }
 
                         // Set race-based display name
-                        SetRaceDisplayName(billboard, archiveIndex, raceLastNames);
+                        string displayName = SetRaceDisplayName(billboard, archiveIndex, raceLastNames);
+
+                        // Assign the display name and a unique ID to CustomStaticNPC
+                        customNPC.DisplayName = displayName;
+                        customNPC.NpcId = GenerateUniqueHash(displayName);
+                        Debug.Log($"ProcessBillboards: Assigned DisplayName '{displayName}' and NpcId '{customNPC.NpcId}' to CustomStaticNPC.");
 
                         break;
 
@@ -268,7 +273,7 @@ namespace FamilyNameModifierMod
             Debug.Log("ProcessBillboards: Finished processing billboards.");
         }
 
-        private void SetRaceDisplayName(Billboard billboard, int archiveIndex, Dictionary<int, string> raceLastNames)
+        private string SetRaceDisplayName(Billboard billboard, int archiveIndex, Dictionary<int, string> raceLastNames)
         {
             // Map archive indices to NameHelper.BankTypes
             NameHelper.BankTypes race;
@@ -280,7 +285,7 @@ namespace FamilyNameModifierMod
                 case 1305: race = NameHelper.BankTypes.Khajiit; break;
                 default:
                     Debug.LogWarning($"SetRaceDisplayName: Unsupported archive index {archiveIndex} for billboard '{billboard.name}'. Skipping.");
-                    return;
+                    return null;
             }
 
             // Determine gender based on record index
@@ -321,6 +326,14 @@ namespace FamilyNameModifierMod
             // Assign the display name to the billboard entity
             billboard.gameObject.name = displayName; // Optionally set the GameObject's name
             Debug.Log($"SetRaceDisplayName: Assigned display name '{displayName}' to billboard '{billboard.name}'.");
+
+            return displayName;
+        }
+
+        // Generate a unique hash for NPC identification
+        private int GenerateUniqueHash(string input)
+        {
+            return input.GetHashCode();
         }
 
         public void ReplaceAndRegisterNPC(StaticNPC originalNpc)

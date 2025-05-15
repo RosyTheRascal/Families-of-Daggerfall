@@ -299,31 +299,20 @@ namespace CustomTalkManagerMod
         {
             if (customNpc == null)
             {
-                Debug.LogWarning("StartConversation: Custom NPC is null in StartConversation");
+                Debug.LogError("StartConversation: CustomStaticNPC is null.");
                 return;
             }
 
-            Debug.Log($"StartConversation: Starting conversation with custom NPC ID: {customNpc.GetInstanceID()}");
+            Debug.Log($"Starting conversation with {customNpc.DisplayName} (NPC ID: {customNpc.NpcId}).");
 
-            bool sameTalkTargetAsBefore = false;
-            CustomTalkManager.Instance.SetTargetCustomNPC(customNpc, ref sameTalkTargetAsBefore);
+            // Retrieve and display the greeting
+            string greeting = GetGreeting(customNpc.NpcId);
+            Debug.Log($"Greeting: {greeting}");
 
-            // Load the custom CSV file
-            CustomTalkManager.Instance.LoadCustomCSV("GreetingsAndSalutations.csv");
-            Debug.Log("Parsing Greetings File");
-
-            var talkWindow = new CustomDaggerfallTalkWindowMod.CustomDaggerfallTalkWindow(DaggerfallUI.UIManager, DaggerfallUI.UIManager.TopWindow as DaggerfallBaseWindow, CustomTalkManagerMod.CustomTalkManager.Instance);
-
-            // Set the macro data source for the talk window
-            var macroDataSource = CustomTalkManager.Instance.GetMacroDataSource();
-            Debug.Log($"StartConversation: MacroDataSource - NPC Race: {(macroDataSource as CustomTalkManager.TalkManagerDataSource).NpcRace}, Gender: {(macroDataSource as CustomTalkManager.TalkManagerDataSource).PotentialQuestorGender}");
-            talkWindow.SetMacroDataSource(macroDataSource);
-
-            npcData = new CustomNPCData();
-
-            // Open the custom talk window
-            DaggerfallUI.UIManager.PushWindow(talkWindow);
-            Debug.Log("Opening CustomDaggerfallTalkWindow");
+            // Pass this NPC's ID and display name into your CustomDaggerfallTalkWindow for further interaction
+            var talkWindow = new CustomDaggerfallTalkWindow(UserInterfaceManager.Instance, this);
+            talkWindow.Setup(customNpc);
+            UserInterfaceManager.Instance.PushWindow(talkWindow);
         }
 
         public string GetGreeting(int npcId)

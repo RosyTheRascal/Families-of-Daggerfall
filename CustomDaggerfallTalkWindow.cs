@@ -479,6 +479,24 @@ namespace CustomDaggerfallTalkWindowMod
             Setup();
         }
 
+        public void Setup(CustomStaticNPC customNpc)
+        {
+            if (customNpc == null)
+            {
+                Debug.LogError("Setup: CustomStaticNPC is null.");
+                return;
+            }
+
+            Debug.Log($"Setting up talk window for {customNpc.DisplayName} (NPC ID: {customNpc.NpcId}).");
+
+            // Fetch greeting and display it in the talk window
+            string greeting = customTalkManager.GetGreeting(customNpc.NpcId);
+            Debug.Log($"Displaying greeting: {greeting}");
+
+            // Display the greeting in your UI (implementation depends on your UI framework)
+            dialogueBox.Text = greeting;
+        }
+
         public void CloseWindow()
         {
             // Logic to close the window

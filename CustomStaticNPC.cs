@@ -38,10 +38,10 @@ namespace CustomStaticNPCMod
     public class CustomStaticNPC : MonoBehaviour
     {
         private StaticNPC.NPCData npcData;
-        private int npcId;
+        public int NpcId { get; set; }
         private string customLastName;
         private string customFirstName;
-        private string customDisplayName; // Custom field for the display name
+        public string DisplayName { get; set; }
 
 
         private bool isProcessed = false;
