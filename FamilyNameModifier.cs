@@ -184,12 +184,39 @@ namespace FamilyNameModifierMod
 
         public void ReplaceAllNPCs()
         {
-            Debug.Log("Calling ReplaceAllNPCs");
-            StaticNPC[] originalNPCs = FindObjectsOfType<StaticNPC>();
+            Debug.Log("Calling ReplaceAllNPCs. Locating 'interior' parent.");
+
+           
+            GameObject interiorParent = null;
+            if (GameManager.Instance.PlayerEnterExit != null && GameManager.Instance.PlayerEnterExit.IsPlayerInside)
+            {
+                interiorParent = GameManager.Instance.PlayerEnterExit.InteriorParent;
+            }
+
+         
+            if (interiorParent == null)
+            {
+                interiorParent = GameObject.Find("Interior");
+            }
+
+            
+            if (interiorParent == null)
+            {
+                
+                return;
+            }
+
+            Debug.Log($"ReplaceAllNPCs: Found 'interior' parent: {interiorParent.name}. Searching for NPCs in the hierarchy.");
+
+            // Find all StaticNPCs within the "interior" parent
+            StaticNPC[] originalNPCs = interiorParent.GetComponentsInChildren<StaticNPC>();
             foreach (StaticNPC originalNpc in originalNPCs)
             {
+                Debug.Log($"ReplaceAllNPCs: Found NPC '{originalNpc.name}' in hierarchy. Applying ReplaceAndRegisterNPC.");
                 ReplaceAndRegisterNPC(originalNpc);
             }
+
+            Debug.Log("ReplaceAllNPCs: Finished processing all NPCs in the 'interior' hierarchy.");
         }
 
         public void ReplaceAndRegisterNPC(StaticNPC originalNpc)
