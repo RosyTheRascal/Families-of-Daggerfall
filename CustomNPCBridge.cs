@@ -224,7 +224,8 @@ namespace CustomNPCBridgeMod
                     CustomTalkManagerMod.CustomTalkManager.Instance
                 );
 
-                talkWindow.SetupCustomNPC(customNpc.Data.npcId, customNpc.CustomDisplayName);
+                // Use `nameSeed` as NPC ID
+                talkWindow.SetupCustomNPC(customNpc.Data.nameSeed, customNpc.CustomDisplayName);
                 DaggerfallUI.UIManager.PushWindow(talkWindow);
             }
             else

@@ -246,22 +246,22 @@ namespace CustomTalkManagerMod
         {
             if (targetCustomNPC == null)
             {
-                Debug.LogError("SetTargetCustomNPC: Target NPC is nuww.");
+                Debug.LogError("SetTargetCustomNPC: Target NPC is null, nya~");
                 return;
             }
 
-            // Check if the same NPC is being tawgeted
+            // Check if the same NPC is being targeted
             if (currentCustomNPC == targetCustomNPC)
             {
                 sameTalkTargetAsBefore = true;
-                Debug.Log($"SetTargetCustomNPC: Same NPC tawgeted again (NameSeed: {targetCustomNPC.Data.nameSeed}).");
+                Debug.Log($"SetTargetCustomNPC: Same NPC targeted again (NameSeed: {targetCustomNPC.Data.nameSeed}).");
                 return;
             }
 
+            // Update the current NPC
             currentCustomNPC = targetCustomNPC;
-            sameTalkTargetAsBefore = fawse;
-
-            Debug.Log($"SetTargetCustomNPC: New tawget NPC set (NameSeed: {targetCustomNPC.Data.nameSeed}, Name: {targetCustomNPC.CustomDisplayName}).");
+            sameTalkTargetAsBefore = false; // Fix typo fow `false`
+            Debug.Log($"SetTargetCustomNPC: New target NPC set (NameSeed: {targetCustomNPC.Data.nameSeed}, Name: {targetCustomNPC.CustomDisplayName}).");
         }
 
         public FactionFile.FactionData GetNPCData(int factionID)
