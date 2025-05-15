@@ -186,14 +186,14 @@ namespace FamilyNameModifierMod
         {
             Debug.Log("Calling ReplaceAllNPCs");
 
-            // Replace StaticNPCs as before
+            // Keep existing logic
             StaticNPC[] originalNPCs = FindObjectsOfType<StaticNPC>();
             foreach (StaticNPC originalNpc in originalNPCs)
             {
                 ReplaceAndRegisterNPC(originalNpc);
             }
 
-            // Find the "Interior Flats" under "DaggerfallInterior" under "Interior"
+            // Navigate to "Interior Flats"
             Transform interiorTransform = GameObject.Find("Interior")?.transform;
             if (interiorTransform == null)
             {
@@ -215,12 +215,18 @@ namespace FamilyNameModifierMod
                 return;
             }
 
-            // Iterate through children and apply logic for specific billboard archives
+            // Iterate through children
             foreach (Transform child in interiorFlats)
             {
-                StaticNPC.NPCData npcData = child.GetComponent<StaticNPC>()?.Data;
-                if (npcData == null)
+                StaticNPC npcComponent = child.GetComponent<StaticNPC>();
+                if (npcComponent == null)
                     continue;
+
+                StaticNPC.NPCData? npcDataNullable = npcComponent.Data;
+                if (!npcDataNullable.HasValue)
+                    continue;
+
+                StaticNPC.NPCData npcData = npcDataNullable.Value;
 
                 int archiveIndex = npcData.billboardArchiveIndex;
 
