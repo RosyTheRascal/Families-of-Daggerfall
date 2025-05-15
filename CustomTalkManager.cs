@@ -313,16 +313,16 @@ namespace CustomTalkManagerMod
             Debug.Log($"Greeting: {greeting}");
 
             // Push the custom talk window
-            var uiManager = FindObjectOfType<UserInterfaceManager>(); // Find the UI manager
+            var uiManager = DaggerfallUI.UIManager; // Use the existing Daggerfall UI Manager
             if (uiManager != null)
             {
-                var talkWindow = new CustomDaggerfallTalkWindow(uiManager, this); // Create the talk window
-                talkWindow.Setup(customNpc); // Set up with the NPC
+                var talkWindow = new CustomDaggerfallTalkWindow(uiManager, null, this); // Use your custom talk window
+                talkWindow.Setup(customNpc, greeting); // Pass the NPC and greeting to the setup method
                 uiManager.PushWindow(talkWindow); // Push it to the UI stack
             }
             else
             {
-                Debug.LogError("UserInterfaceManager not found.");
+                Debug.LogError("Daggerfall UI Manager not found.");
             }
         }
 
