@@ -223,6 +223,9 @@ namespace FamilyNameModifierMod
         // Method to process billboards with specific archive indices
         private void ProcessBillboards(GameObject parent)
         {
+            // Dictionary to store shared last names for each race
+            Dictionary<int, string> raceLastNames = new Dictionary<int, string>();
+
             Billboard[] billboards = parent.GetComponentsInChildren<Billboard>();
             foreach (Billboard billboard in billboards)
             {
@@ -252,15 +255,59 @@ namespace FamilyNameModifierMod
                             Debug.Log($"ProcessBillboards: Added CustomStaticNPC to billboard '{billboard.name}'.");
                         }
 
+                        // Set race-based display name
+                        SetRaceDisplayName(billboard, archiveIndex, raceLastNames);
+
                         break;
 
                     default:
-                    
                         break;
                 }
             }
 
             Debug.Log("ProcessBillboards: Finished processing billboards.");
+        }
+
+        private void SetRaceDisplayName(Billboard billboard, int archiveIndex, Dictionary<int, string> raceLastNames)
+        {
+            // Determine gender based on record index
+            Genders gender = Genders.Female; // Default to female
+            switch (archiveIndex)
+            {
+                case 1300: // Dark Elf
+                    if (new[] { 3, 5, 6, 7, 8 }.Contains(billboard.Summary.Record))
+                        gender = Genders.Male;
+                    break;
+                case 1301: // High Elf
+                    if (new[] { 2, 3, 4 }.Contains(billboard.Summary.Record))
+                        gender = Genders.Male;
+                    break;
+                case 1302: // Wood Elf
+                    if (new[] { 1, 2 }.Contains(billboard.Summary.Record))
+                        gender = Genders.Male;
+                    break;
+                case 1305: // Khajiit
+                    gender = Genders.Male; // All Khajiit are male
+                    break;
+            }
+
+            // Generate shared last name for the race if not already in the dictionary
+            if (!raceLastNames.ContainsKey(archiveIndex))
+            {
+                string lastName = DaggerfallUnity.Instance.NameHelper.Surname((NameHelper.BankTypes)archiveIndex);
+                raceLastNames[archiveIndex] = lastName;
+                Debug.Log($"SetRaceDisplayName: Generated last name '{lastName}' for archive index {archiveIndex}.");
+            }
+
+            // Generate a unique first name for the entity
+            string firstName = DaggerfallUnity.Instance.NameHelper.FirstName((NameHelper.BankTypes)archiveIndex, gender);
+
+            // Combine first and last names into a display name
+            string displayName = $"{firstName} {raceLastNames[archiveIndex]}";
+
+            // Assign the display name to the billboard entity
+            billboard.gameObject.name = displayName; // Optionally set the GameObject's name
+            Debug.Log($"SetRaceDisplayName: Assigned display name '{displayName}' to billboard '{billboard.name}'.");
         }
 
         public void ReplaceAndRegisterNPC(StaticNPC originalNpc)
