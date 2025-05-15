@@ -187,7 +187,7 @@ namespace FamilyNameModifierMod
         {
             Debug.Log("Calling ReplaceAllNPCs");
 
-            // Keep existing StaticNPC wepwacement wogic
+            // Keep existing StaticNPC replacement logic
             StaticNPC[] originalNPCs = FindObjectsOfType<StaticNPC>();
             foreach (StaticNPC originalNpc in originalNPCs)
             {
@@ -238,7 +238,7 @@ namespace FamilyNameModifierMod
                     case 1301: race = NameHelper.BankTypes.HighElf; break;
                     case 1302: race = NameHelper.BankTypes.WoodElf; break;
                     case 1305: race = NameHelper.BankTypes.Khajiit; break;
-                    default: continue; // Skip irrewevant archives
+                    default: continue; // Skip irrelevant archives
                 }
 
                 // Determine gender based on record index
@@ -271,12 +271,18 @@ namespace FamilyNameModifierMod
                 customNpc.Race = (Races)race;
                 customNpc.Gender = gender;
 
-                // Attach and configure CustomDaggerfallTalkWindow
-                CustomDaggerfallTalkWindow talkWindow = child.gameObject.AddComponent<CustomDaggerfallTalkWindow>();
-                // Commented out until a valid MacroDataSource implementation is provided
-                // talkWindow.SetMacroDataSource(new YourMacroDataSourceImplementationHere());
+                // Instantiate CustomDaggerfallTalkWindow externally
+                CustomDaggerfallTalkWindow talkWindow = new CustomDaggerfallTalkWindow(
+                    DaggerfallUI.UIManager,
+                    DaggerfallUI.UIManager.TopWindow,
+                    CustomTalkManager.Instance
+                );
+
+                // Configure the talk window as needed
                 talkWindow.PauseWhileOpen = true; // Example property
-                Debug.Log($"CustomDaggerfallTalkWindow attached and configured for NPC: {npcName}");
+
+                // Log info for debugging
+                Debug.Log($"CustomDaggerfallTalkWindow instantiated and configured for NPC: {npcName}");
 
                 Debug.Log($"Configured NPC: {npcName} (Race: {race}, Gender: {gender}) at {child.name}");
             }
