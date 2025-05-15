@@ -424,13 +424,13 @@ namespace CustomStaticNPCMod
         // Method to set the custom display name
         public void SetCustomDisplayName(string newName)
         {
-            customDisplayName = newName;
-            Debug.Log($"SetCustomDisplayName: Custom DisplayName set to '{newName}' for NPC ID {GetInstanceID()}.");
+            customDisplayName = newName; // Set the display name here
+            Debug.Log($"Custom DisplayName set to '{newName}' for NPC.");
         }
 
+        // Method to get the custom display name
         public string GetCustomDisplayName()
         {
-            Debug.Log($"GetCustomDisplayName: Returning '{customDisplayName}' for NPC ID {GetInstanceID()}.");
             return customDisplayName;
         }
 
@@ -440,6 +440,7 @@ namespace CustomStaticNPCMod
             if (GetComponent<MeshFilter>() == null)
             {
                 gameObject.AddComponent<MeshFilter>();
+                Debug.Log("Added missing MeshFilter component.");
             }
 
             // Add or ensure a MeshRenderer component
@@ -447,6 +448,7 @@ namespace CustomStaticNPCMod
             if (meshRenderer == null)
             {
                 meshRenderer = gameObject.AddComponent<MeshRenderer>();
+                Debug.Log("Added missing MeshRenderer component.");
             }
             meshRenderer.enabled = true;
 
@@ -457,6 +459,7 @@ namespace CustomStaticNPCMod
                 billboard = gameObject.AddComponent<DaggerfallBillboard>();
                 billboard.SetMaterial(originalNpcData.billboardArchiveIndex, originalNpcData.billboardRecordIndex);
                 billboard.AlignToBase();
+                Debug.Log("Added missing DaggerfallBillboard component.");
             }
             billboard.enabled = true;
 
@@ -465,6 +468,7 @@ namespace CustomStaticNPCMod
             if (boxCollider == null)
             {
                 boxCollider = gameObject.AddComponent<BoxCollider>();
+                Debug.Log("Added missing BoxCollider component.");
             }
             boxCollider.enabled = true;
         }
@@ -553,11 +557,12 @@ namespace CustomStaticNPCMod
 
             string originalFirstName = GetDisplayName().Split(' ')[0];
             customFirstName = originalFirstName;
-            string modifiedName = $"{originalFirstName} {customLastName}";
+            string modifiedName = originalFirstName + " " + customLastName;
             CustomDisplayName = modifiedName;
-
             Debug.Log($"SetCustomLastName: Custom last name set to {customLastName} for NPC ID: {npcId}");
         }
+
+
 
         private string GetDisplayName()
         {
@@ -572,16 +577,6 @@ namespace CustomStaticNPCMod
                 DFRandom.srand(npcData.nameSeed);
                 return DaggerfallUnity.Instance.NameHelper.FullName(npcData.nameBank, npcData.gender);
             }
-        }
-
-        public string FetchDisplayName()
-        {
-            return $"{customFirstName} {customLastName}";
-        }
-
-        public int FetchNPCId()
-        {
-            return npcId; // Wetuwn the NPC ID that is awweady stowed in the cwass
         }
 
         private string GenerateName(NameHelper.BankTypes nameBank, Genders gender)

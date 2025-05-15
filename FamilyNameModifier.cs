@@ -89,122 +89,30 @@ namespace FamilyNameModifierMod
             return null;
         }
 
-        //REGIONS DICTIONARY xP ;D :333
-        #region
-        private static readonly Dictionary<int, Races> RegionToRaceMap = new Dictionary<int, Races>
-        {
-    // Alik'r Desert regions (Redguard)
-    { 0, Races.Redguard }, // Alik'r Desert
-    { 1, Races.Redguard }, // Dragontail Mountains
-
-    // High Rock regions (Breton)
-    { 2, Races.Breton },   // Glenpoint Foothills
-    { 3, Races.Breton },   // Daggerfall Bluffs
-    { 4, Races.Breton },   // Yeorth Burrowland
-    { 5, Races.Breton },   // Dwynnen
-    { 6, Races.Breton },   // Ravennian Forest
-    { 7, Races.Redguard }, // Devilrock
-    { 8, Races.Redguard }, // Malekna Forest
-    { 9, Races.Breton },   // Isle of Balfiera
-
-    // More regions
-    { 10, Races.Redguard }, // Bantha
-    { 11, Races.Redguard }, // Dak'fron
-    { 12, Races.Breton },   // Islands in the Western Iliac Bay
-    { 13, Races.Breton },   // Tamarilyn Point
-    { 14, Races.Redguard }, // Lainlyn Cliffs
-    { 15, Races.Breton },   // Bjoulsae River
-    { 16, Races.Breton },   // Wrothgarian Mountains
-    { 17, Races.Breton },   // Daggerfall
-    { 18, Races.Breton },   // Glenpoint
-    { 19, Races.Breton },   // Betony
-    { 20, Races.Redguard }, // Sentinel
-    { 21, Races.Breton },   // Anticlere
-    { 22, Races.Redguard }, // Lainlyn
-    { 23, Races.Breton },   // Wayrest
-
-    // Villages and coastlines
-    { 24, Races.Breton },   // Gen Tem High Rock village
-    { 25, Races.Redguard }, // Gen Rai Hammerfell village
-    { 26, Races.Breton },   // Orsinium Area
-    { 27, Races.Breton },   // Skeffington Wood
-    { 28, Races.Redguard }, // Hammerfell Bay Coast
-    { 29, Races.Redguard }, // Hammerfell Sea Coast
-    { 30, Races.Breton },   // High Rock Bay Coast
-    { 31, Races.Breton },   // High Rock Sea Coast
-
-    // Remaining High Rock regions
-    { 32, Races.Breton }, // Northmoor
-    { 33, Races.Breton }, // Menevia
-    { 34, Races.Breton }, // Alcaire
-    { 35, Races.Breton }, // Koegria
-    { 36, Races.Breton }, // Bhoriane
-    { 37, Races.Breton }, // Kambria
-    { 38, Races.Breton }, // Phrygias
-    { 39, Races.Breton }, // Urvaius
-    { 40, Races.Breton }, // Ykalon
-    { 41, Races.Breton }, // Daenia
-    { 42, Races.Breton }, // Shalgora
-
-    // Remaining Hammerfell regions
-    { 43, Races.Redguard }, // Abibon-Gora
-    { 44, Races.Redguard }, // Kairou
-    { 45, Races.Redguard }, // Pothago
-    { 46, Races.Redguard }, // Myrkwasa
-    { 47, Races.Redguard }, // Ayasofya
-    { 48, Races.Redguard }, // Tigonus
-    { 49, Races.Redguard }, // Kozanset
-    { 50, Races.Redguard }, // Satakalaam
-    { 51, Races.Redguard }, // Totambu
-    { 52, Races.Redguard }, // Mournoth
-    { 53, Races.Redguard }, // Ephesus
-    { 54, Races.Redguard }, // Santaki
-    { 55, Races.Redguard }, // Antiphyllos
-    { 56, Races.Redguard }, // Bergama
-
-    // Miscellaneous regions
-    { 57, Races.Breton }, // Gavaudon
-    { 58, Races.Breton }, // Tulune
-    { 59, Races.Breton }, // Glenumbra Moors
-    { 60, Races.Breton }, // Ilessan Hills
-    { 61, Races.Redguard }, // Cybiades
-        };
-        #endregion
-
         public string GenerateFamilyLastName()
         {
             string buildingId = GetBuildingIdentifier();
             string lastName = LoadFamilyLastName(buildingId);
+            string lastNameNord = LoadFamilyLastName(buildingId);
+            string lastNameRedguard = LoadFamilyLastName(buildingId);
+            string lastNameDarkElf = LoadFamilyLastName(buildingId);
+            string lastNameHighElf = LoadFamilyLastName(buildingId);
+            string lastNameWoodElf = LoadFamilyLastName(buildingId);
+            string lastNameKhajiit = LoadFamilyLastName(buildingId);
+            string lastNameArgonian = LoadFamilyLastName(buildingId);
 
             if (string.IsNullOrEmpty(lastName))
             {
                 int seed = GenerateUniqueSeed(buildingId);
                 UnityEngine.Random.InitState(seed);
-
-                // Detect current region and assign last name bank
-                int currentRegion = GameManager.Instance.PlayerGPS.CurrentRegionIndex;
-                Races regionRace = RegionToRaceMap.ContainsKey(currentRegion) ? RegionToRaceMap[currentRegion] : Races.Breton;
-                Debug.Log($"Region race for current region index {currentRegion}: {regionRace}");
-
-                NameHelper.BankTypes nameBank;
-
-                if (regionRace == Races.Redguard)
-                {
-                    Debug.Log("Detected Hammerfell region. Assigning Redguard name bank.");
-                    nameBank = NameHelper.BankTypes.Redguard; // Hammerfell regions
-                }
-                else if (regionRace == Races.Breton)
-                {
-                    Debug.Log("Detected High Rock region. Assigning Breton name bank.");
-                    nameBank = NameHelper.BankTypes.Breton; // High Rock regions
-                }
-                else
-                {
-                    Debug.LogWarning($"Unexpected race for region index {currentRegion}: {regionRace}. Defaulting to Breton.");
-                    nameBank = NameHelper.BankTypes.Breton; // Default to Breton
-                }
-
-                lastName = DaggerfallUnity.Instance.NameHelper.Surname(nameBank);
+                lastName = DaggerfallUnity.Instance.NameHelper.Surname(NameHelper.BankTypes.Breton);
+                lastNameNord = DaggerfallUnity.Instance.NameHelper.Surname(NameHelper.BankTypes.Nord);
+                lastNameRedguard = DaggerfallUnity.Instance.NameHelper.Surname(NameHelper.BankTypes.Redguard);
+                lastNameDarkElf = DaggerfallUnity.Instance.NameHelper.Surname(NameHelper.BankTypes.DarkElf);
+                lastNameHighElf = DaggerfallUnity.Instance.NameHelper.Surname(NameHelper.BankTypes.HighElf);
+                lastNameWoodElf = DaggerfallUnity.Instance.NameHelper.Surname(NameHelper.BankTypes.WoodElf);
+                lastNameKhajiit = DaggerfallUnity.Instance.NameHelper.Surname(NameHelper.BankTypes.Khajiit);
+                lastNameArgonian = DaggerfallUnity.Instance.NameHelper.Surname(NameHelper.BankTypes.Imperial);
                 SaveFamilyLastName(buildingId, lastName);
             }
 
@@ -276,249 +184,12 @@ namespace FamilyNameModifierMod
 
         public void ReplaceAllNPCs()
         {
-            Debug.Log("FamilyNameModifier: ReplaceAllNPCs triggered. Locating 'interior' parent.");
-
-            // Attempt to find the "interior" parent object using PlayerEnterExit
-            GameObject interiorParent = null;
-            if (GameManager.Instance.PlayerEnterExit != null && GameManager.Instance.PlayerEnterExit.IsPlayerInside)
+            Debug.Log("Calling ReplaceAllNPCs");
+            StaticNPC[] originalNPCs = FindObjectsOfType<StaticNPC>();
+            foreach (StaticNPC originalNpc in originalNPCs)
             {
-                interiorParent = GameManager.Instance.PlayerEnterExit.InteriorParent;
+                ReplaceAndRegisterNPC(originalNpc);
             }
-
-            // Fallback to find the "interior" parent by name if not found above
-            if (interiorParent == null)
-            {
-                interiorParent = GameObject.Find("interior");
-            }
-
-            // Check if the "interior" parent was successfully found
-            if (interiorParent == null)
-            {
-                Debug.LogWarning("FamilyNameModifier: 'interior' parent not found. Skipping processing.");
-                return;
-            }
-
-            Debug.Log($"FamilyNameModifier: Found 'interior' parent: {interiorParent.name}. Searching for NPCs in the hierarchy.");
-
-            // Recursively process all child objects under the "interior" parent
-            ProcessNPCsInHierarchy(interiorParent.transform);
-
-            Debug.Log("FamilyNameModifier: Finished processing all NPCs in the 'interior' hierarchy.");
-        }
-
-        // Recursive method to process NPCs in the hierarchy
-        private void ProcessNPCsInHierarchy(Transform parentTransform)
-        {
-            foreach (Transform child in parentTransform)
-            {
-
-                AssignCustomNPC();
-                // Check if the child has an NPC component (StaticNPC)
-                var originalNpc = child.GetComponent<DaggerfallWorkshop.Game.StaticNPC>();
-                if (originalNpc != null)
-                {
-                    Debug.Log($"FamilyNameModifier: Found NPC '{child.name}' in hierarchy. Applying ReplaceAndRegisterNPC and AssignCustomNPC.");
-
-                    // Replace and register the NPC using the existing method
-                    ReplaceAndRegisterNPC(originalNpc);
-
-                }
-                else
-                {
-                    Debug.Log($"FamilyNameModifier: Skipping '{child.name}' as it does not have a StaticNPC component.");
-                }
-
-                // Recursively process the child's children
-                ProcessNPCsInHierarchy(child);
-            }
-        }
-
-        private Dictionary<Races, string> raceSurnames = new Dictionary<Races, string>();
-
-        public void AssignCustomNPC()
-        {
-            Debug.Log("FamilyNameModifier: AssignCustomNPC triggered. Initializing custom NPCs for interior.");
-
-            // Find all billboards in the scene
-            GameObject[] billboards = FindObjectsOfType<GameObject>();
-
-            foreach (GameObject billboard in billboards)
-            {
-                if (billboard.TryGetComponent(out DaggerfallBillboard dfBillboard))
-                {
-                    int archiveIndex = dfBillboard.Summary.Archive;
-                    int recordIndex = dfBillboard.Summary.Record;
-
-                    if (IsCustomNPCArchive(archiveIndex))
-                    {
-                        Debug.Log($"FamilyNameModifier: Found billboard with ArchiveIndex = {archiveIndex}, RecordIndex = {recordIndex}. Ensuring components are added.");
-
-                        if (!billboard.TryGetComponent<CustomStaticNPC>(out var customNPC))
-                        {
-                            AddCustomNPC(billboard, archiveIndex, recordIndex);
-                        }
-                        else
-                        {
-                            Debug.Log($"FamilyNameModifier: Billboard (ArchiveIndex = {archiveIndex}, RecordIndex = {recordIndex}) already has CustomStaticNPC. Skipping.");
-                        }
-                    }
-                }
-            }
-
-            Debug.Log("FamilyNameModifier: Finished processing billboards.");
-        }
-
-        private bool IsCustomNPCArchive(int archiveIndex)
-        {
-            // Check if the archive index matches any of the defined custom NPC types
-            return archiveIndex == 1300 || archiveIndex == 1301 || archiveIndex == 1302 || archiveIndex == 1305;
-        }
-
-        private void AddCustomNPC(GameObject billboard, int archiveIndex, int recordIndex)
-        {
-            Debug.Log($"FamilyNameModifier: Adding CustomStaticNPC to billboard (ArchiveIndex = {archiveIndex}, RecordIndex = {recordIndex}).");
-
-            var customNPC = billboard.AddComponent<CustomStaticNPC>();
-
-            if (!billboard.TryGetComponent<BoxCollider>(out var collider))
-            {
-                collider = billboard.AddComponent<BoxCollider>();
-                collider.size = new Vector3(1, 2, 1);
-                collider.center = new Vector3(0, 1, 0);
-                Debug.Log($"FamilyNameModifier: Added BoxCollider component to billboard (ArchiveIndex = {archiveIndex}, RecordIndex = {recordIndex}).");
-            }
-
-            Races race = DetermineRace(archiveIndex);
-            Genders gender = DetermineGender(archiveIndex, recordIndex);
-
-            // Generate or reuse a surname for the race
-            string surname = GetOrGenerateSurname(race);
-            string firstName = GenerateName(race, gender, surname);
-
-            customNPC.InitializeNPCData(new StaticNPC.NPCData
-            {
-                nameSeed = firstName.GetHashCode(),
-                factionID = 0,
-                nameBank = NameHelper.BankTypes.Breton // Adjust this based on race mapping
-            });
-
-            Debug.Log($"FamilyNameModifier: Initialized CustomStaticNPC data for billboard (Name = {firstName} {surname}, Race = {race}, Gender = {gender}).");
-        }
-
-        private string GetOrGenerateSurname(Races race)
-        {
-            if (!raceSurnames.TryGetValue(race, out string surname))
-            {
-                surname = GenerateSurname(race);
-                raceSurnames[race] = surname;
-                Debug.Log($"FamilyNameModifier: Generated new surname '{surname}' for race '{race}'.");
-            }
-            else
-            {
-                Debug.Log($"FamilyNameModifier: Reusing existing surname '{surname}' for race '{race}'.");
-            }
-
-            return surname;
-        }
-
-        private string GenerateSurname(Races race)
-        {
-            // Use NameHelper to generate a surname for the race
-            var nameHelper = DaggerfallUnity.Instance.NameHelper;
-            if (nameHelper == null)
-            {
-                Debug.LogError("FamilyNameModifier: NameHelper instance is null. Cannot generate surname.");
-                return "Unknown";
-            }
-
-            return nameHelper.Surname(MapRaceToBankType(race));
-        }
-
-
-        private Races DetermineRace(int archiveIndex)
-        {
-            switch (archiveIndex)
-            {
-                case 1300: return Races.DarkElf;
-                case 1301: return Races.HighElf;
-                case 1302: return Races.WoodElf;
-                case 1305: return Races.Khajiit;
-                default: return Races.Breton; // Default to Breton as a fallback
-            }
-        }
-
-        private Genders DetermineGender(int archiveIndex, int recordIndex)
-        {
-            // Logic for Dark Elves
-            if (archiveIndex == 1300)
-            {
-                return (recordIndex == 3 || recordIndex == 5 || recordIndex == 6 || recordIndex == 7 || recordIndex == 8)
-                    ? Genders.Male
-                    : Genders.Female;
-            }
-
-            // Logic for High Elves
-            if (archiveIndex == 1301)
-            {
-                return (recordIndex == 2 || recordIndex == 3 || recordIndex == 4)
-                    ? Genders.Male
-                    : Genders.Female;
-            }
-
-            // Logic for Wood Elves
-            if (archiveIndex == 1302)
-            {
-                return (recordIndex == 1 || recordIndex == 2)
-                    ? Genders.Male
-                    : Genders.Female;
-            }
-
-            // Logic for Khajiit (all male)
-            if (archiveIndex == 1305)
-            {
-                return Genders.Male;
-            }
-
-            return Genders.Female; // Default to Female as a fallback
-        }
-
-        private NameHelper.BankTypes MapRaceToBankType(Races race)
-        {
-            switch (race)
-            {
-                case Races.Breton:
-                    return NameHelper.BankTypes.Breton;
-                case Races.Redguard:
-                    return NameHelper.BankTypes.Redguard;
-                case Races.Nord:
-                    return NameHelper.BankTypes.Nord;
-                case Races.DarkElf:
-                    return NameHelper.BankTypes.DarkElf;
-                case Races.HighElf:
-                    return NameHelper.BankTypes.HighElf;
-                case Races.WoodElf:
-                    return NameHelper.BankTypes.WoodElf;
-                case Races.Khajiit:
-                    return NameHelper.BankTypes.Khajiit;
-                case Races.Argonian:
-                    return NameHelper.BankTypes.Imperial;
-                default:
-                    return NameHelper.BankTypes.Breton; // Default
-            }
-        }
-
-        // Adjusted GenerateName to include the surname
-        private string GenerateName(Races race, Genders gender, string surname)
-        {
-            var nameHelper = DaggerfallUnity.Instance.NameHelper;
-            if (nameHelper == null)
-            {
-                Debug.LogError("FamilyNameModifier: NameHelper instance is null. Cannot generate name.");
-                return "Unknown Name";
-            }
-
-            string firstName = nameHelper.FirstName(MapRaceToBankType(race), gender);
-            return $"{firstName} {surname}";
         }
 
         public void ReplaceAndRegisterNPC(StaticNPC originalNpc)
@@ -652,20 +323,6 @@ namespace FamilyNameModifierMod
 
         private void OnTransitionToInterior(PlayerEnterExit.TransitionEventArgs args)
         {
-            Debug.Log("Player transitioning to interior.");
-
-            // Log the current region
-            int currentRegion = GameManager.Instance.PlayerGPS.CurrentRegionIndex;
-            Debug.Log($"Current region index: {currentRegion}");
-
-            // Log building type
-            if (GameManager.Instance.PlayerEnterExit.Interior != null)
-            {
-                var buildingData = GameManager.Instance.PlayerEnterExit.Interior.BuildingData;
-                Debug.Log($"Building type: {buildingData.BuildingType}");
-            }
-
-            // Existing functionality
             DespawnCustomNPCs();
 
             if (updateNPCCoroutine != null)
@@ -714,7 +371,6 @@ namespace FamilyNameModifierMod
                 Debug.Log("Player entered a residential building.");
                 familyLastName = GenerateFamilyLastName();
                 Debug.Log($"Generated family last name: {familyLastName}");
-
                 ReplaceAllNPCs();
             }
             else
@@ -756,6 +412,11 @@ namespace FamilyNameModifierMod
             var playerEnterExit = GameManager.Instance.PlayerEnterExit;
             if (playerEnterExit.IsPlayerInsideBuilding)
             {
+                // Get the current location index
+                int locationIndex = GameManager.Instance.PlayerGPS.CurrentLocationIndex;
+                if (locationIndex == -1)
+                    return false;
+
                 // Get the current building summary from the interior
                 var buildingSummary = playerEnterExit.Interior.BuildingData;
 
@@ -772,7 +433,6 @@ namespace FamilyNameModifierMod
                 Debug.Log($"Building Type: {buildingType}. Is residential: {isResidential}");
                 return isResidential;
             }
-
             return false;
         }
 

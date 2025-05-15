@@ -663,7 +663,8 @@ namespace CustomDaggerfallTalkWindowMod
                 return;
             }
 
-          
+            Debug.Log($"Scaling component: {component.Name} with scaleFactor: {scaleFactor}");
+            Debug.Log($"Before scaling - {component.Name} Position: {component.Position}, Size: {component.Size}");
 
             component.Position *= scaleFactor;
 
@@ -678,24 +679,24 @@ namespace CustomDaggerfallTalkWindowMod
             else if (component is Button button)
             {
                 button.Size *= scaleFactor;
-            
+                Debug.Log($"Button {component.Name} scaled to - Position: {button.Position}, Size: {button.Size}");
             }
             else if (component is TextLabel label)
             {
                 label.Size *= scaleFactor;
                 label.TextScale *= scaleFactor;
-         
+                Debug.Log($"TextLabel {component.Name} scaled to - Position: {label.Position}, Size: {label.Size}, TextScale: {label.TextScale}");
             }
             else if (component is ListBox listBox)
             {
                 listBox.Size *= scaleFactor;
                 listBox.TextScale *= scaleFactor;
-            
+                Debug.Log($"ListBox {component.Name} scaled to - Position: {listBox.Position}, Size: {listBox.Size}, TextScale: {listBox.TextScale}");
             }
 
             component.Tag = "Scaled";
 
-       
+            Debug.Log($"After scaling - {component.Name} Position: {component.Position}, Size: {component.Size}");
         }
 
         public override void Draw()
@@ -790,47 +791,6 @@ namespace CustomDaggerfallTalkWindowMod
             mainPanel.Components.Add(listboxConversation);
 
             PopulateTopics();
-        }
-
-        private string npcName;
-
-        public void SetupBillboardNPC(int npcId, string displayName)
-        {
-            // Setup logic specific to billboard NPCs
-            Debug.Log($"CustomDaggerfallTalkWindow: Setting up billboard NPC. ID = {npcId}, Name = {displayName}");
-
-            // Set the NPC's name
-            npcName = displayName;
-
-            // Use the NPC name in the UI (e.g., a label or dialog box)
-            UpdateNPCNameUI();
-        }
-
-        public void SetupCustomNPC(int npcId, string displayName)
-        {
-            if (string.IsNullOrEmpty(displayName))
-            {
-                Debug.LogWarning($"SetupCustomNPC: Display name is missing for NPC ID = {npcId}. Setting to 'Unknown NPC'.");
-                displayName = "Unknown NPC";
-            }
-
-            // Update the label with the display name
-            labelNameNPC.Text = displayName;
-            labelNameNPC.Update(); // Ensure the UI refreshes
-            Debug.Log($"SetupCustomNPC: Updated labelNameNPC to '{displayName}' for NPC ID {npcId}.");
-        }
-
-        private void UpdateNPCNameUI()
-        {
-            if (labelNameNPC != null)
-            {
-                labelNameNPC.Text = npcName;
-                Debug.Log($"CustomDaggerfallTalkWindow: NPC Name Updated to {npcName}");
-            }
-            else
-            {
-                Debug.LogError("CustomDaggerfallTalkWindow: labelNameNPC is null. Cannot update NPC name.");
-            }
         }
 
         private void ListboxTopics_OnMouseMove(int x, int y)
@@ -1123,7 +1083,7 @@ namespace CustomDaggerfallTalkWindowMod
             button.BackgroundTexture = subTexture;
             button.BackgroundColor = backgroundColor;
             button.OnMouseClick += (BaseScreenComponent sender, Vector2 buttonPosition) => clickHandler();
-           
+            Debug.Log($"Button {componentName} created at (x:{position.x:0.00}, y:{position.y:0.00}, width:{size.x:0.00}, height:{size.y:0.00}) with background color RGBA({backgroundColor.r:0.000}, {backgroundColor.g:0.000}, {backgroundColor.b:0.000}, {backgroundColor.a:0.000})");
             return button;
         }
 
@@ -1270,7 +1230,7 @@ namespace CustomDaggerfallTalkWindowMod
             ScalePanelAndChildren(buttonTellMeBlock, scaleFactor, false);
             ScalePanelAndChildren(buttonWhereIsBlock, scaleFactor, false);
 
-            
+            Debug.Log("Buttons added to main panel");
         }
 
         // Example action methods
@@ -1281,13 +1241,13 @@ namespace CustomDaggerfallTalkWindowMod
 
         protected Button CreateBlockers(Vector2 position, Vector2 size, Rect textureRect, Texture2D texture, Action onClickAction, string componentName)
         {
-           
+            Debug.Log("CreateBlockers called with position: " + position + " and size: " + size);
             Button button = DaggerfallUI.AddButton(new Rect(position, size), mainPanel);
             button.Size = size;
             button.Name = componentName;
             button.BackgroundTexture = ImageReader.GetSubTexture(texture, textureRect);
             button.OnMouseClick += (BaseScreenComponent sender, Vector2 buttonPosition) => onClickAction?.Invoke();
-            
+            Debug.Log("Button " + componentName + " position: " + button.Position + ", size: " + button.Size);
             return button;
         }
 
@@ -1347,7 +1307,6 @@ namespace CustomDaggerfallTalkWindowMod
         public override void OnPush()
         {
             base.OnPush();
-            Debug.Log($"OnPush: Current NPC Display Name: {labelNameNPC.Text}");
             UpdateCustomNameNPC();
             UpdateCustomNPCPortrait();
             StartDialogue();
@@ -1423,10 +1382,6 @@ namespace CustomDaggerfallTalkWindowMod
                 var customNpc = CustomTalkManagerMod.CustomTalkManager.Instance.GetTargetCustomNPC();
                 if (customNpc != null)
                 {
-                    // Update the display name in the label
-                    labelNameNPC.Text = customNpc.CustomDisplayName;
-                    Debug.Log($"StartDialogue: Updated display name to '{customNpc.CustomDisplayName}'");
-
                     bool isBuildingEmpty = CustomNPCBridgeMod.CustomNPCBridge.Instance.IsBuildingEmpty(buildingKey);
 
                     if (isBuildingEmpty)
@@ -1446,7 +1401,7 @@ namespace CustomDaggerfallTalkWindowMod
                     }
                     else
                     {
-                        Debug.Log($"StartDialogue: Found custom NPC with ID: {customNpc.GetInstanceID()}, Name: {customNpc.CustomDisplayName}");
+                        Debug.Log($"StartDialogue: Found custom NPC with ID: {customNpc.GetInstanceID()}");
                         int npcId = customNpc.GetInstanceID();
                         string greeting = CustomTalkManagerMod.CustomTalkManager.Instance.GetGreeting(npcId);
                         listboxConversation.AddItem(greeting, out textLabelGreeting);
@@ -1477,6 +1432,7 @@ namespace CustomDaggerfallTalkWindowMod
                 }
             }
         }
+
 
         private void UpdateCustomNameNPC()
         {
@@ -1509,6 +1465,7 @@ namespace CustomDaggerfallTalkWindowMod
                 DaggerfallTalkWindow.FacePortraitArchive facePortraitArchive = DaggerfallTalkWindow.FacePortraitArchive.CommonFaces;
                 int recordIndex;
 
+                
                 if (customNpc.Data.billboardArchiveIndex == 357 && customNpc.Data.billboardRecordIndex == 1)
                 {
                     recordIndex = 465; 
@@ -1600,17 +1557,9 @@ namespace CustomDaggerfallTalkWindowMod
 
         }
 
-        private Texture2D defaultPortraitTexture; // Add a pwacehowdew fiewd
-
         private void SetDefaultNPCPortrait()
         {
-            if (defaultPortraitTexture == null)
-            {
-                Debug.LogWarning("SetDefaultNPCPortrait: Defauwt powtwait textuwe is nuww. Woading a pwacehowdew.");
-                defaultPortraitTexture = DaggerfallUI.GetTextureFromImg("TALK00I0.IMG"); // Woad a defauwt image fwom assets
-            }
-
-            panelPortrait.BackgroundTexture = defaultPortraitTexture;
+            // Implement logic to set default NPC portrait if custom NPC is not available
         }
 
         private void SetNPCPortrait(DaggerfallTalkWindow.FacePortraitArchive facePortraitArchive, int recordId)

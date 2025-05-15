@@ -92,12 +92,6 @@ namespace CustomNPCClickHandlerMod
 
                         // Enable the custom talk manager before starting the conversation
                         CustomTalkManagerMod.CustomTalkManager.Instance.enabled = true;
-
-                        // Ensure the clicked NPC is set as the target
-                        bool sameTalkTargetAsBefore = false;
-                        CustomTalkManagerMod.CustomTalkManager.Instance.SetTargetCustomNPC(customNPC, ref sameTalkTargetAsBefore);
-
-                        // Start the conversation
                         CustomTalkManagerMod.CustomTalkManager.Instance.StartConversation(customNPC);
                     }
                 }

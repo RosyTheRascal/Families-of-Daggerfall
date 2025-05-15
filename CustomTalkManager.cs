@@ -139,8 +139,6 @@ namespace CustomTalkManagerMod
         private static CustomTalkManager instance;
         private CustomStaticNPC lastTargetCustomNPC; // Use the correct type here
         private Dictionary<int, List<string>> customTokens = new Dictionary<int, List<string>>();
-        private CustomStaticNPC currentCustomNPC;
-
 
         [Invoke(StateManager.StateTypes.Start, 0)]
         public static void Init(InitParams initParams)
@@ -235,31 +233,40 @@ namespace CustomTalkManagerMod
 
         public CustomStaticNPC GetTargetCustomNPC()
         {
-            if (currentCustomNPC == null)
+            if (lastTargetCustomNPC == null)
             {
-                Debug.LogWarning("GetTargetCustomNPC: No NPC is cuwwentwy sewected.");
+                Debug.LogWarning("Last target custom NPC is null.");
             }
-            return currentCustomNPC;
+            return lastTargetCustomNPC;
         }
 
         public void SetTargetCustomNPC(CustomStaticNPC targetCustomNPC, ref bool sameTalkTargetAsBefore)
         {
-            if (targetCustomNPC == null)
-            {
-                Debug.LogError("SetTargetCustomNPC: Target NPC is null.");
-                return;
-            }
-
-            // Check if the same NPC is being targeted
-            if (currentCustomNPC == targetCustomNPC)
+            if (lastTargetCustomNPC != null && lastTargetCustomNPC == targetCustomNPC)
             {
                 sameTalkTargetAsBefore = true;
-                Debug.Log($"SetTargetCustomNPC: Same NPC targeted again (NameSeed: {targetCustomNPC.Data.nameSeed}).");
-                return;
             }
+            else
+            {
+                sameTalkTargetAsBefore = false;
+                lastTargetCustomNPC = targetCustomNPC ?? throw new ArgumentNullException(nameof(targetCustomNPC), "Target Custom NPC cannot be null.");
 
-            currentCustomNPC = targetCustomNPC;
-            Debug.Log($"SetTargetCustomNPC: New target NPC set (NameSeed: {targetCustomNPC.Data.nameSeed}, Name: {targetCustomNPC.CustomDisplayName}).");
+                // Initialize currentQuestionListItem here or elsewhere as appropriate
+                if (currentQuestionListItem == null)
+                {
+                    currentQuestionListItem = new TalkManager.ListItem();
+                }
+
+                if (npcData == null)
+                {
+                    npcData = new CustomNPCData(); // Ensure npcData is initialized
+                }
+
+                // Ensure gender is set
+                npcData.gender = targetCustomNPC.Gender; // Add this line to set the gender
+            }
+            int recordIndex = targetCustomNPC.Data.billboardRecordIndex;
+            IsChildNPC = (recordIndex == 4 || recordIndex == 38 || recordIndex == 42 || recordIndex == 43 || recordIndex == 52 || recordIndex == 53);
         }
 
         public FactionFile.FactionData GetNPCData(int factionID)
@@ -267,36 +274,6 @@ namespace CustomTalkManagerMod
             FactionFile.FactionData factionData;
             GameManager.Instance.PlayerEntity.FactionData.GetFactionData(factionID, out factionData);
             return factionData;
-        }
-
-        public void StartConversationWithBillboard(CustomBillboardNPC billboardNPC)
-        {
-            if (billboardNPC == null)
-            {
-                Debug.LogError("CustomTalkManager: Billboard NPC is null. Cannot start conversation.");
-                return;
-            }
-
-            // Get NPC data from the billboard
-            int npcId = billboardNPC.GetNPCId();
-            string displayName = billboardNPC.GetDisplayName();
-
-            // Validate NPC data
-            if (npcId <= 0 || string.IsNullOrEmpty(displayName))
-            {
-                Debug.LogError($"CustomTalkManager: Invalid NPC data. ID = {npcId}, Name = {displayName}");
-                return;
-            }
-
-            // Log for debugging
-            Debug.Log($"CustomTalkManager: Starting conversation with billboard NPC. ID = {npcId}, Name = {displayName}");
-
-            // Pass the NPC data to the CustomTalkWindow
-            CustomDaggerfallTalkWindow talkWindow = new CustomDaggerfallTalkWindow(DaggerfallUI.UIManager, null, this);
-            talkWindow.SetupBillboardNPC(npcId, displayName);
-
-            // Open the CustomTalkWindow
-            DaggerfallUI.UIManager.PushWindow(talkWindow);
         }
 
         public int GetToneIndex(DaggerfallTalkWindow.TalkTone talkTone)
@@ -322,17 +299,31 @@ namespace CustomTalkManagerMod
         {
             if (customNpc == null)
             {
-                Debug.LogError("StartConversation: Custom NPC is null.");
+                Debug.LogWarning("StartConversation: Custom NPC is null in StartConversation");
                 return;
             }
 
-            string displayName = customNpc.GetCustomDisplayName();
-            Debug.Log($"StartConversation: Starting conversation with Custom NPC. ID = {customNpc.GetInstanceID()}, Name = {displayName}");
+            Debug.Log($"StartConversation: Starting conversation with custom NPC ID: {customNpc.GetInstanceID()}");
 
-            var talkWindow = new CustomDaggerfallTalkWindow(DaggerfallUI.UIManager, null, this);
-            talkWindow.SetupCustomNPC(customNpc.GetInstanceID(), displayName);
+            bool sameTalkTargetAsBefore = false;
+            CustomTalkManager.Instance.SetTargetCustomNPC(customNpc, ref sameTalkTargetAsBefore);
 
+            // Load the custom CSV file
+            CustomTalkManager.Instance.LoadCustomCSV("GreetingsAndSalutations.csv");
+            Debug.Log("Parsing Greetings File");
+
+            var talkWindow = new CustomDaggerfallTalkWindowMod.CustomDaggerfallTalkWindow(DaggerfallUI.UIManager, DaggerfallUI.UIManager.TopWindow as DaggerfallBaseWindow, CustomTalkManagerMod.CustomTalkManager.Instance);
+
+            // Set the macro data source for the talk window
+            var macroDataSource = CustomTalkManager.Instance.GetMacroDataSource();
+            Debug.Log($"StartConversation: MacroDataSource - NPC Race: {(macroDataSource as CustomTalkManager.TalkManagerDataSource).NpcRace}, Gender: {(macroDataSource as CustomTalkManager.TalkManagerDataSource).PotentialQuestorGender}");
+            talkWindow.SetMacroDataSource(macroDataSource);
+
+            npcData = new CustomNPCData();
+
+            // Open the custom talk window
             DaggerfallUI.UIManager.PushWindow(talkWindow);
+            Debug.Log("Opening CustomDaggerfallTalkWindow");
         }
 
         public string GetGreeting(int npcId)
@@ -369,23 +360,35 @@ namespace CustomTalkManagerMod
             return dialogLines[dialogIndex];
         }
 
-        public int GenerateUniqueHash(string displayName)
+        private int GenerateUniqueHash(string displayName)
         {
-            if (string.IsNullOrEmpty(displayName))
+            var gps = GameManager.Instance.PlayerGPS;
+            int worldX = gps.WorldX / 500; // Reduce precision by dividing 
+            int worldZ = gps.WorldZ / 500; // Reduce precision by dividing 
+            int buildingId = gps.CurrentLocationIndex;
+
+            Debug.Log($"Generating hash for NPC ID: {displayName}");
+            Debug.Log($"Normalized WorldX: {worldX}, Normalized WorldZ: {worldZ}, BuildingID: {buildingId}, NPCID: {displayName}");
+
+            // Combine the normalized GPS coordinates, building ID, and NPC ID to generate a unique hash
+            unchecked // Allow overflow
             {
-                Debug.LogError("CustomTalkManager: Display name is null or empty. Cannot generate hash.");
-                return -1;
+                int hash = 17;
+                hash = hash * 31 + worldX;
+                hash = hash * 31 + worldZ;
+                hash = hash * 31 + buildingId;
+                foreach (char c in displayName)
+                {
+                    if (char.IsLetter(c))
+                    {
+                        hash = hash * 31 + c;
+                    }
+                }
+                Debug.Log($"Generated hash: {hash}");
+                return hash;
             }
-
-            // Normalize and hash display name
-            string normalizedDisplayName = displayName.ToLowerInvariant().Trim();
-            int hash = normalizedDisplayName.GetHashCode();
-
-            // Log for debugging
-            Debug.Log($"CustomTalkManager: Generated hash {hash} for display name {displayName}");
-
-            return hash;
         }
+
 
         private void LoadCustomCSV(string csvFileName)
         {
@@ -1093,6 +1096,10 @@ namespace CustomTalkManagerMod
 
             public override string Name()
             {
+                // Used for greeting messages only: 7215, 7216, 7217
+                if (!string.IsNullOrEmpty(GameManager.Instance.TalkManager.GreetingNameNPC))
+                    return GameManager.Instance.TalkManager.GreetingNameNPC;
+
                 return MacroHelper.GetRandomFullName();
             }
 
@@ -1104,8 +1111,11 @@ namespace CustomTalkManagerMod
 
             public override string MaleName()
             {
+                DFRandom.Seed += 3547;
                 NameHelper.BankTypes nameBank = (NameHelper.BankTypes)MapsFile.RegionRaces[GameManager.Instance.PlayerGPS.CurrentRegionIndex];
-                return DaggerfallUnity.Instance.NameHelper.FullName(nameBank, Genders.Male);
+                string name = DaggerfallUnity.Instance.NameHelper.FullName(nameBank, Genders.Male);
+                DFRandom.Seed -= 3547;
+                return name;
             }
 
             public override string Direction()
