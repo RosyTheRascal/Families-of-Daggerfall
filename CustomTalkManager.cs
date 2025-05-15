@@ -334,8 +334,8 @@ namespace CustomTalkManagerMod
             }
 
             // Get NPC ID and Display Name
-            int npcId = customNpc.GetNPCId();
-            string displayName = customNpc.FetchDisplayName(); // Use the new method
+            int npcId = customNpc.FetchNPCId(); // Use the new method
+            string displayName = customNpc.FetchDisplayName(); // Use the FetchDisplayName method
 
             // Validate Display Name
             if (string.IsNullOrEmpty(displayName))

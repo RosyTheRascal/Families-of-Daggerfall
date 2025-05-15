@@ -579,6 +579,11 @@ namespace CustomStaticNPCMod
             return $"{customFirstName} {customLastName}";
         }
 
+        public int FetchNPCId()
+        {
+            return npcId; // Wetuwn the NPC ID that is awweady stowed in the cwass
+        }
+
         private string GenerateName(NameHelper.BankTypes nameBank, Genders gender)
         {
             // Validate gender
