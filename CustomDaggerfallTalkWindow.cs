@@ -1424,6 +1424,10 @@ namespace CustomDaggerfallTalkWindowMod
                 var customNpc = CustomTalkManagerMod.CustomTalkManager.Instance.GetTargetCustomNPC();
                 if (customNpc != null)
                 {
+                    // Update the display name in the label
+                    labelNameNPC.Text = customNpc.CustomDisplayName;
+                    Debug.Log($"StartDialogue: Updated display name to '{customNpc.CustomDisplayName}'");
+
                     bool isBuildingEmpty = CustomNPCBridgeMod.CustomNPCBridge.Instance.IsBuildingEmpty(buildingKey);
 
                     if (isBuildingEmpty)
@@ -1474,7 +1478,6 @@ namespace CustomDaggerfallTalkWindowMod
                 }
             }
         }
-
 
         private void UpdateCustomNameNPC()
         {
