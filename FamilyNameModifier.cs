@@ -185,10 +185,97 @@ namespace FamilyNameModifierMod
         public void ReplaceAllNPCs()
         {
             Debug.Log("Calling ReplaceAllNPCs");
+
+            // Replace StaticNPCs as before
             StaticNPC[] originalNPCs = FindObjectsOfType<StaticNPC>();
             foreach (StaticNPC originalNpc in originalNPCs)
             {
                 ReplaceAndRegisterNPC(originalNpc);
+            }
+
+            // Find the "Interior Flats" under "DaggerfallInterior" under "Interior"
+            Transform interiorTransform = GameObject.Find("Interior")?.transform;
+            if (interiorTransform == null)
+            {
+                Debug.LogError("Interior GameObject not found.");
+                return;
+            }
+
+            Transform daggerfallInterior = interiorTransform.Find("DaggerfallInterior");
+            if (daggerfallInterior == null)
+            {
+                Debug.LogError("DaggerfallInterior GameObject not found.");
+                return;
+            }
+
+            Transform interiorFlats = daggerfallInterior.Find("Interior Flats");
+            if (interiorFlats == null)
+            {
+                Debug.LogError("Interior Flats GameObject not found.");
+                return;
+            }
+
+            // Iterate through children and apply logic for specific billboard archives
+            foreach (Transform child in interiorFlats)
+            {
+                StaticNPC.NPCData npcData = child.GetComponent<StaticNPC>()?.Data;
+                if (npcData == null)
+                    continue;
+
+                int archiveIndex = npcData.billboardArchiveIndex;
+
+                // Map the archive indices to races
+                NameHelper.BankTypes race;
+                switch (archiveIndex)
+                {
+                    case 1300: race = NameHelper.BankTypes.DarkElf; break;
+                    case 1301: race = NameHelper.BankTypes.HighElf; break;
+                    case 1302: race = NameHelper.BankTypes.WoodElf; break;
+                    case 1305: race = NameHelper.BankTypes.Khajiit; break;
+                    default: continue; // Skip irrelevant archives
+                }
+
+                // Determine gender based on record index
+                Genders gender = Genders.Female; // Default to female
+                switch (archiveIndex)
+                {
+                    case 1300: // Dark Elf
+                        if (new[] { 3, 5, 6, 7, 8 }.Contains(npcData.billboardRecordIndex))
+                            gender = Genders.Male;
+                        break;
+                    case 1301: // High Elf
+                        if (new[] { 2, 3, 4 }.Contains(npcData.billboardRecordIndex))
+                            gender = Genders.Male;
+                        break;
+                    case 1302: // Wood Elf
+                        if (new[] { 1, 2 }.Contains(npcData.billboardRecordIndex))
+                            gender = Genders.Male;
+                        break;
+                    case 1305: // Khajiit
+                        gender = Genders.Male; // All Khajiit are male
+                        break;
+                }
+
+                // Generate a name using NameHelper
+                string npcName = DaggerfallUnity.Instance.NameHelper.FullName(race, gender);
+
+                // Attach components
+                CapsuleCollider collider = child.gameObject.AddComponent<CapsuleCollider>();
+                CustomStaticNPC customNpc = child.gameObject.AddComponent<CustomStaticNPC>();
+
+                // Set up CustomStaticNPC properties
+                customNpc.Race = (Races)race;
+                customNpc.Gender = gender;
+
+                // Pass the generated name to CustomTalkWindow
+                CustomTalkWindow talkWindow = child.gameObject.GetComponent<CustomTalkWindow>();
+                if (talkWindow != null)
+                {
+                    talkWindow.NameLabel = npcName;
+                    talkWindow.Portrait = null; // Default portrait
+                }
+
+                Debug.Log($"Configured NPC: {npcName} (Race: {race}, Gender: {gender}) at {child.name}");
             }
         }
 
