@@ -276,6 +276,29 @@ namespace CustomTalkManagerMod
             return factionData;
         }
 
+        public void StartConversationWithBillboard(CustomBillboardNPC billboardNPC)
+        {
+            if (billboardNPC == null)
+            {
+                Debug.LogError("CustomTalkManager: Billboard NPC is null. Cannot start conversation.");
+                return;
+            }
+
+            // Get NPC data from the billboard
+            int npcId = billboardNPC.GetNPCId();
+            string displayName = billboardNPC.GetDisplayName();
+
+            // Log for debugging
+            Debug.Log($"CustomTalkManager: Starting conversation with billboard NPC. ID = {npcId}, Name = {displayName}");
+
+            // Pass the NPC data to the CustomTalkWindow
+            CustomDaggerfallTalkWindow talkWindow = new CustomDaggerfallTalkWindow(GameManager.Instance.UIManager, null, this);
+            talkWindow.SetupBillboardNPC(npcId, displayName);
+
+            // Open the CustomTalkWindow
+            GameManager.Instance.UIManager.PushWindow(talkWindow);
+        }
+
         public int GetToneIndex(DaggerfallTalkWindow.TalkTone talkTone)
         {
             return DaggerfallTalkWindow.TalkToneToIndex(talkTone);

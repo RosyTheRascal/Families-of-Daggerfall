@@ -91,4 +91,68 @@ namespace FactionNPCInitializerMod
         }
     }
 
+    public class CustomBillboardNPC : MonoBehaviour
+    {
+        private int npcId;
+        private string displayName;
+        private bool isInitialized = false;
+
+        private void Start()
+        {
+            // Initialize the billboard NPC
+            InitializeBillboardNPC();
+        }
+
+        private void InitializeBillboardNPC()
+        {
+            if (isInitialized)
+                return;
+
+            // Generate a unique NPC ID (you may want to use a more robust ID generation method)
+            npcId = GetInstanceID();
+
+            // Generate a display name for the NPC
+            displayName = GenerateBillboardDisplayName();
+
+            // Log initialization for debugging
+            Debug.Log($"CustomBillboardNPC: Initialized billboard NPC with ID = {npcId}, Name = {displayName}");
+
+            isInitialized = true;
+        }
+
+        private string GenerateBillboardDisplayName()
+        {
+            // For now, let's use a placeholder name. You can replace this with actual logic.
+            return $"Billboard NPC {npcId}";
+        }
+
+        private void OnMouseDown()
+        {
+            // Handle interaction when the billboard is clicked
+            StartConversation();
+        }
+
+        private void StartConversation()
+        {
+            if (!isInitialized)
+            {
+                Debug.LogError("CustomBillboardNPC: Attempted to start conversation before initialization.");
+                return;
+            }
+
+            // Start the conversation through the CustomTalkManager
+            CustomTalkManager.Instance.StartConversationWithBillboard(this);
+        }
+
+        public int GetNPCId()
+        {
+            return npcId;
+        }
+
+        public string GetDisplayName()
+        {
+            return displayName;
+        }
+    }
+
 }

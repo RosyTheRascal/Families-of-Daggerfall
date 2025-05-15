@@ -793,6 +793,16 @@ namespace CustomDaggerfallTalkWindowMod
             PopulateTopics();
         }
 
+        public void SetupBillboardNPC(int npcId, string displayName)
+        {
+            // Setup logic specific to billboard NPCs
+            Debug.Log($"CustomDaggerfallTalkWindow: Setting up billboard NPC. ID = {npcId}, Name = {displayName}");
+
+            // Use the NPC data to populate the talk window
+            // Example: Set the NPC's name in the UI
+            this.NPCName = displayName;
+        }
+
         private void ListboxTopics_OnMouseMove(int x, int y)
         {
             var extendedListboxTopics = listboxTopics as ExtendedListBox;
