@@ -218,12 +218,18 @@ namespace CustomNPCBridgeMod
                 CustomTalkManagerMod.CustomTalkManager.Instance.SetTargetCustomNPC(customNpc, ref sameTalkTargetAsBefore);
 
                 // Open the custom talk window
-                var talkWindow = new CustomDaggerfallTalkWindowMod.CustomDaggerfallTalkWindow(DaggerfallUI.UIManager, DaggerfallUI.UIManager.TopWindow as DaggerfallBaseWindow, CustomTalkManagerMod.CustomTalkManager.Instance);
+                var talkWindow = new CustomDaggerfallTalkWindowMod.CustomDaggerfallTalkWindow(
+                    DaggerfallUI.UIManager,
+                    DaggerfallUI.UIManager.TopWindow as DaggerfallBaseWindow,
+                    CustomTalkManagerMod.CustomTalkManager.Instance
+                );
 
-                // Pass the isChildNPC value to the talk window
-                talkWindow.isChildNPC = CustomTalkManagerMod.CustomTalkManager.Instance.IsChildNPC;
-
+                talkWindow.SetupCustomNPC(customNpc.Data.npcId, customNpc.CustomDisplayName);
                 DaggerfallUI.UIManager.PushWindow(talkWindow);
+            }
+            else
+            {
+                Debug.LogWarning($"HandleStaticNPCClick: No custom NPC found for NPC ID: {npcId}");
             }
         }
 

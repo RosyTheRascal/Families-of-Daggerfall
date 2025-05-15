@@ -1507,7 +1507,6 @@ namespace CustomDaggerfallTalkWindowMod
                 DaggerfallTalkWindow.FacePortraitArchive facePortraitArchive = DaggerfallTalkWindow.FacePortraitArchive.CommonFaces;
                 int recordIndex;
 
-                
                 if (customNpc.Data.billboardArchiveIndex == 357 && customNpc.Data.billboardRecordIndex == 1)
                 {
                     recordIndex = 465; 
@@ -1601,7 +1600,9 @@ namespace CustomDaggerfallTalkWindowMod
 
         private void SetDefaultNPCPortrait()
         {
-            // Implement logic to set default NPC portrait if custom NPC is not available
+            // Implement logic to set a default portrait
+            Debug.Log("SetDefaultNPCPortrait: Displaying default NPC portrait.");
+            panelPortrait.BackgroundTexture = defaultPortraitTexture; // Ensure this texture is set elsewhere
         }
 
         private void SetNPCPortrait(DaggerfallTalkWindow.FacePortraitArchive facePortraitArchive, int recordId)

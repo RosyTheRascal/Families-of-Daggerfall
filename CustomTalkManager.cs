@@ -242,31 +242,25 @@ namespace CustomTalkManagerMod
 
         public void SetTargetCustomNPC(CustomStaticNPC targetCustomNPC, ref bool sameTalkTargetAsBefore)
         {
-            if (lastTargetCustomNPC != null && lastTargetCustomNPC == targetCustomNPC)
+            if (targetCustomNPC == null)
+            {
+                Debug.LogError("SetTargetCustomNPC: Target NPC is null.");
+                return;
+            }
+
+            // Check if the same NPC is being targeted
+            if (currentCustomNPC == targetCustomNPC)
             {
                 sameTalkTargetAsBefore = true;
+                Debug.Log($"SetTargetCustomNPC: Same NPC targeted again (ID: {targetCustomNPC.Data.npcId}).");
+                return;
             }
-            else
-            {
-                sameTalkTargetAsBefore = false;
-                lastTargetCustomNPC = targetCustomNPC ?? throw new ArgumentNullException(nameof(targetCustomNPC), "Target Custom NPC cannot be null.");
 
-                // Initialize currentQuestionListItem here or elsewhere as appropriate
-                if (currentQuestionListItem == null)
-                {
-                    currentQuestionListItem = new TalkManager.ListItem();
-                }
+            // Update the current NPC
+            currentCustomNPC = targetCustomNPC;
+            sameTalkTargetAsBefore = false;
 
-                if (npcData == null)
-                {
-                    npcData = new CustomNPCData(); // Ensure npcData is initialized
-                }
-
-                // Ensure gender is set
-                npcData.gender = targetCustomNPC.Gender; // Add this line to set the gender
-            }
-            int recordIndex = targetCustomNPC.Data.billboardRecordIndex;
-            IsChildNPC = (recordIndex == 4 || recordIndex == 38 || recordIndex == 42 || recordIndex == 43 || recordIndex == 52 || recordIndex == 53);
+            Debug.Log($"SetTargetCustomNPC: New target NPC set (ID: {targetCustomNPC.Data.npcId}, Name: {targetCustomNPC.CustomDisplayName}).");
         }
 
         public FactionFile.FactionData GetNPCData(int factionID)
