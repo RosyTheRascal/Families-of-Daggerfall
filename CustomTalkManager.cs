@@ -292,11 +292,11 @@ namespace CustomTalkManagerMod
             Debug.Log($"CustomTalkManager: Starting conversation with billboard NPC. ID = {npcId}, Name = {displayName}");
 
             // Pass the NPC data to the CustomTalkWindow
-            CustomDaggerfallTalkWindow talkWindow = new CustomDaggerfallTalkWindow(GameManager.Instance.UIManager, null, this);
+            CustomDaggerfallTalkWindow talkWindow = new CustomDaggerfallTalkWindow(DaggerfallUI.UIManager, null, this);
             talkWindow.SetupBillboardNPC(npcId, displayName);
 
             // Open the CustomTalkWindow
-            GameManager.Instance.UIManager.PushWindow(talkWindow);
+            DaggerfallUI.UIManager.PushWindow(talkWindow);
         }
 
         public int GetToneIndex(DaggerfallTalkWindow.TalkTone talkTone)
