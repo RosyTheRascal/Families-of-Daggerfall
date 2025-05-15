@@ -322,29 +322,16 @@ namespace CustomTalkManagerMod
         {
             if (customNpc == null)
             {
-                Debug.LogError("CustomTalkManager: Custom NPC is null. Cannot start conversation.");
+                Debug.LogError("StartConversation: Custom NPC is null.");
                 return;
             }
 
-            // Get NPC Data
-            int npcId = customNpc.FetchNPCId(); // Ensuwe FetchNPCId() exists and wetuwns a vawid ID
-            string displayName = customNpc.FetchDisplayName(); // Fetch dispway name
+            string displayName = customNpc.GetCustomDisplayName();
+            Debug.Log($"StartConversation: Starting conversation with Custom NPC. ID = {customNpc.GetInstanceID()}, Name = {displayName}");
 
-            // Validate Display Name
-            if (string.IsNullOrEmpty(displayName))
-            {
-                Debug.LogError($"CustomTalkManager: Display name is null or empty for NPC ID = {npcId}. Cannot start conversation.");
-                return;
-            }
+            var talkWindow = new CustomDaggerfallTalkWindow(DaggerfallUI.UIManager, null, this);
+            talkWindow.SetupCustomNPC(customNpc.GetInstanceID(), displayName);
 
-            // Log for Debugging
-            Debug.Log($"CustomTalkManager: Starting conversation with custom NPC. ID = {npcId}, Name = {displayName}");
-
-            // Pass Data to CustomDaggerfallTalkWindow
-            CustomDaggerfallTalkWindow talkWindow = new CustomDaggerfallTalkWindow(DaggerfallUI.UIManager, null, this);
-            talkWindow.SetupCustomNPC(customNpc.GetInstanceID(), customNpc.CustomDisplayName);
-
-            // Open TalkWindow
             DaggerfallUI.UIManager.PushWindow(talkWindow);
         }
 

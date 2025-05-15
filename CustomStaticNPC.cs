@@ -424,13 +424,13 @@ namespace CustomStaticNPCMod
         // Method to set the custom display name
         public void SetCustomDisplayName(string newName)
         {
-            customDisplayName = newName; // Set the display name here
+            customDisplayName = newName;
             Debug.Log($"SetCustomDisplayName: Custom DisplayName set to '{newName}' for NPC ID {GetInstanceID()}.");
         }
 
-        // Method to get the custom display name
         public string GetCustomDisplayName()
         {
+            Debug.Log($"GetCustomDisplayName: Returning '{customDisplayName}' for NPC ID {GetInstanceID()}.");
             return customDisplayName;
         }
 

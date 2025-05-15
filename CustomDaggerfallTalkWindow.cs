@@ -814,8 +814,9 @@ namespace CustomDaggerfallTalkWindowMod
                 displayName = "Unknown NPC";
             }
 
-            // Set the NPC name in the label
+            // Update the label with the display name
             labelNameNPC.Text = displayName;
+            labelNameNPC.Update(); // Ensure the UI refreshes
             Debug.Log($"SetupCustomNPC: Updated labelNameNPC to '{displayName}' for NPC ID {npcId}.");
         }
 
