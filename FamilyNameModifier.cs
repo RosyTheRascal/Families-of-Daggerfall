@@ -333,6 +333,8 @@ namespace FamilyNameModifierMod
             }
         }
 
+        private Dictionary<Races, string> raceSurnames = new Dictionary<Races, string>();
+
         public void AssignCustomNPC()
         {
             Debug.Log("FamilyNameModifier: AssignCustomNPC triggered. Initializing custom NPCs for interior.");
@@ -342,21 +344,17 @@ namespace FamilyNameModifierMod
 
             foreach (GameObject billboard in billboards)
             {
-                // Check if the billboard has the required archive index
                 if (billboard.TryGetComponent(out DaggerfallBillboard dfBillboard))
                 {
                     int archiveIndex = dfBillboard.Summary.Archive;
                     int recordIndex = dfBillboard.Summary.Record;
 
-                    // Check if the archive index matches the custom NPC criteria
                     if (IsCustomNPCArchive(archiveIndex))
                     {
                         Debug.Log($"FamilyNameModifier: Found billboard with ArchiveIndex = {archiveIndex}, RecordIndex = {recordIndex}. Ensuring components are added.");
 
-                        // Ensure components are added only once
                         if (!billboard.TryGetComponent<CustomStaticNPC>(out var customNPC))
                         {
-                            // Add the custom NPC components if they don't already exist
                             AddCustomNPC(billboard, archiveIndex, recordIndex);
                         }
                         else
@@ -380,35 +378,62 @@ namespace FamilyNameModifierMod
         {
             Debug.Log($"FamilyNameModifier: Adding CustomStaticNPC to billboard (ArchiveIndex = {archiveIndex}, RecordIndex = {recordIndex}).");
 
-            // Add the CustomStaticNPC component
             var customNPC = billboard.AddComponent<CustomStaticNPC>();
 
-            // Ensure the billboard has a BoxCollider
             if (!billboard.TryGetComponent<BoxCollider>(out var collider))
             {
                 collider = billboard.AddComponent<BoxCollider>();
-                collider.size = new Vector3(1, 2, 1); // Adjust size as needed
-                collider.center = new Vector3(0, 1, 0); // Adjust position as needed
+                collider.size = new Vector3(1, 2, 1);
+                collider.center = new Vector3(0, 1, 0);
                 Debug.Log($"FamilyNameModifier: Added BoxCollider component to billboard (ArchiveIndex = {archiveIndex}, RecordIndex = {recordIndex}).");
             }
 
-            // Determine race and gender
             Races race = DetermineRace(archiveIndex);
             Genders gender = DetermineGender(archiveIndex, recordIndex);
 
-            // Generate a name using the NameHelper
-            string name = GenerateName(race, gender);
+            // Generate or reuse a surname for the race
+            string surname = GetOrGenerateSurname(race);
+            string firstName = GenerateName(race, gender, surname);
 
-            // Initialize NPC data
             customNPC.InitializeNPCData(new StaticNPC.NPCData
             {
-                nameSeed = name.GetHashCode(),
-                factionID = 0, // Placeholder for an actual faction ID
-                nameBank = NameHelper.BankTypes.Breton // Placeholder for name bank type
+                nameSeed = firstName.GetHashCode(),
+                factionID = 0,
+                nameBank = NameHelper.BankTypes.Breton // Adjust this based on race mapping
             });
 
-            Debug.Log($"FamilyNameModifier: Initialized CustomStaticNPC data for billboard (Name = {name}, Race = {race}, Gender = {gender}).");
+            Debug.Log($"FamilyNameModifier: Initialized CustomStaticNPC data for billboard (Name = {firstName} {surname}, Race = {race}, Gender = {gender}).");
         }
+
+        private string GetOrGenerateSurname(Races race)
+        {
+            if (!raceSurnames.TryGetValue(race, out string surname))
+            {
+                surname = GenerateSurname(race);
+                raceSurnames[race] = surname;
+                Debug.Log($"FamilyNameModifier: Generated new surname '{surname}' for race '{race}'.");
+            }
+            else
+            {
+                Debug.Log($"FamilyNameModifier: Reusing existing surname '{surname}' for race '{race}'.");
+            }
+
+            return surname;
+        }
+
+        private string GenerateSurname(Races race)
+        {
+            // Use NameHelper to generate a surname for the race
+            var nameHelper = DaggerfallUnity.Instance.NameHelper;
+            if (nameHelper == null)
+            {
+                Debug.LogError("FamilyNameModifier: NameHelper instance is null. Cannot generate surname.");
+                return "Unknown";
+            }
+
+            return nameHelper.Surname(MapRaceToBankType(race));
+        }
+
 
         private Races DetermineRace(int archiveIndex)
         {
@@ -457,43 +482,34 @@ namespace FamilyNameModifierMod
             return Genders.Female; // Default to Female as a fallback
         }
 
-        private string GenerateName(Races race, Genders gender)
+        private NameHelper.BankTypes MapRaceToBankType(Races race)
         {
-            // Map the Races enum to NameHelper.BankTypes
-            NameHelper.BankTypes bankType;
             switch (race)
             {
                 case Races.Breton:
-                    bankType = NameHelper.BankTypes.Breton;
-                    break;
+                    return NameHelper.BankTypes.Breton;
                 case Races.Redguard:
-                    bankType = NameHelper.BankTypes.Redguard;
-                    break;
+                    return NameHelper.BankTypes.Redguard;
                 case Races.Nord:
-                    bankType = NameHelper.BankTypes.Nord;
-                    break;
+                    return NameHelper.BankTypes.Nord;
                 case Races.DarkElf:
-                    bankType = NameHelper.BankTypes.DarkElf;
-                    break;
+                    return NameHelper.BankTypes.DarkElf;
                 case Races.HighElf:
-                    bankType = NameHelper.BankTypes.HighElf;
-                    break;
+                    return NameHelper.BankTypes.HighElf;
                 case Races.WoodElf:
-                    bankType = NameHelper.BankTypes.WoodElf;
-                    break;
+                    return NameHelper.BankTypes.WoodElf;
                 case Races.Khajiit:
-                    bankType = NameHelper.BankTypes.Khajiit;
-                    break;
+                    return NameHelper.BankTypes.Khajiit;
                 case Races.Argonian:
-                    bankType = NameHelper.BankTypes.Imperial;
-                    break;
+                    return NameHelper.BankTypes.Imperial;
                 default:
-                    Debug.LogWarning($"FamilyNameModifier: Unsupported race '{race}'. Defaulting to Breton names.");
-                    bankType = NameHelper.BankTypes.Breton;
-                    break;
+                    return NameHelper.BankTypes.Breton; // Default
             }
+        }
 
-            // Use the NameHelper to generate a name
+        // Adjusted GenerateName to include the surname
+        private string GenerateName(Races race, Genders gender, string surname)
+        {
             var nameHelper = DaggerfallUnity.Instance.NameHelper;
             if (nameHelper == null)
             {
@@ -501,9 +517,8 @@ namespace FamilyNameModifierMod
                 return "Unknown Name";
             }
 
-            string generatedName = nameHelper.FullName(bankType, gender);
-            Debug.Log($"FamilyNameModifier: Generated name '{generatedName}' for race '{race}' and gender '{gender}'.");
-            return generatedName;
+            string firstName = nameHelper.FirstName(MapRaceToBankType(race), gender);
+            return $"{firstName} {surname}";
         }
 
         public void ReplaceAndRegisterNPC(StaticNPC originalNpc)
