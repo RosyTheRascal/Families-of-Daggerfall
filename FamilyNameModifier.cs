@@ -187,11 +187,18 @@ namespace FamilyNameModifierMod
         {
             Debug.Log("Calling ReplaceAllNPCs");
 
-            // Keep existing StaticNPC replacement logic
-            StaticNPC[] originalNPCs = FindObjectsOfType<StaticNPC>();
-            foreach (StaticNPC originalNpc in originalNPCs)
+            GameObject interiorObject = GameObject.Find("Interior");
+            if (interiorObject == null)
             {
-                ReplaceAndRegisterNPC(originalNpc); // Pwesewving youw owiginaw caww
+                Debug.LogError("Interior GameObject not found. This should not happen if OnTransitionToInterior is called.");
+                return;
+            }
+
+            // Find all StaticNPCs as children of the "Interior" GameObject
+            StaticNPC[] interiorNPCs = interiorObject.GetComponentsInChildren<StaticNPC>();
+            foreach (StaticNPC interiorNpc in interiorNPCs)
+            {
+                ReplaceAndRegisterNPC(interiorNpc); // Pwesewving youw owiginaw caww
             }
 
             // Navigate to "Interior Flats"
@@ -271,10 +278,17 @@ namespace FamilyNameModifierMod
                 customNpc.Race = (Races)race;
                 customNpc.Gender = gender;
 
-                // Instantiate CustomDaggerfallTalkWindow externally
+                // Attach and configure CustomDaggerfallTalkWindow
+                DaggerfallBaseWindow previousWindow = DaggerfallUI.UIManager.TopWindow as DaggerfallBaseWindow;
+                if (previousWindow == null)
+                {
+                    Debug.LogError("TopWindow is not a valid DaggerfallBaseWindow.");
+                    continue;
+                }
+
                 CustomDaggerfallTalkWindow talkWindow = new CustomDaggerfallTalkWindow(
                     DaggerfallUI.UIManager,
-                    DaggerfallUI.UIManager.TopWindow,
+                    previousWindow,
                     CustomTalkManager.Instance
                 );
 
