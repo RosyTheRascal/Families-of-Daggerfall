@@ -87,6 +87,7 @@ namespace CustomTalkManagerMod
 
     public class CustomTalkManager : MonoBehaviour
     {
+
         public enum CustomQuestionType
         {
             NoQuestion,
@@ -159,6 +160,8 @@ namespace CustomTalkManagerMod
             DontDestroyOnLoad(go);
             mod.IsReady = true;
         }
+
+
 
         public bool IsChildNPC { get; private set; }
 
@@ -303,16 +306,24 @@ namespace CustomTalkManagerMod
                 return;
             }
 
-            Debug.Log($"Starting conversation with {customNpc.DisplayName} (NPC ID: {customNpc.NpcId}).");
+            Debug.Log($"Starting conversation with {customNpc.CustomDisplayName} (NPC ID: {customNpc.NpcId}).");
 
-            // Retrieve and display the greeting
+            // Fetch the greeting
             string greeting = GetGreeting(customNpc.NpcId);
             Debug.Log($"Greeting: {greeting}");
 
-            // Pass this NPC's ID and display name into your CustomDaggerfallTalkWindow for further interaction
-            var talkWindow = new CustomDaggerfallTalkWindow(UserInterfaceManager.Instance, this);
-            talkWindow.Setup(customNpc);
-            UserInterfaceManager.Instance.PushWindow(talkWindow);
+            // Push the custom talk window
+            var uiManager = FindObjectOfType<UserInterfaceManager>(); // Find the UI manager
+            if (uiManager != null)
+            {
+                var talkWindow = new CustomDaggerfallTalkWindow(uiManager, this); // Create the talk window
+                talkWindow.Setup(customNpc); // Set up with the NPC
+                uiManager.PushWindow(talkWindow); // Push it to the UI stack
+            }
+            else
+            {
+                Debug.LogError("UserInterfaceManager not found.");
+            }
         }
 
         public string GetGreeting(int npcId)

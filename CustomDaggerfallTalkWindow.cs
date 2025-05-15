@@ -479,6 +479,8 @@ namespace CustomDaggerfallTalkWindowMod
             Setup();
         }
 
+        private DialogueBox dialogueBox; // Declare the dialogueBox field
+
         public void Setup(CustomStaticNPC customNpc)
         {
             if (customNpc == null)
@@ -487,14 +489,21 @@ namespace CustomDaggerfallTalkWindowMod
                 return;
             }
 
-            Debug.Log($"Setting up talk window for {customNpc.DisplayName} (NPC ID: {customNpc.NpcId}).");
+            Debug.Log($"Setting up talk window for {customNpc.CustomDisplayName} (NPC ID: {customNpc.NpcId}).");
 
             // Fetch greeting and display it in the talk window
             string greeting = customTalkManager.GetGreeting(customNpc.NpcId);
             Debug.Log($"Displaying greeting: {greeting}");
 
-            // Display the greeting in your UI (implementation depends on your UI framework)
-            dialogueBox.Text = greeting;
+            // Display the greeting in the UI
+            if (dialogueBox != null)
+            {
+                dialogueBox.Text = greeting;
+            }
+            else
+            {
+                Debug.LogError("DialogueBox is not initialized.");
+            }
         }
 
         public void CloseWindow()
