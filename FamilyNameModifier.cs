@@ -25,8 +25,7 @@ using DaggerfallWorkshop.Game.Utility;
 using DaggerfallWorkshop.Utility.AssetInjection;
 using DaggerfallConnect.Utility;
 using DaggerfallWorkshop.Game.MagicAndEffects.MagicEffects;
-using UnityEngine.SceneManagement;
-using CustomDaggerfallTalkWindowMod;
+using UnityEngine.SceneManagement; 
 using System.Reflection;
 using CustomStaticNPCMod;
 using CustomNPCBridgeMod;
@@ -186,119 +185,10 @@ namespace FamilyNameModifierMod
         public void ReplaceAllNPCs()
         {
             Debug.Log("Calling ReplaceAllNPCs");
-
-            GameObject interiorObject = GameObject.Find("Interior");
-            if (interiorObject == null)
+            StaticNPC[] originalNPCs = FindObjectsOfType<StaticNPC>();
+            foreach (StaticNPC originalNpc in originalNPCs)
             {
-                Debug.LogError("Interior GameObject not found. This should not happen if OnTransitionToInterior is called.");
-                return;
-            }
-
-            // Find all StaticNPCs as children of the "Interior" GameObject
-            StaticNPC[] interiorNPCs = interiorObject.GetComponentsInChildren<StaticNPC>();
-            foreach (StaticNPC interiorNpc in interiorNPCs)
-            {
-                ReplaceAndRegisterNPC(interiorNpc); // Pwesewving youw owiginaw caww
-            }
-
-            // Navigate to "Interior Flats"
-            Transform interiorTransform = GameObject.Find("Interior")?.transform;
-            if (interiorTransform == null)
-            {
-                Debug.LogError("Interior GameObject not found.");
-                return;
-            }
-
-            Transform daggerfallInterior = interiorTransform.Find("DaggerfallInterior");
-            if (daggerfallInterior == null)
-            {
-                Debug.LogError("DaggerfallInterior GameObject not found.");
-                return;
-            }
-
-            Transform interiorFlats = daggerfallInterior.Find("Interior Flats");
-            if (interiorFlats == null)
-            {
-                Debug.LogError("Interior Flats GameObject not found.");
-                return;
-            }
-
-            // Iterate through children in "Interior Flats"
-            foreach (Transform child in interiorFlats)
-            {
-                StaticNPC npcComponent = child.GetComponent<StaticNPC>();
-                if (npcComponent == null)
-                    continue;
-
-                StaticNPC.NPCData? npcDataNullable = npcComponent.Data;
-                if (!npcDataNullable.HasValue)
-                    continue;
-
-                StaticNPC.NPCData npcData = npcDataNullable.Value;
-                int archiveIndex = npcData.billboardArchiveIndex;
-
-                // Map the archive indices to races
-                NameHelper.BankTypes race;
-                switch (archiveIndex)
-                {
-                    case 1300: race = NameHelper.BankTypes.DarkElf; break;
-                    case 1301: race = NameHelper.BankTypes.HighElf; break;
-                    case 1302: race = NameHelper.BankTypes.WoodElf; break;
-                    case 1305: race = NameHelper.BankTypes.Khajiit; break;
-                    default: continue; // Skip irrelevant archives
-                }
-
-                // Determine gender based on record index
-                Genders gender = Genders.Female; // Default to female
-                switch (archiveIndex)
-                {
-                    case 1300: // Dark Elf
-                        if (new[] { 3, 5, 6, 7, 8 }.Contains(npcData.billboardRecordIndex))
-                            gender = Genders.Male;
-                        break;
-                    case 1301: // High Elf
-                        if (new[] { 2, 3, 4 }.Contains(npcData.billboardRecordIndex))
-                            gender = Genders.Male;
-                        break;
-                    case 1302: // Wood Elf
-                        if (new[] { 1, 2 }.Contains(npcData.billboardRecordIndex))
-                            gender = Genders.Male;
-                        break;
-                    case 1305: // Khajiit
-                        gender = Genders.Male; // All Khajiit are male
-                        break;
-                }
-
-                // Generate a name using NameHelper
-                string npcName = DaggerfallUnity.Instance.NameHelper.FullName(race, gender);
-
-                // Attach components if needed
-                CapsuleCollider collider = child.gameObject.AddComponent<CapsuleCollider>();
-                CustomStaticNPC customNpc = child.gameObject.AddComponent<CustomStaticNPC>();
-                customNpc.Race = (Races)race;
-                customNpc.Gender = gender;
-
-                // Attach and configure CustomDaggerfallTalkWindow
-                DaggerfallBaseWindow previousWindow = DaggerfallUI.UIManager.TopWindow as DaggerfallBaseWindow;
-                if (previousWindow == null)
-                {
-                    Debug.LogError("TopWindow is not a valid DaggerfallBaseWindow.");
-                    continue;
-                }
-
-                CustomDaggerfallTalkWindow talkWindow = new CustomDaggerfallTalkWindow(
-                    DaggerfallUI.UIManager,
-                    previousWindow,
-                    CustomTalkManager.Instance
-                );
-
-                // Configure the talk window as needed
-                talkWindow.PauseWhileOpen = true; // Example property
-
-                // Log info for debugging
-                Debug.Log($"CustomDaggerfallTalkWindow instantiated and configured for NPC: {npcName}");
-
-                Debug.Log($"Configured NPC: {npcName} (Race: {race}, Gender: {gender}) at {child.name}");
+                ReplaceAndRegisterNPC(originalNpc);
             }
         }
 
