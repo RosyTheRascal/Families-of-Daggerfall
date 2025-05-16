@@ -236,11 +236,11 @@ namespace FamilyNameModifierMod
                     Debug.Log($"ProcessBillboards: Added CustomStaticNPC to billboard '{obj.name}'.");
                 }
 
-                // Store original billboard data here before names are assigned
+                // Store the original billboard data BEFORE assigning last names
                 customNpc.StoreOriginalBillboardData(billboard.Summary.Archive, billboard.Summary.Record);
 
-                // Set the race and display name (existing logic)
-                SetRaceDisplayName(billboard, billboard.Summary.Archive, raceLastNames);
+                // Use existing logic to set race and display name
+                SetRaceDisplayName(billboard, billboard.Summary.Archive, FamilyNameData.RaceLastNames);
             }
         }
 
