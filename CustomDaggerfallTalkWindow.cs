@@ -1442,7 +1442,7 @@ namespace CustomDaggerfallTalkWindowMod
                 if (customNpc != null)
                 {
                     Debug.Log($"Updating NPC name. Gender: {customNpc.Data.gender}");
-                    labelNameNPC.Text = customNpc.CustomDisplayName;
+                    labelNameNPC.Text = customNpc.CustomDisplayName; // Use CustomDisplayName set earlier
                 }
                 else
                 {

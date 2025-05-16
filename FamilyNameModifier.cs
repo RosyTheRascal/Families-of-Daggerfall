@@ -270,7 +270,7 @@ namespace FamilyNameModifierMod
 
         private void SetRaceDisplayName(Billboard billboard, int archiveIndex, Dictionary<int, string> raceLastNames)
         {
-            // Map archive indices to NameHelper.BankTypes
+            // Existing logic remains unchanged
             NameHelper.BankTypes race;
             switch (archiveIndex)
             {
@@ -283,28 +283,15 @@ namespace FamilyNameModifierMod
                     return;
             }
 
-            // Determine gender based on record index
             Genders gender = Genders.Female; // Default to female
             switch (archiveIndex)
             {
-                case 1300: // Dark Elf
-                    if (new[] { 3, 5, 6, 7, 8 }.Contains(billboard.Summary.Record))
-                        gender = Genders.Male;
-                    break;
-                case 1301: // High Elf
-                    if (new[] { 2, 3, 4 }.Contains(billboard.Summary.Record))
-                        gender = Genders.Male;
-                    break;
-                case 1302: // Wood Elf
-                    if (new[] { 1, 2 }.Contains(billboard.Summary.Record))
-                        gender = Genders.Male;
-                    break;
-                case 1305: // Khajiit
-                    gender = Genders.Male; // All Khajiit are male
-                    break;
+                case 1300: if (new[] { 3, 5, 6, 7, 8 }.Contains(billboard.Summary.Record)) gender = Genders.Male; break;
+                case 1301: if (new[] { 2, 3, 4 }.Contains(billboard.Summary.Record)) gender = Genders.Male; break;
+                case 1302: if (new[] { 1, 2 }.Contains(billboard.Summary.Record)) gender = Genders.Male; break;
+                case 1305: gender = Genders.Male; break;
             }
 
-            // Generate shared last name for the race if not already in the dictionary
             if (!raceLastNames.ContainsKey(archiveIndex))
             {
                 string lastName = DaggerfallUnity.Instance.NameHelper.Surname(race);
@@ -312,14 +299,17 @@ namespace FamilyNameModifierMod
                 Debug.Log($"SetRaceDisplayName: Generated last name '{lastName}' for race {race} (archive index {archiveIndex}).");
             }
 
-            // Generate a unique first name for the entity
             string firstName = DaggerfallUnity.Instance.NameHelper.FirstName(race, gender);
-
-            // Combine first and last names into a display name
             string displayName = $"{firstName} {raceLastNames[archiveIndex]}";
 
-            // Assign the display name to the billboard entity
-            billboard.gameObject.name = displayName; // Optionally set the GameObject's name
+            // Assign the display name to the billboard and its CustomStaticNPC component (if available)
+            billboard.gameObject.name = displayName;
+            var customNpc = billboard.GetComponent<CustomStaticNPCMod.CustomStaticNPC>();
+            if (customNpc != null)
+            {
+                customNpc.SetCustomDisplayName(displayName); // Update CustomDisplayName
+            }
+
             Debug.Log($"SetRaceDisplayName: Assigned display name '{displayName}' to billboard '{billboard.name}'.");
         }
 
