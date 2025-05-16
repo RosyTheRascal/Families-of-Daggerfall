@@ -1463,7 +1463,7 @@ namespace CustomDaggerfallTalkWindowMod
             if (customNpc != null)
             {
                 DaggerfallTalkWindow.FacePortraitArchive facePortraitArchive = DaggerfallTalkWindow.FacePortraitArchive.CommonFaces;
-                int recordIndex;
+                int recordIndex = -1; // Initialize with a default fallback value.
 
                 if (customNpc.Data.billboardArchiveIndex == 357 && customNpc.Data.billboardRecordIndex == 1)
                 {
@@ -1493,6 +1493,13 @@ namespace CustomDaggerfallTalkWindowMod
                 {
                     // Default logic for retrieving portrait
                     GetPortraitIndexFromStaticNPCBillboard(customNpc, out facePortraitArchive, out recordIndex);
+                }
+
+                // Ensure recordIndex has a valid value before proceeding
+                if (recordIndex == -1)
+                {
+                    Debug.LogWarning("recordIndex was not set. Falling back to default value 0.");
+                    recordIndex = 0; // Assign a safe fallback value.
                 }
 
                 SetNPCPortrait(facePortraitArchive, recordIndex);
