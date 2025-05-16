@@ -221,7 +221,7 @@ namespace FamilyNameModifierMod
         }
 
         // Method to process billboards with specific archive indices
-        public void ProcessBillboards(GameObject obj)
+        public void ProcessBillboards(GameObject obj, Dictionary<int, string> raceLastNames)
         {
             var billboard = obj.GetComponent<DaggerfallBillboard>();
             if (billboard != null)
