@@ -335,10 +335,14 @@ namespace CustomStaticNPCMod
 
         public void StoreOriginalBillboardData(int archiveIndex, int recordIndex)
         {
-            OriginalBillboardArchiveIndex = archiveIndex;
-            OriginalBillboardRecordIndex = recordIndex;
+            // Avoid overwriting if already set
+            if (OriginalBillboardArchiveIndex == 0 && OriginalBillboardRecordIndex == 0)
+            {
+                OriginalBillboardArchiveIndex = archiveIndex;
+                OriginalBillboardRecordIndex = recordIndex;
 
-            Debug.Log($"Stored original billboard data: Archive={OriginalBillboardArchiveIndex}, Record={OriginalBillboardRecordIndex}");
+                Debug.Log($"Stored original billboard data: Archive={OriginalBillboardArchiveIndex}, Record={OriginalBillboardRecordIndex}");
+            }
         }
 
         private Genders DetermineGender(int archiveIndex, int recordIndex)

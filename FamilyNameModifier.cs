@@ -221,7 +221,7 @@ namespace FamilyNameModifierMod
         }
 
         // Method to process billboards with specific archive indices
-        public void ProcessBillboards(GameObject obj, Dictionary<int, string> raceLastNames)
+        public void ProcessBillboards(GameObject obj)
         {
             var billboard = obj.GetComponent<DaggerfallBillboard>();
             if (billboard != null)
@@ -236,10 +236,10 @@ namespace FamilyNameModifierMod
                     Debug.Log($"ProcessBillboards: Added CustomStaticNPC to billboard '{obj.name}'.");
                 }
 
-                // Call the method to store original billboard data
+                // Store original billboard data here before names are assigned
                 customNpc.StoreOriginalBillboardData(billboard.Summary.Archive, billboard.Summary.Record);
 
-                // Set the race and display name
+                // Set the race and display name (existing logic)
                 SetRaceDisplayName(billboard, billboard.Summary.Archive, raceLastNames);
             }
         }
