@@ -333,6 +333,14 @@ namespace CustomStaticNPCMod
             npcData.race = DefaultRace; // Set the default race to Breton or other defaults
         }
 
+        public void StoreOriginalBillboardData(int archiveIndex, int recordIndex)
+        {
+            OriginalBillboardArchiveIndex = archiveIndex;
+            OriginalBillboardRecordIndex = recordIndex;
+
+            Debug.Log($"Stored original billboard data: Archive={OriginalBillboardArchiveIndex}, Record={OriginalBillboardRecordIndex}");
+        }
+
         private Genders DetermineGender(int archiveIndex, int recordIndex)
         {
             if (archiveIndex == 180)

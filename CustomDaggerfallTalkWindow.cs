@@ -1462,14 +1462,14 @@ namespace CustomDaggerfallTalkWindowMod
             var customNpc = customTalkManager.GetTargetCustomNPC();
             if (customNpc != null)
             {
-                Debug.Log($"NPC Data - OriginalBillboardArchiveIndex: {customNpc.OriginalBillboardArchiveIndex}, OriginalBillboardRecordIndex: {customNpc.OriginalBillboardRecordIndex}");
+                // Use the stored original billboard data
+                int billboardArchiveIndex = customNpc.OriginalBillboardArchiveIndex;
+                int billboardRecordIndex = customNpc.OriginalBillboardRecordIndex;
+
+                Debug.Log($"NPC Data - OriginalBillboardArchiveIndex: {billboardArchiveIndex}, OriginalBillboardRecordIndex: {billboardRecordIndex}");
 
                 DaggerfallTalkWindow.FacePortraitArchive facePortraitArchive = DaggerfallTalkWindow.FacePortraitArchive.CommonFaces;
                 int recordIndex = -1; // Initialize with a default value
-
-                // Use the original billboard data for assigning the portrait
-                int billboardArchiveIndex = customNpc.OriginalBillboardArchiveIndex;
-                int billboardRecordIndex = customNpc.OriginalBillboardRecordIndex;
 
                 if (billboardArchiveIndex >= 1300 && billboardArchiveIndex <= 1305)
                 {

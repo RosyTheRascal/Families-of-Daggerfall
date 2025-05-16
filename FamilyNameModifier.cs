@@ -221,51 +221,27 @@ namespace FamilyNameModifierMod
         }
 
         // Method to process billboards with specific archive indices
-        private void ProcessBillboards(GameObject parent)
+        public void ProcessBillboards(GameObject obj)
         {
-            // Dictionary to store shared last names for each race
-            Dictionary<int, string> raceLastNames = new Dictionary<int, string>();
-
-            Billboard[] billboards = parent.GetComponentsInChildren<Billboard>();
-            foreach (Billboard billboard in billboards)
+            var billboard = obj.GetComponent<DaggerfallBillboard>();
+            if (billboard != null)
             {
-                // Use the summary.Archive field to check for valid archive indices
-                int archiveIndex = billboard.Summary.Archive;
-                switch (archiveIndex)
+                Debug.Log($"ProcessBillboards: Found billboard with archive index {billboard.Summary.Archive}.");
+
+                // Attach custom NPC component if not already attached
+                var customNpc = obj.GetComponent<CustomStaticNPC>();
+                if (customNpc == null)
                 {
-                    case 1300: // Dark Elf
-                    case 1301: // High Elf
-                    case 1302: // Wood Elf
-                    case 1305: // Khajiit
-                        Debug.Log($"ProcessBillboards: Found billboard with archive index {archiveIndex}. Attaching components.");
-
-                        // Attach a CapsuleCollider if not already present
-                        CapsuleCollider collider = billboard.gameObject.GetComponent<CapsuleCollider>();
-                        if (collider == null)
-                        {
-                            collider = billboard.gameObject.AddComponent<CapsuleCollider>();
-                            Debug.Log($"ProcessBillboards: Added CapsuleCollider to billboard '{billboard.name}'.");
-                        }
-
-                        // Attach the CustomStaticNPC component if not already present
-                        CustomStaticNPC customNPC = billboard.gameObject.GetComponent<CustomStaticNPC>();
-                        if (customNPC == null)
-                        {
-                            customNPC = billboard.gameObject.AddComponent<CustomStaticNPC>();
-                            Debug.Log($"ProcessBillboards: Added CustomStaticNPC to billboard '{billboard.name}'.");
-                        }
-
-                        // Set race-based display name
-                        SetRaceDisplayName(billboard, archiveIndex, raceLastNames);
-
-                        break;
-
-                    default:
-                        break;
+                    customNpc = obj.AddComponent<CustomStaticNPC>();
+                    Debug.Log($"ProcessBillboards: Added CustomStaticNPC to billboard '{obj.name}'.");
                 }
-            }
 
-            Debug.Log("ProcessBillboards: Finished processing billboards.");
+                // Call the method to store original billboard data
+                customNpc.StoreOriginalBillboardData(billboard.Summary.Archive, billboard.Summary.Record);
+
+                // Set the race and display name
+                SetRaceDisplayName(billboard, billboard.Summary.Archive, raceLastNames);
+            }
         }
 
         private void SetRaceDisplayName(Billboard billboard, int archiveIndex, Dictionary<int, string> raceLastNames)
