@@ -42,7 +42,8 @@ namespace CustomStaticNPCMod
         private string customLastName;
         private string customFirstName;
         private string customDisplayName; // Custom field for the display name
-
+        public int OriginalBillboardArchiveIndex { get; private set; }
+        public int OriginalBillboardRecordIndex { get; private set; }
         private bool isProcessed = false;
 
         private static Mod mod;
@@ -322,8 +323,14 @@ namespace CustomStaticNPCMod
         public void InitializeNPCData(StaticNPC.NPCData data)
         {
             npcData = data;
-            npcData.race = DefaultRace; // Set the default race to Breton
-            //ADD OTHER CODE HERE TO HANDLE FURTHER RACES DOWN THE LINE
+
+            // Store the original billboard archive and record index
+            OriginalBillboardArchiveIndex = npcData.billboardArchiveIndex;
+            OriginalBillboardRecordIndex = npcData.billboardRecordIndex;
+
+            Debug.Log($"Stored original billboard data: Archive={OriginalBillboardArchiveIndex}, Record={OriginalBillboardRecordIndex}");
+
+            npcData.race = DefaultRace; // Set the default race to Breton or other defaults
         }
 
         private Genders DetermineGender(int archiveIndex, int recordIndex)

@@ -1462,24 +1462,15 @@ namespace CustomDaggerfallTalkWindowMod
             var customNpc = customTalkManager.GetTargetCustomNPC();
             if (customNpc != null)
             {
-                // Explicitly log the NPC data to debug retrieval issues
-                Debug.Log($"NPC Data - billboardArchiveIndex: {customNpc.Data.billboardArchiveIndex}, billboardRecordIndex: {customNpc.Data.billboardRecordIndex}");
+                Debug.Log($"NPC Data - OriginalBillboardArchiveIndex: {customNpc.OriginalBillboardArchiveIndex}, OriginalBillboardRecordIndex: {customNpc.OriginalBillboardRecordIndex}");
 
                 DaggerfallTalkWindow.FacePortraitArchive facePortraitArchive = DaggerfallTalkWindow.FacePortraitArchive.CommonFaces;
-                int recordIndex = -1; // Initialize with default fallback value.
+                int recordIndex = -1; // Initialize with a default value
 
-                // Ensure billboardArchiveIndex and billboardRecordIndex are correctly set
-                int billboardArchiveIndex = customNpc.Data.billboardArchiveIndex;
-                int billboardRecordIndex = customNpc.Data.billboardRecordIndex;
+                // Use the original billboard data for assigning the portrait
+                int billboardArchiveIndex = customNpc.OriginalBillboardArchiveIndex;
+                int billboardRecordIndex = customNpc.OriginalBillboardRecordIndex;
 
-                if (billboardArchiveIndex == 0 || billboardRecordIndex == 0)
-                {
-                    Debug.LogWarning($"Invalid billboard data detected: Archive={billboardArchiveIndex}, Record={billboardRecordIndex}. Attempting to recover data.");
-                    // Recover the data if it's missing or uninitialized
-                    RecoverBillboardData(customNpc, out billboardArchiveIndex, out billboardRecordIndex);
-                }
-
-                // Check for custom portrait conditions first
                 if (billboardArchiveIndex >= 1300 && billboardArchiveIndex <= 1305)
                 {
                     string portraitName = GetCustomPortraitName(billboardArchiveIndex, billboardRecordIndex);
@@ -1495,23 +1486,20 @@ namespace CustomDaggerfallTalkWindowMod
                     }
                 }
 
-                // Fallback to default logic for non-custom NPCs
                 if (recordIndex == -1)
                 {
-                    // Only call default logic if custom logic did not handle this NPC
                     GetPortraitIndexFromStaticNPCBillboard(customNpc, out facePortraitArchive, out recordIndex);
                 }
 
-                // Ensure recordIndex has a valid value before proceeding
                 if (recordIndex == -1)
                 {
                     Debug.LogWarning("recordIndex was not set. Falling back to default value 0.");
-                    recordIndex = 0; // Assign a safe fallback value.
+                    recordIndex = 0;
                 }
 
                 SetNPCPortrait(facePortraitArchive, recordIndex);
 
-                Debug.Log($"Final NPC Data - billboardArchiveIndex: {billboardArchiveIndex}, billboardRecordIndex: {billboardRecordIndex}, recordIndex: {recordIndex}");
+                Debug.Log($"Final NPC Data - OriginalBillboardArchiveIndex: {billboardArchiveIndex}, OriginalBillboardRecordIndex: {billboardRecordIndex}, recordIndex: {recordIndex}");
 
                 isChildNPC = (billboardArchiveIndex == 182) &&
                              (recordIndex == 385 || recordIndex == 384 || recordIndex == 386 || recordIndex == 379 ||
