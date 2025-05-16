@@ -1463,19 +1463,10 @@ namespace CustomDaggerfallTalkWindowMod
             if (customNpc != null)
             {
                 DaggerfallTalkWindow.FacePortraitArchive facePortraitArchive = DaggerfallTalkWindow.FacePortraitArchive.CommonFaces;
-                int recordIndex = -1; // Initialize with a default fallback value.
+                int recordIndex = -1; // Initialize with default fallback value.
 
-                if (customNpc.Data.billboardArchiveIndex == 357 && customNpc.Data.billboardRecordIndex == 1)
-                {
-                    recordIndex = 465;
-                    Debug.Log($"Forced portrait selection: Archive 357, Record 1 -> CommonFaces, Record Index: {recordIndex}");
-                }
-                else if (customNpc.Data.billboardArchiveIndex == 334 && customNpc.Data.billboardRecordIndex == 18)
-                {
-                    recordIndex = 438;
-                    Debug.Log($"Forced portrait selection: Archive 334, Record 2 -> CommonFaces, Record Index: {recordIndex}");
-                }
-                else if (customNpc.Data.billboardArchiveIndex >= 1300 && customNpc.Data.billboardArchiveIndex <= 1305)
+                // Check for custom portrait conditions first
+                if (customNpc.Data.billboardArchiveIndex >= 1300 && customNpc.Data.billboardArchiveIndex <= 1305)
                 {
                     string portraitName = GetCustomPortraitName(customNpc.Data.billboardArchiveIndex, customNpc.Data.billboardRecordIndex);
                     if (!string.IsNullOrEmpty(portraitName) && ModManager.Instance.TryGetAsset(portraitName, false, out Texture2D customPortrait))
@@ -1489,9 +1480,11 @@ namespace CustomDaggerfallTalkWindowMod
                         Debug.LogError($"Failed to load custom portrait: {portraitName}");
                     }
                 }
-                else
+
+                // Fallback to default logic for non-custom NPCs
+                if (recordIndex == -1)
                 {
-                    // Default logic for retrieving portrait
+                    // Only call default logic if custom logic did not handle this NPC
                     GetPortraitIndexFromStaticNPCBillboard(customNpc, out facePortraitArchive, out recordIndex);
                 }
 
@@ -1522,7 +1515,7 @@ namespace CustomDaggerfallTalkWindowMod
             }
             else
             {
-                SetDefaultNPCPortrait();
+                Debug.Log("Poop");
             }
         }
 
@@ -1568,8 +1561,18 @@ namespace CustomDaggerfallTalkWindowMod
         // Add other mappings as needed
         };
 
-        private void GetPortraitIndexFromStaticNPCBillboard(CustomStaticNPCMod.CustomStaticNPC customNpc, out DaggerfallTalkWindow.FacePortraitArchive facePortraitArchive, out int recordIndex)
+        private void GetPortraitIndexFromStaticNPCBillboard(CustomStaticNPC customNpc, out DaggerfallTalkWindow.FacePortraitArchive facePortraitArchive, out int recordIndex)
         {
+            facePortraitArchive = DaggerfallTalkWindow.FacePortraitArchive.CommonFaces;
+            recordIndex = -1;
+
+            if (customNpc.Data.billboardArchiveIndex >= 1300 && customNpc.Data.billboardArchiveIndex <= 1305)
+            {
+                Debug.LogWarning($"Custom billboard detected: Archive {customNpc.Data.billboardArchiveIndex}, Record {customNpc.Data.billboardRecordIndex}. This should not use default logic.");
+                return; // Exit early if this is a custom NPC to ensure default logic is not applied.
+            }
+
+            // Default logic for mapping static NPCs
             if (billboardToRecordIndexMap.TryGetValue(customNpc.Data.billboardArchiveIndex, out recordIndex))
             {
                 Debug.Log($"Mapping found for billboardArchiveIndex: {customNpc.Data.billboardArchiveIndex} -> Record Index: {recordIndex}");
@@ -1577,45 +1580,28 @@ namespace CustomDaggerfallTalkWindowMod
             else
             {
                 Debug.LogWarning($"No mapping found for billboardArchiveIndex: {customNpc.Data.billboardArchiveIndex}. Using default logic.");
-                // Fallback to default logic here
+                FallbackDefaultPortraitLogic(customNpc, out facePortraitArchive, out recordIndex);
             }
+        }
 
+        private void FallbackDefaultPortraitLogic(CustomStaticNPC customNpc, out DaggerfallTalkWindow.FacePortraitArchive facePortraitArchive, out int recordIndex)
+        {
+            facePortraitArchive = DaggerfallTalkWindow.FacePortraitArchive.CommonFaces;
+            recordIndex = 0; // Assign a default record index.
+
+            // Example fallback logic
             FactionFile.FactionData factionData;
             GameManager.Instance.PlayerEntity.FactionData.GetFactionData(customNpc.Data.factionID, out factionData);
-            FactionFile.FlatData factionFlatData = FactionFile.GetFlatData(factionData.flat1);
-            FactionFile.FlatData factionFlatData2 = FactionFile.GetFlatData(factionData.flat2);
 
             if (factionData.type == 4)
             {
                 facePortraitArchive = (factionData.face > 60) ? DaggerfallTalkWindow.FacePortraitArchive.CommonFaces : DaggerfallTalkWindow.FacePortraitArchive.SpecialFaces;
                 recordIndex = factionData.face;
-                return;
             }
-            facePortraitArchive = DaggerfallTalkWindow.FacePortraitArchive.CommonFaces;
-            recordIndex = 410;
-            FlatsFile.FlatData flatData;
-            int archive = factionFlatData.archive;
-            int record = factionFlatData.record;
-            if (customNpc.Data.gender == Genders.Female)
+            else
             {
-                archive = factionFlatData2.archive;
-                record = factionFlatData2.record;
+                Debug.LogWarning("Fallback default portrait logic applied.");
             }
-            if (DaggerfallUnity.Instance.ContentReader.FlatsFileReader.GetFlatData(FlatsFile.GetFlatID(archive, record), out flatData))
-            {
-                recordIndex = flatData.faceIndex;
-            }
-            if (DaggerfallUnity.Instance.ContentReader.FlatsFileReader.GetFlatData(FlatsFile.GetFlatID(customNpc.Data.billboardArchiveIndex, customNpc.Data.billboardRecordIndex), out flatData))
-            {
-                recordIndex = flatData.faceIndex;
-            }
-
-
-        }
-
-        private void SetDefaultNPCPortrait()
-        {
-            // Implement logic to set default NPC portrait if custom NPC is not available
         }
 
         private void SetNPCPortrait(DaggerfallTalkWindow.FacePortraitArchive facePortraitArchive, int recordId)
