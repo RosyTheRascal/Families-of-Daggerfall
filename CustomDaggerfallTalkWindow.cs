@@ -1462,48 +1462,89 @@ namespace CustomDaggerfallTalkWindowMod
             var customNpc = customTalkManager.GetTargetCustomNPC();
             if (customNpc != null)
             {
-                DaggerfallTalkWindow.FacePortraitArchive facePortraitArchive = DaggerfallTalkWindow.FacePortraitArchive.CommonFaces;
-                int recordIndex;
+                // Handle custom assets for specific archive and record indices
+                string portraitName = null;
 
-                
-                if (customNpc.Data.billboardArchiveIndex == 357 && customNpc.Data.billboardRecordIndex == 1)
+                switch (customNpc.Data.billboardArchiveIndex)
                 {
-                    recordIndex = 465; 
-                    Debug.Log($"Forced portrait selection: Archive 357, Record 1 -> CommonFaces, Record Index: {recordIndex}");
+                    case 1300: // Dark Elf
+                        switch (customNpc.Data.billboardRecordIndex)
+                        {
+                            case 3: portraitName = "DunmerMale0.png"; break;
+                            case 4: portraitName = "DunmerFemale0.png"; break;
+                            case 6: portraitName = "DunmerMale1.png"; break;
+                            case 7: portraitName = "DunmerMale2.png"; break;
+                            case 8: portraitName = "DunmerMale3.png"; break;
+                        }
+                        break;
+
+                    case 1301: // High Elf
+                        switch (customNpc.Data.billboardRecordIndex)
+                        {
+                            case 1: portraitName = "AltmerFemale0.png"; break;
+                            case 2: portraitName = "AltmerMale0.png"; break;
+                            case 3: portraitName = "AltmerMale1.png"; break;
+                        }
+                        break;
+
+                    case 1302: // Wood Elf
+                        switch (customNpc.Data.billboardRecordIndex)
+                        {
+                            case 0: portraitName = "BosmerFemale0.png"; break;
+                            case 1: portraitName = "BosmerMale0.png"; break;
+                        }
+                        break;
+
+                    case 1305: // Khajiit
+                        portraitName = "Khajiit.png"; // Single portrait for all indices
+                        break;
+
+                    default:
+                        Debug.LogWarning($"UpdateCustomNPCPortrait: Unsupported archive index {customNpc.Data.billboardArchiveIndex}.");
+                        break;
                 }
-                else if (customNpc.Data.billboardArchiveIndex == 334 && customNpc.Data.billboardRecordIndex == 18)
+
+                if (!string.IsNullOrEmpty(portraitName))
                 {
-                    recordIndex = 438; 
-                    Debug.Log($"Forced portrait selection: Archive 334, Record 2 -> CommonFaces, Record Index: {recordIndex}");
+                    Texture2D portraitTexture;
+                    if (ModManager.Instance.TryGetAsset(portraitName, false, out portraitTexture))
+                    {
+                        Debug.Log($"UpdateCustomNPCPortrait: Loaded custom portrait '{portraitName}'.");
+
+                        // Convert the Texture2D to usable parameters for SetNPCPortrait
+                        // Assuming you still need to call SetNPCPortrait with FacePortraitArchive and recordId
+                        DaggerfallTalkWindow.FacePortraitArchive facePortraitArchive = DaggerfallTalkWindow.FacePortraitArchive.CommonFaces;
+                        int recordId = GetRecordIdFromPortraitName(portraitName); // Implement this helper method as needed
+                        SetNPCPortrait(facePortraitArchive, recordId);
+                    }
+                    else
+                    {
+                        Debug.LogWarning($"UpdateCustomNPCPortrait: Custom portrait '{portraitName}' not found in assets.");
+                    }
                 }
                 else
                 {
-                    // Default logic for retrieving portrait
-                    GetPortraitIndexFromStaticNPCBillboard(customNpc, out facePortraitArchive, out recordIndex);
-                }
-
-                SetNPCPortrait(facePortraitArchive, recordIndex);
-
-                Debug.Log($"customNpc.Data.billboardArchiveIndex: {customNpc.Data.billboardArchiveIndex}");
-                Debug.Log($"customNpc.Data.billboardRecordIndex: {customNpc.Data.billboardRecordIndex}");
-                Debug.Log($"recordIndex: {recordIndex}");
-
-                isChildNPC = (customNpc.Data.billboardArchiveIndex == 182) &&
-                             (recordIndex == 385 || recordIndex == 384 || recordIndex == 386 || recordIndex == 379 ||
-                              recordIndex == 437 || recordIndex == 490 || recordIndex == 491 || recordIndex == 497 ||
-                              recordIndex == 498 || recordIndex == 400 || recordIndex == 456 || recordIndex == 463 ||
-                              recordIndex == 430);
-
-                if (isChildNPC)
-                {
-                    Debug.Log("Child detected");
-                    return;
+                    Debug.LogWarning($"UpdateCustomNPCPortrait: No portrait mapping for archive index {customNpc.Data.billboardArchiveIndex} and record index {customNpc.Data.billboardRecordIndex}.");
                 }
             }
             else
             {
-                SetDefaultNPCPortrait();
+                Debug.LogWarning("UpdateCustomNPCPortrait: Custom NPC is null.");
             }
+        }
+
+        // Helper method to get the record ID from the portrait name
+        private int GetRecordIdFromPortraitName(string portraitName)
+        {
+            // Map portrait names to record IDs as needed
+            // Example implementation
+            if (portraitName.Contains("DunmerMale0")) return 465;
+            if (portraitName.Contains("DunmerFemale0")) return 466;
+            if (portraitName.Contains("AltmerMale0")) return 467;
+            if (portraitName.Contains("Khajiit")) return 468;
+
+            Debug.LogWarning($"GetRecordIdFromPortraitName: No record ID mapping found for '{portraitName}'.");
+            return 0; // Default or fallback value
         }
 
         private static readonly Dictionary<int, int> billboardToRecordIndexMap = new Dictionary<int, int>
