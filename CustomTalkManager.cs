@@ -87,7 +87,6 @@ namespace CustomTalkManagerMod
 
     public class CustomTalkManager : MonoBehaviour
     {
-
         public enum CustomQuestionType
         {
             NoQuestion,
@@ -160,8 +159,6 @@ namespace CustomTalkManagerMod
             DontDestroyOnLoad(go);
             mod.IsReady = true;
         }
-
-
 
         public bool IsChildNPC { get; private set; }
 
@@ -302,28 +299,31 @@ namespace CustomTalkManagerMod
         {
             if (customNpc == null)
             {
-                Debug.LogError("StartConversation: CustomStaticNPC is null.");
+                Debug.LogWarning("StartConversation: Custom NPC is null in StartConversation");
                 return;
             }
 
-            Debug.Log($"Starting conversation with {customNpc.CustomDisplayName} (NPC ID: {customNpc.NpcId}).");
+            Debug.Log($"StartConversation: Starting conversation with custom NPC ID: {customNpc.GetInstanceID()}");
 
-            // Fetch the greeting
-            string greeting = GetGreeting(customNpc.NpcId);
-            Debug.Log($"Greeting: {greeting}");
+            bool sameTalkTargetAsBefore = false;
+            CustomTalkManager.Instance.SetTargetCustomNPC(customNpc, ref sameTalkTargetAsBefore);
 
-            // Push the custom talk window
-            var uiManager = DaggerfallUI.UIManager; // Use the existing Daggerfall UI Manager
-            if (uiManager != null)
-            {
-                var talkWindow = new CustomDaggerfallTalkWindow(uiManager, null, this); // Use your custom talk window
-                talkWindow.Setup(customNpc, greeting); // Pass the NPC and greeting to the setup method
-                uiManager.PushWindow(talkWindow); // Push it to the UI stack
-            }
-            else
-            {
-                Debug.LogError("Daggerfall UI Manager not found.");
-            }
+            // Load the custom CSV file
+            CustomTalkManager.Instance.LoadCustomCSV("GreetingsAndSalutations.csv");
+            Debug.Log("Parsing Greetings File");
+
+            var talkWindow = new CustomDaggerfallTalkWindowMod.CustomDaggerfallTalkWindow(DaggerfallUI.UIManager, DaggerfallUI.UIManager.TopWindow as DaggerfallBaseWindow, CustomTalkManagerMod.CustomTalkManager.Instance);
+
+            // Set the macro data source for the talk window
+            var macroDataSource = CustomTalkManager.Instance.GetMacroDataSource();
+            Debug.Log($"StartConversation: MacroDataSource - NPC Race: {(macroDataSource as CustomTalkManager.TalkManagerDataSource).NpcRace}, Gender: {(macroDataSource as CustomTalkManager.TalkManagerDataSource).PotentialQuestorGender}");
+            talkWindow.SetMacroDataSource(macroDataSource);
+
+            npcData = new CustomNPCData();
+
+            // Open the custom talk window
+            DaggerfallUI.UIManager.PushWindow(talkWindow);
+            Debug.Log("Opening CustomDaggerfallTalkWindow");
         }
 
         public string GetGreeting(int npcId)

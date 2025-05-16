@@ -57,18 +57,48 @@ namespace CustomNPCClickHandlerMod
 
         void Update()
         {
-            if (Input.GetMouseButtonDown(0)) // Assuming left-click to interact
+            if (GameManager.IsGamePaused)
             {
+                return; // Do not process clicks if the game is paused
+            }
+
+            if (Input.GetMouseButtonDown(0) && !clickHandled) // Ensure the click is handled only once
+            {
+                clickHandled = true;
                 Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
-                if (Physics.Raycast(ray, out RaycastHit hit))
+                RaycastHit hit;
+
+                if (Physics.Raycast(ray, out hit))
                 {
-                    var customNpc = hit.collider.GetComponent<CustomStaticNPC>();
-                    if (customNpc != null)
+                    var customNPC = hit.transform.GetComponent<CustomStaticNPCMod.CustomStaticNPC>();
+                    if (customNPC != null)
                     {
-                        var talkManager = CustomTalkManager.Instance; // Assuming you have a singleton instance
-                        talkManager.StartConversation(customNpc); // Use your existing method
+                        // Check the distance between the player and the NPC
+                        float distance = Vector3.Distance(GameManager.Instance.PlayerObject.transform.position, customNPC.transform.position);
+                        if (distance > StaticNPCActivationDistance)
+                        {
+                            DaggerfallUI.SetMidScreenText(TextManager.Instance.GetLocalizedText("youAreTooFarAway"));
+                            return;
+                        }
+
+                        Debug.Log($"Custom NPC clicked: {customNPC.CustomDisplayName} (ID: {customNPC.GetInstanceID()})");
+
+                        // Disable the vanilla TalkManager before starting the custom conversation
+                        if (TalkManager.Instance != null)
+                        {
+                            TalkManager.Instance.enabled = false;
+                            Debug.Log($"Vanilla TalkManager disabled");
+                        }
+
+                        // Enable the custom talk manager before starting the conversation
+                        CustomTalkManagerMod.CustomTalkManager.Instance.enabled = true;
+                        CustomTalkManagerMod.CustomTalkManager.Instance.StartConversation(customNPC);
                     }
                 }
+            }
+            else if (Input.GetMouseButtonUp(0))
+            {
+                clickHandled = false; // Reset the flag when the mouse button is released
             }
         }
     }

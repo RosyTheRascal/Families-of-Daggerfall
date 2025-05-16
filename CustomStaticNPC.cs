@@ -38,18 +38,10 @@ namespace CustomStaticNPCMod
     public class CustomStaticNPC : MonoBehaviour
     {
         private StaticNPC.NPCData npcData;
-        private int npcId; // Declare this private field if it doesn't already exist
-        public int NpcId
-        {
-            get => npcId;
-            set => npcId = value;
-        }
-
+        private int npcId;
         private string customLastName;
         private string customFirstName;
-        public string DisplayName { get; set; }
-      
-
+        private string customDisplayName; // Custom field for the display name
 
         private bool isProcessed = false;
 
@@ -155,8 +147,6 @@ namespace CustomStaticNPCMod
             get { return npcData; }
         }
 
-        private string customDisplayName; // Declare this private field
-
         public string CustomDisplayName
         {
             get => customDisplayName;
@@ -170,7 +160,6 @@ namespace CustomStaticNPCMod
                 }
             }
         }
-
 
         private void NothingHereAidan()
         {
