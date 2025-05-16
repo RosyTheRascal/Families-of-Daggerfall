@@ -1465,16 +1465,29 @@ namespace CustomDaggerfallTalkWindowMod
                 DaggerfallTalkWindow.FacePortraitArchive facePortraitArchive = DaggerfallTalkWindow.FacePortraitArchive.CommonFaces;
                 int recordIndex;
 
-                
                 if (customNpc.Data.billboardArchiveIndex == 357 && customNpc.Data.billboardRecordIndex == 1)
                 {
-                    recordIndex = 465; 
+                    recordIndex = 465;
                     Debug.Log($"Forced portrait selection: Archive 357, Record 1 -> CommonFaces, Record Index: {recordIndex}");
                 }
                 else if (customNpc.Data.billboardArchiveIndex == 334 && customNpc.Data.billboardRecordIndex == 18)
                 {
-                    recordIndex = 438; 
+                    recordIndex = 438;
                     Debug.Log($"Forced portrait selection: Archive 334, Record 2 -> CommonFaces, Record Index: {recordIndex}");
+                }
+                else if (customNpc.Data.billboardArchiveIndex >= 1300 && customNpc.Data.billboardArchiveIndex <= 1305)
+                {
+                    string portraitName = GetCustomPortraitName(customNpc.Data.billboardArchiveIndex, customNpc.Data.billboardRecordIndex);
+                    if (!string.IsNullOrEmpty(portraitName) && ModManager.Instance.TryGetAsset(portraitName, false, out Texture2D customPortrait))
+                    {
+                        panelPortrait.BackgroundTexture = customPortrait;
+                        Debug.Log($"Custom portrait loaded: {portraitName}");
+                        return;
+                    }
+                    else
+                    {
+                        Debug.LogError($"Failed to load custom portrait: {portraitName}");
+                    }
                 }
                 else
                 {
@@ -1503,6 +1516,42 @@ namespace CustomDaggerfallTalkWindowMod
             else
             {
                 SetDefaultNPCPortrait();
+            }
+        }
+
+        private string GetCustomPortraitName(int archiveIndex, int recordIndex)
+        {
+            switch (archiveIndex)
+            {
+                case 1300:
+                    switch (recordIndex)
+                    {
+                        case 3: return "DunmerMale0.png";
+                        case 4: return "DunmerFemale0.png";
+                        case 6: return "DunmerMale1.png";
+                        case 7: return "DunmerMale2.png";
+                        case 8: return "DunmerMale3.png";
+                        default: return null;
+                    }
+                case 1301:
+                    switch (recordIndex)
+                    {
+                        case 1: return "AltmerFemale0.png";
+                        case 2: return "AltmerMale0.png";
+                        case 3: return "AltmerMale1.png";
+                        default: return null;
+                    }
+                case 1302:
+                    switch (recordIndex)
+                    {
+                        case 0: return "BosmerFemale0.png";
+                        case 1: return "BosmerMale0.png";
+                        default: return null;
+                    }
+                case 1305:
+                    return "Khajiit.png";
+                default:
+                    return null;
             }
         }
 
