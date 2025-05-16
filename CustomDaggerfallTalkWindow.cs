@@ -1462,13 +1462,27 @@ namespace CustomDaggerfallTalkWindowMod
             var customNpc = customTalkManager.GetTargetCustomNPC();
             if (customNpc != null)
             {
+                // Explicitly log the NPC data to debug retrieval issues
+                Debug.Log($"NPC Data - billboardArchiveIndex: {customNpc.Data.billboardArchiveIndex}, billboardRecordIndex: {customNpc.Data.billboardRecordIndex}");
+
                 DaggerfallTalkWindow.FacePortraitArchive facePortraitArchive = DaggerfallTalkWindow.FacePortraitArchive.CommonFaces;
                 int recordIndex = -1; // Initialize with default fallback value.
 
-                // Check for custom portrait conditions first
-                if (customNpc.Data.billboardArchiveIndex >= 1300 && customNpc.Data.billboardArchiveIndex <= 1305)
+                // Ensure billboardArchiveIndex and billboardRecordIndex are correctly set
+                int billboardArchiveIndex = customNpc.Data.billboardArchiveIndex;
+                int billboardRecordIndex = customNpc.Data.billboardRecordIndex;
+
+                if (billboardArchiveIndex == 0 || billboardRecordIndex == 0)
                 {
-                    string portraitName = GetCustomPortraitName(customNpc.Data.billboardArchiveIndex, customNpc.Data.billboardRecordIndex);
+                    Debug.LogWarning($"Invalid billboard data detected: Archive={billboardArchiveIndex}, Record={billboardRecordIndex}. Attempting to recover data.");
+                    // Recover the data if it's missing or uninitialized
+                    RecoverBillboardData(customNpc, out billboardArchiveIndex, out billboardRecordIndex);
+                }
+
+                // Check for custom portrait conditions first
+                if (billboardArchiveIndex >= 1300 && billboardArchiveIndex <= 1305)
+                {
+                    string portraitName = GetCustomPortraitName(billboardArchiveIndex, billboardRecordIndex);
                     if (!string.IsNullOrEmpty(portraitName) && ModManager.Instance.TryGetAsset(portraitName, false, out Texture2D customPortrait))
                     {
                         panelPortrait.BackgroundTexture = customPortrait;
@@ -1497,11 +1511,9 @@ namespace CustomDaggerfallTalkWindowMod
 
                 SetNPCPortrait(facePortraitArchive, recordIndex);
 
-                Debug.Log($"customNpc.Data.billboardArchiveIndex: {customNpc.Data.billboardArchiveIndex}");
-                Debug.Log($"customNpc.Data.billboardRecordIndex: {customNpc.Data.billboardRecordIndex}");
-                Debug.Log($"recordIndex: {recordIndex}");
+                Debug.Log($"Final NPC Data - billboardArchiveIndex: {billboardArchiveIndex}, billboardRecordIndex: {billboardRecordIndex}, recordIndex: {recordIndex}");
 
-                isChildNPC = (customNpc.Data.billboardArchiveIndex == 182) &&
+                isChildNPC = (billboardArchiveIndex == 182) &&
                              (recordIndex == 385 || recordIndex == 384 || recordIndex == 386 || recordIndex == 379 ||
                               recordIndex == 437 || recordIndex == 490 || recordIndex == 491 || recordIndex == 497 ||
                               recordIndex == 498 || recordIndex == 400 || recordIndex == 456 || recordIndex == 463 ||
@@ -1516,6 +1528,20 @@ namespace CustomDaggerfallTalkWindowMod
             else
             {
                 Debug.Log("Poop");
+            }
+        }
+
+        private void RecoverBillboardData(CustomStaticNPC customNpc, out int billboardArchiveIndex, out int billboardRecordIndex)
+        {
+            // Attempt to recover the billboard data from the NPC
+            billboardArchiveIndex = customNpc.Data.billboardArchiveIndex;
+            billboardRecordIndex = customNpc.Data.billboardRecordIndex;
+
+            if (billboardArchiveIndex == 0 || billboardRecordIndex == 0)
+            {
+                Debug.LogError("Unable to recover valid billboard data. Using fallback values.");
+                billboardArchiveIndex = -1; // Invalid value to force fallback
+                billboardRecordIndex = -1; // Invalid value to force fallback
             }
         }
 
