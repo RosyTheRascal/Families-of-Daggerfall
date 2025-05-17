@@ -539,9 +539,24 @@ namespace FamilyNameModifierMod
             if (IsInResidentialBuilding())
             {
                 Debug.Log("Player entered a residential building.");
-                familyLastName = GenerateFamilyLastName();
-                Debug.Log($"Generated family last name: {familyLastName}");
-                ReplaceAllNPCs();
+
+                // Get the region index using the PlayerGPS class
+                int regionIndex = GameManager.Instance.PlayerGPS.CurrentRegionIndex;
+
+                if (IsHammerfellRegion(regionIndex))
+                {
+                    Debug.Log("Residential building is in Hammerfell. Assigning unique last names to all static NPCs.");
+
+                    // Replace all NPCs with unique last names
+                    ReplaceAllNPCs();
+                }
+                else
+                {
+                    // Generate a shared family last name
+                    familyLastName = GenerateFamilyLastName();
+                    Debug.Log($"Generated family last name: {familyLastName}");
+                    ReplaceAllNPCs();
+                }
             }
             else
             {
