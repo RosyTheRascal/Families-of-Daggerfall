@@ -423,9 +423,25 @@ namespace CustomStaticNPCMod
             int regionIndex = GameManager.Instance.PlayerGPS.CurrentRegionIndex;
             if (FamilyNameModifierMod.FamilyNameModifier.Instance.IsHammerfellRegion(regionIndex))
             {
-                // Generate a unique "son of ---" last name for Hammerfell NPCs
-                string redguardFirstName = DaggerfallUnity.Instance.NameHelper.FirstName(NameHelper.BankTypes.Redguard, Genders.Male);
-                familyLastName = $"son of {redguardFirstName}";
+                // Determine if the NPC is a child
+                bool isChildNPC =
+                    (npcData.billboardArchiveIndex == 182 &&
+                        (npcData.billboardRecordIndex == 4 || npcData.billboardRecordIndex == 38 || npcData.billboardRecordIndex == 42 ||
+                         npcData.billboardRecordIndex == 43 || npcData.billboardRecordIndex == 52 || npcData.billboardRecordIndex == 53)) ||
+                    (npcData.billboardArchiveIndex == 334 &&
+                        (npcData.billboardRecordIndex == 2 || npcData.billboardRecordIndex == 9 || npcData.billboardRecordIndex == 12));
+
+                if (isChildNPC)
+                {
+                    // Children in Hammerfell have an empty last name
+                    familyLastName = string.Empty;
+                }
+                else
+                {
+                    // Generate a unique "son of ---" last name for non-child Hammerfell NPCs
+                    string redguardFirstName = DaggerfallUnity.Instance.NameHelper.FirstName(NameHelper.BankTypes.Redguard, Genders.Male);
+                    familyLastName = $"son of {redguardFirstName}";
+                }
             }
 
             // Assign last name
@@ -448,6 +464,20 @@ namespace CustomStaticNPCMod
             int regionIndex = GameManager.Instance.PlayerGPS.CurrentRegionIndex;
             if (FamilyNameModifierMod.FamilyNameModifier.Instance.IsHammerfellRegion(regionIndex))
             {
+                // Determine if the NPC is a child
+                bool isChildNPC =
+                    (npcData.billboardArchiveIndex == 182 &&
+                        (npcData.billboardRecordIndex == 4 || npcData.billboardRecordIndex == 38 || npcData.billboardRecordIndex == 42 ||
+                         npcData.billboardRecordIndex == 43 || npcData.billboardRecordIndex == 52 || npcData.billboardRecordIndex == 53)) ||
+                    (npcData.billboardArchiveIndex == 334 &&
+                        (npcData.billboardRecordIndex == 2 || npcData.billboardRecordIndex == 9 || npcData.billboardRecordIndex == 12));
+
+                if (isChildNPC)
+                {
+                    // Children have no last name
+                    return DaggerfallUnity.Instance.NameHelper.FirstName(nameBank, gender);
+                }
+
                 string firstName = DaggerfallUnity.Instance.NameHelper.FirstName(nameBank, gender);
                 return $"{firstName} {lastName}";
             }
