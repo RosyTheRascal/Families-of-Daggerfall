@@ -1462,15 +1462,323 @@ namespace CustomDaggerfallTalkWindowMod
             var customNpc = customTalkManager.GetTargetCustomNPC();
             if (customNpc != null)
             {
-                // Use the stored original billboard data
+                DaggerfallTalkWindow.FacePortraitArchive facePortraitArchive = DaggerfallTalkWindow.FacePortraitArchive.CommonFaces;
+                int recordIndex = -1;
+
+                // Use OriginalBillboardArchiveIndex and RecordIndex if available
                 int billboardArchiveIndex = customNpc.OriginalBillboardArchiveIndex;
                 int billboardRecordIndex = customNpc.OriginalBillboardRecordIndex;
+                if (customNpc.Data.billboardArchiveIndex == 357 && customNpc.Data.billboardRecordIndex == 1)
+                {
+                    recordIndex = 465;
+                    Debug.Log($"Forced portrait selection: Archive 357, Record 1 -> CommonFaces, Record Index: {recordIndex}");
+                }
+                else if (customNpc.Data.billboardArchiveIndex == 357 && customNpc.Data.billboardRecordIndex == 2)
+                {
+                    recordIndex = 433;
+                    Debug.Log($"Forced portrait selection: Archive 357, Record 1 -> CommonFaces, Record Index: {recordIndex}");
+                }
+                else if (customNpc.Data.billboardArchiveIndex == 357 && customNpc.Data.billboardRecordIndex == 3)
+                {
+                    recordIndex = 429;
+                    Debug.Log($"Forced portrait selection: Archive 357, Record 1 -> CommonFaces, Record Index: {recordIndex}");
+                }
+                else if (customNpc.Data.billboardArchiveIndex == 357 && customNpc.Data.billboardRecordIndex == 7)
+                {
+                    recordIndex = 238;
+                    Debug.Log($"Forced portrait selection: Archive 357, Record 1 -> CommonFaces, Record Index: {recordIndex}");
+                }
+                else if (customNpc.Data.billboardArchiveIndex == 334 && customNpc.Data.billboardRecordIndex == 0)
+                {
+                    recordIndex = 465;
+                    Debug.Log($"Forced portrait selection: Archive 334, Record 2 -> CommonFaces, Record Index: {recordIndex}");
+                }
+                else if (customNpc.Data.billboardArchiveIndex == 334 && customNpc.Data.billboardRecordIndex == 4)
+                {
+                    recordIndex = 446;
+                    Debug.Log($"Forced portrait selection: Archive 334, Record 2 -> CommonFaces, Record Index: {recordIndex}");
+                }
+                else if (customNpc.Data.billboardArchiveIndex == 334 && customNpc.Data.billboardRecordIndex == 5)
+                {
+                    recordIndex = 394;
+                    Debug.Log($"Forced portrait selection: Archive 334, Record 2 -> CommonFaces, Record Index: {recordIndex}");
+                }
+                else if (customNpc.Data.billboardArchiveIndex == 334 && customNpc.Data.billboardRecordIndex == 7)
+                {
+                    recordIndex = 431;
+                    Debug.Log($"Forced portrait selection: Archive 334, Record 2 -> CommonFaces, Record Index: {recordIndex}");
+                }
+                else if (customNpc.Data.billboardArchiveIndex == 334 && customNpc.Data.billboardRecordIndex == 8)
+                {
+                    recordIndex = 434;
+                    Debug.Log($"Forced portrait selection: Archive 334, Record 2 -> CommonFaces, Record Index: {recordIndex}");
+                }
+                else if (customNpc.Data.billboardArchiveIndex == 334 && customNpc.Data.billboardRecordIndex == 10)
+                {
+                    recordIndex = 419;
+                    Debug.Log($"Forced portrait selection: Archive 334, Record 2 -> CommonFaces, Record Index: {recordIndex}");
+                }
+                else if (customNpc.Data.billboardArchiveIndex == 334 && customNpc.Data.billboardRecordIndex == 17)
+                {
+                    recordIndex = 215;
+                    Debug.Log($"Forced portrait selection: Archive 334, Record 2 -> CommonFaces, Record Index: {recordIndex}");
+                }
+                else if (customNpc.Data.billboardArchiveIndex == 334 && customNpc.Data.billboardRecordIndex == 18)
+                {
+                    recordIndex = 438;
+                    Debug.Log($"Forced portrait selection: Archive 334, Record 2 -> CommonFaces, Record Index: {recordIndex}");
+                }
+                else if (customNpc.Data.billboardArchiveIndex == 182 && customNpc.Data.billboardRecordIndex == 20)
+                {
+                    recordIndex = 199;
+                    Debug.Log($"Forced portrait selection: Archive 357, Record 1 -> CommonFaces, Record Index: {recordIndex}");
+                }
+                else if (customNpc.Data.billboardArchiveIndex == 182 && customNpc.Data.billboardRecordIndex == 29)
+                {
+                    recordIndex = 448;
+                    Debug.Log($"Forced portrait selection: Archive 357, Record 1 -> CommonFaces, Record Index: {recordIndex}");
+                }
+                else if (customNpc.Data.billboardArchiveIndex == 182 && customNpc.Data.billboardRecordIndex == 25)
+                {
+                    recordIndex = 444;
+                    Debug.Log($"Forced portrait selection: Archive 357, Record 1 -> CommonFaces, Record Index: {recordIndex}");
+                }
+                else if (customNpc.Data.billboardArchiveIndex == 182 && customNpc.Data.billboardRecordIndex == 19)
+                {
+                    recordIndex = 438;
+                    Debug.Log($"Forced portrait selection: Archive 357, Record 1 -> CommonFaces, Record Index: {recordIndex}");
+                }
+                else if (customNpc.Data.billboardArchiveIndex == 182 && customNpc.Data.billboardRecordIndex == 47)
+                {
+                    recordIndex = 420;
+                    Debug.Log($"Forced portrait selection: Archive 357, Record 1 -> CommonFaces, Record Index: {recordIndex}");
+                }
+                else if (customNpc.Data.billboardArchiveIndex == 182 && customNpc.Data.billboardRecordIndex == 26)
+                {
+                    recordIndex = 450;
+                    Debug.Log($"Forced portrait selection: Archive 357, Record 1 -> CommonFaces, Record Index: {recordIndex}");
+                }
+                else if (customNpc.Data.billboardArchiveIndex == 182 && customNpc.Data.billboardRecordIndex == 27)
+                {
+                    recordIndex = 446;
+                    Debug.Log($"Forced portrait selection: Archive 357, Record 1 -> CommonFaces, Record Index: {recordIndex}");
+                }
+                else if (customNpc.Data.billboardArchiveIndex == 182 && customNpc.Data.billboardRecordIndex == 28)
+                {
+                    recordIndex = 447;
+                    Debug.Log($"Forced portrait selection: Archive 357, Record 1 -> CommonFaces, Record Index: {recordIndex}");
+                }
+                else if (customNpc.Data.billboardArchiveIndex == 182 && customNpc.Data.billboardRecordIndex == 24)
+                {
+                    recordIndex = 443;
+                    Debug.Log($"Forced portrait selection: Archive 357, Record 1 -> CommonFaces, Record Index: {recordIndex}");
+                }
+                else if (customNpc.Data.billboardArchiveIndex == 182 && customNpc.Data.billboardRecordIndex == 17)
+                {
+                    recordIndex = 428;
+                    Debug.Log($"Forced portrait selection: Archive 357, Record 1 -> CommonFaces, Record Index: {recordIndex}");
+                }
+                else if (customNpc.Data.billboardArchiveIndex == 182 && customNpc.Data.billboardRecordIndex == 16)
+                {
+                    recordIndex = 441;
+                    Debug.Log($"Forced portrait selection: Archive 357, Record 1 -> CommonFaces, Record Index: {recordIndex}");
+                }
+                else if (customNpc.Data.billboardArchiveIndex == 182 && customNpc.Data.billboardRecordIndex == 18)
+                {
+                    recordIndex = 379;
+                    Debug.Log($"Forced portrait selection: Archive 357, Record 1 -> CommonFaces, Record Index: {recordIndex}");
+                }
+                else if (customNpc.Data.billboardArchiveIndex == 182 && customNpc.Data.billboardRecordIndex == 9)
+                {
+                    recordIndex = 433;
+                    Debug.Log($"Forced portrait selection: Archive 357, Record 1 -> CommonFaces, Record Index: {recordIndex}");
+                }
+                else if (customNpc.Data.billboardArchiveIndex == 182 && customNpc.Data.billboardRecordIndex == 4)
+                {
+                    recordIndex = 437;
+                    Debug.Log($"Forced portrait selection: Archive 357, Record 1 -> CommonFaces, Record Index: {recordIndex}");
+                }
+                else if (customNpc.Data.billboardArchiveIndex == 182 && customNpc.Data.billboardRecordIndex == 38)
+                {
+                    recordIndex = 456;
+                    Debug.Log($"Forced portrait selection: Archive 357, Record 1 -> CommonFaces, Record Index: {recordIndex}");
+                }
+                else if (customNpc.Data.billboardArchiveIndex == 182 && customNpc.Data.billboardRecordIndex == 42)
+                {
+                    recordIndex = 490;
+                    Debug.Log($"Forced portrait selection: Archive 357, Record 1 -> CommonFaces, Record Index: {recordIndex}");
+                }
+                else if (customNpc.Data.billboardArchiveIndex == 182 && customNpc.Data.billboardRecordIndex == 52)
+                {
+                    recordIndex = 384;
+                    Debug.Log($"Forced portrait selection: Archive 357, Record 1 -> CommonFaces, Record Index: {recordIndex}");
+                }
+                else if (customNpc.Data.billboardArchiveIndex == 182 && customNpc.Data.billboardRecordIndex == 53)
+                {
+                    recordIndex = 498;
+                    Debug.Log($"Forced portrait selection: Archive 357, Record 1 -> CommonFaces, Record Index: {recordIndex}");
+                }
+                else if (customNpc.Data.billboardArchiveIndex == 182 && customNpc.Data.billboardRecordIndex == 12)
+                {
+                    recordIndex = 435;
+                    Debug.Log($"Forced portrait selection: Archive 357, Record 1 -> CommonFaces, Record Index: {recordIndex}");
+                }
+                else if (customNpc.Data.billboardArchiveIndex == 182 && customNpc.Data.billboardRecordIndex == 23)
+                {
+                    recordIndex = 402;
+                    Debug.Log($"Forced portrait selection: Archive 357, Record 1 -> CommonFaces, Record Index: {recordIndex}");
+                }
+                else if (customNpc.Data.billboardArchiveIndex == 182 && customNpc.Data.billboardRecordIndex == 45)
+                {
+                    recordIndex = 419;
+                    Debug.Log($"Forced portrait selection: Archive 357, Record 1 -> CommonFaces, Record Index: {recordIndex}");
+                }
+                else if (customNpc.Data.billboardArchiveIndex == 182 && customNpc.Data.billboardRecordIndex == 46)
+                {
+                    recordIndex = 492;
+                    Debug.Log($"Forced portrait selection: Archive 357, Record 1 -> CommonFaces, Record Index: {recordIndex}");
+                }
+                else if (customNpc.Data.billboardArchiveIndex == 182 && customNpc.Data.billboardRecordIndex == 48)
+                {
+                    recordIndex = 493;
+                    Debug.Log($"Forced portrait selection: Archive 357, Record 1 -> CommonFaces, Record Index: {recordIndex}");
+                }
+                else if (customNpc.Data.billboardArchiveIndex == 182 && customNpc.Data.billboardRecordIndex == 15)
+                {
+                    recordIndex = 245;
+                    Debug.Log($"Forced portrait selection: Archive 357, Record 1 -> CommonFaces, Record Index: {recordIndex}");
+                }
+                else if (customNpc.Data.billboardArchiveIndex == 182 && customNpc.Data.billboardRecordIndex == 13)
+                {
+                    recordIndex = 488;
+                    Debug.Log($"Forced portrait selection: Archive 357, Record 1 -> CommonFaces, Record Index: {recordIndex}");
+                }
+                else if (customNpc.Data.billboardArchiveIndex == 182 && customNpc.Data.billboardRecordIndex == 10)
+                {
+                    recordIndex = 434;
+                    Debug.Log($"Forced portrait selection: Archive 357, Record 1 -> CommonFaces, Record Index: {recordIndex}");
+                }
+                else if (customNpc.Data.billboardArchiveIndex == 184 && customNpc.Data.billboardRecordIndex == 0)
+                {
+                    recordIndex = 458;
+                    Debug.Log($"Forced portrait selection: Archive 357, Record 1 -> CommonFaces, Record Index: {recordIndex}");
+                }
+                else if (customNpc.Data.billboardArchiveIndex == 184 && customNpc.Data.billboardRecordIndex == 2)
+                {
+                    recordIndex = 459;
+                    Debug.Log($"Forced portrait selection: Archive 357, Record 1 -> CommonFaces, Record Index: {recordIndex}");
+                }
+                else if (customNpc.Data.billboardArchiveIndex == 184 && customNpc.Data.billboardRecordIndex == 4)
+                {
+                    recordIndex = 461;
+                    Debug.Log($"Forced portrait selection: Archive 357, Record 1 -> CommonFaces, Record Index: {recordIndex}");
+                }
+                else if (customNpc.Data.billboardArchiveIndex == 184 && customNpc.Data.billboardRecordIndex == 5)
+                {
+                    recordIndex = 416;
+                    Debug.Log($"Forced portrait selection: Archive 357, Record 1 -> CommonFaces, Record Index: {recordIndex}");
+                }
+                else if (customNpc.Data.billboardArchiveIndex == 184 && customNpc.Data.billboardRecordIndex == 17)
+                {
+                    recordIndex = 358;
+                    Debug.Log($"Forced portrait selection: Archive 357, Record 1 -> CommonFaces, Record Index: {recordIndex}");
+                }
+                else if (customNpc.Data.billboardArchiveIndex == 184 && customNpc.Data.billboardRecordIndex == 18)
+                {
+                    recordIndex = 474;
+                    Debug.Log($"Forced portrait selection: Archive 357, Record 1 -> CommonFaces, Record Index: {recordIndex}");
+                }
+                else if (customNpc.Data.billboardArchiveIndex == 184 && customNpc.Data.billboardRecordIndex == 19)
+                {
+                    recordIndex = 452;
+                    Debug.Log($"Forced portrait selection: Archive 357, Record 1 -> CommonFaces, Record Index: {recordIndex}");
+                }
+                else if (customNpc.Data.billboardArchiveIndex == 184 && customNpc.Data.billboardRecordIndex == 20)
+                {
+                    recordIndex = 465;
+                    Debug.Log($"Forced portrait selection: Archive 357, Record 1 -> CommonFaces, Record Index: {recordIndex}");
+                }
+                else if (customNpc.Data.billboardArchiveIndex == 184 && customNpc.Data.billboardRecordIndex == 21)
+                {
+                    recordIndex = 466;
+                    Debug.Log($"Forced portrait selection: Archive 357, Record 1 -> CommonFaces, Record Index: {recordIndex}");
+                }
+                else if (customNpc.Data.billboardArchiveIndex == 184 && customNpc.Data.billboardRecordIndex == 22)
+                {
+                    recordIndex = 416;
+                    Debug.Log($"Forced portrait selection: Archive 357, Record 1 -> CommonFaces, Record Index: {recordIndex}");
+                }
+                else if (customNpc.Data.billboardArchiveIndex == 184 && customNpc.Data.billboardRecordIndex == 23)
+                {
+                    recordIndex = 417;
+                    Debug.Log($"Forced portrait selection: Archive 357, Record 1 -> CommonFaces, Record Index: {recordIndex}");
+                }
+                else if (customNpc.Data.billboardArchiveIndex == 184 && customNpc.Data.billboardRecordIndex == 24)
+                {
+                    recordIndex = 467;
+                    Debug.Log($"Forced portrait selection: Archive 357, Record 1 -> CommonFaces, Record Index: {recordIndex}");
+                }
+                else if (customNpc.Data.billboardArchiveIndex == 184 && customNpc.Data.billboardRecordIndex == 25)
+                {
+                    recordIndex = 393;
+                    Debug.Log($"Forced portrait selection: Archive 357, Record 1 -> CommonFaces, Record Index: {recordIndex}");
+                }
+                else if (customNpc.Data.billboardArchiveIndex == 184 && customNpc.Data.billboardRecordIndex == 26 )
+                {
+                    recordIndex = 424;
+                    Debug.Log($"Forced portrait selection: Archive 357, Record 1 -> CommonFaces, Record Index: {recordIndex}");
+                }
+                else if (customNpc.Data.billboardArchiveIndex == 184 && customNpc.Data.billboardRecordIndex == 28)
+                {
+                    recordIndex = 362;
+                    Debug.Log($"Forced portrait selection: Archive 357, Record 1 -> CommonFaces, Record Index: {recordIndex}");
+                }
+                else if (customNpc.Data.billboardArchiveIndex == 184 && customNpc.Data.billboardRecordIndex == 29)
+                {
+                    recordIndex = 452;
+                    Debug.Log($"Forced portrait selection: Archive 357, Record 1 -> CommonFaces, Record Index: {recordIndex}");
+                }
+                else if (customNpc.Data.billboardArchiveIndex == 184 && customNpc.Data.billboardRecordIndex == 33)
+                {
+                    recordIndex = 422;
+                    Debug.Log($"Forced portrait selection: Archive 357, Record 1 -> CommonFaces, Record Index: {recordIndex}");
+                }
+                else if (customNpc.Data.billboardArchiveIndex == 197 && customNpc.Data.billboardRecordIndex == 1)
+                {
+                    recordIndex = 442;
+                    Debug.Log($"Forced portrait selection: Archive 357, Record 1 -> CommonFaces, Record Index: {recordIndex}");
+                }
+                else if (customNpc.Data.billboardArchiveIndex == 197 && customNpc.Data.billboardRecordIndex == 2)
+                {
+                    recordIndex = 462;
+                    Debug.Log($"Forced portrait selection: Archive 357, Record 1 -> CommonFaces, Record Index: {recordIndex}");
+                }
+                else if (customNpc.Data.billboardArchiveIndex == 197 && customNpc.Data.billboardRecordIndex == 4)
+                {
+                    recordIndex = 458;
+                    Debug.Log($"Forced portrait selection: Archive 357, Record 1 -> CommonFaces, Record Index: {recordIndex}");
+                }
+                else if (customNpc.Data.billboardArchiveIndex == 197 && customNpc.Data.billboardRecordIndex == 7)
+                {
+                    recordIndex = 371;
+                    Debug.Log($"Forced portrait selection: Archive 357, Record 1 -> CommonFaces, Record Index: {recordIndex}");
+                }
+                else if (customNpc.Data.billboardArchiveIndex == 180 && customNpc.Data.billboardRecordIndex == 0)
+                {
+                    recordIndex = 371;
+                    Debug.Log($"Forced portrait selection: Archive 357, Record 1 -> CommonFaces, Record Index: {recordIndex}");
+                }
+                if (billboardArchiveIndex == 0 || billboardRecordIndex == 0)
+                {
+                    // Fallback for vanilla NPCs that haven't been processed by ProcessBillboards
+                    billboardArchiveIndex = customNpc.Data.billboardArchiveIndex;
+                    billboardRecordIndex = customNpc.Data.billboardRecordIndex;
+                    Debug.LogWarning($"Falling back to Data fields: Archive={billboardArchiveIndex}, Record={billboardRecordIndex}");
+                }
 
-                Debug.Log($"NPC Data - OriginalBillboardArchiveIndex: {billboardArchiveIndex}, OriginalBillboardRecordIndex: {billboardRecordIndex}");
+                Debug.Log($"NPC Data - BillboardArchiveIndex: {billboardArchiveIndex}, BillboardRecordIndex: {billboardRecordIndex}");
 
-                DaggerfallTalkWindow.FacePortraitArchive facePortraitArchive = DaggerfallTalkWindow.FacePortraitArchive.CommonFaces;
-                int recordIndex = -1; // Initialize with a default value
-
+                // Handle custom billboards
                 if (billboardArchiveIndex >= 1300 && billboardArchiveIndex <= 1305)
                 {
                     string portraitName = GetCustomPortraitName(billboardArchiveIndex, billboardRecordIndex);
@@ -1486,6 +1794,7 @@ namespace CustomDaggerfallTalkWindowMod
                     }
                 }
 
+                // Handle vanilla billboards
                 if (recordIndex == -1)
                 {
                     GetPortraitIndexFromStaticNPCBillboard(customNpc, out facePortraitArchive, out recordIndex);
@@ -1499,13 +1808,15 @@ namespace CustomDaggerfallTalkWindowMod
 
                 SetNPCPortrait(facePortraitArchive, recordIndex);
 
-                Debug.Log($"Final NPC Data - OriginalBillboardArchiveIndex: {billboardArchiveIndex}, OriginalBillboardRecordIndex: {billboardRecordIndex}, recordIndex: {recordIndex}");
+                Debug.Log($"Final NPC Data - BillboardArchiveIndex: {billboardArchiveIndex}, BillboardRecordIndex: {billboardRecordIndex}, recordIndex: {recordIndex}");
 
-                isChildNPC = (billboardArchiveIndex == 182) &&
-                             (recordIndex == 385 || recordIndex == 384 || recordIndex == 386 || recordIndex == 379 ||
-                              recordIndex == 437 || recordIndex == 490 || recordIndex == 491 || recordIndex == 497 ||
-                              recordIndex == 498 || recordIndex == 400 || recordIndex == 456 || recordIndex == 463 ||
-                              recordIndex == 430);
+                isChildNPC =
+                     (billboardArchiveIndex == 182 &&
+                        (billboardRecordIndex == 4 || billboardRecordIndex == 38 || billboardRecordIndex == 42 || billboardRecordIndex == 43 || billboardRecordIndex == 52 || billboardRecordIndex == 53)) ||
+                     (billboardArchiveIndex == 334 &&
+                        (billboardRecordIndex == 2 || billboardRecordIndex == 9 || billboardRecordIndex == 12));
+
+
 
                 if (isChildNPC)
                 {
