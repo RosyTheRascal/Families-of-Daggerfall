@@ -419,6 +419,15 @@ namespace CustomStaticNPCMod
         {
             npcData = originalNpcData;
 
+            // Check if the region is Hammerfell
+            int regionIndex = GameManager.Instance.PlayerGPS.CurrentRegionIndex;
+            if (FamilyNameModifierMod.FamilyNameModifier.Instance.IsHammerfellRegion(regionIndex))
+            {
+                // Generate a unique "son of ---" last name for Hammerfell NPCs
+                string redguardFirstName = DaggerfallUnity.Instance.NameHelper.FirstName(NameHelper.BankTypes.Redguard, Genders.Male);
+                familyLastName = $"son of {redguardFirstName}";
+            }
+
             // Assign last name
             string firstName = DaggerfallUnity.Instance.NameHelper.FirstName(npcData.nameBank, npcData.gender);
             customDisplayName = $"{firstName} {familyLastName}";
@@ -429,15 +438,22 @@ namespace CustomStaticNPCMod
             // Generate and set display name using gender and family last name
             SetCustomDisplayName(GenerateName(npcData.nameBank, npcData.gender, familyLastName));
 
-
             // Ensure NPC has all required components
             EnsureComponents(originalNpcData);
         }
 
         private string GenerateName(NameHelper.BankTypes nameBank, Genders gender, string lastName)
         {
-            string firstName = DaggerfallUnity.Instance.NameHelper.FirstName(nameBank, gender);
-            return $"{firstName} {lastName}";
+            // Generate unique names for Hammerfell NPCs
+            int regionIndex = GameManager.Instance.PlayerGPS.CurrentRegionIndex;
+            if (FamilyNameModifierMod.FamilyNameModifier.Instance.IsHammerfellRegion(regionIndex))
+            {
+                string firstName = DaggerfallUnity.Instance.NameHelper.FirstName(nameBank, gender);
+                return $"{firstName} {lastName}";
+            }
+
+            // Default logic for other regions
+            return $"{DaggerfallUnity.Instance.NameHelper.FirstName(nameBank, gender)} {lastName}";
         }
 
         // Method to set the custom display name

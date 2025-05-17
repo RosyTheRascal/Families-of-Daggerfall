@@ -390,7 +390,7 @@ namespace FamilyNameModifierMod
             return lastName;
         }
 
-        private bool IsHammerfellRegion(int regionIndex)
+        public bool IsHammerfellRegion(int regionIndex)
         {
             // Define Hammerfell regions based on findings
             int[] hammerfellRegions = new int[]
