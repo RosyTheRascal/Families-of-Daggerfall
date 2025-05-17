@@ -413,7 +413,12 @@ namespace FamilyNameModifierMod
 
         public void ReplaceAndRegisterNPC(DaggerfallWorkshop.Game.StaticNPC npc, string buildingId)
         {
-            string familyLastName = GenerateFamilyLastName(buildingId);
+            // Get the region index using the PlayerGPS class
+            int regionIndex = GameManager.Instance.PlayerGPS.CurrentRegionIndex;
+
+            // Pass the regionIndex to GenerateFamilyLastName
+            string familyLastName = GenerateFamilyLastName(buildingId, regionIndex);
+
             // Call logic to replace NPC with shared last name
             CustomStaticNPCMod.CustomStaticNPC customNPC = npc.gameObject.AddComponent<CustomStaticNPCMod.CustomStaticNPC>();
             customNPC.Initialize(npc.Data.nameSeed, npc.Data, familyLastName);
