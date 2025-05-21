@@ -37,6 +37,7 @@ namespace CustomStaticNPCMod
 {
     public class CustomStaticNPC : MonoBehaviour
     {
+        public static bool AnySpecialBillboardsPresent = false;
         private StaticNPC.NPCData npcData;
         private int npcId;
         private string customLastName;
@@ -79,6 +80,7 @@ namespace CustomStaticNPCMod
         void Start()
         {
             PlayerEnterExit.OnTransitionExterior += OnTransitionToExterior;
+            StartCoroutine(DelayedNPCCheck());
             int livingNPCCount = CustomNPCBridgeMod.CustomNPCBridge.Instance.GetLivingNPCCountInInterior();
             int playerStealth = GameManager.Instance.PlayerEntity.Skills.GetLiveSkillValue(DFCareer.Skills.Stealth);
             int playerPickpocket = GameManager.Instance.PlayerEntity.Skills.GetLiveSkillValue(DFCareer.Skills.Pickpocket);
@@ -121,8 +123,79 @@ namespace CustomStaticNPCMod
                 // Register the NPC with CustomNPCBridge
                 CustomNPCBridgeMod.CustomNPCBridge.Instance.RegisterCustomNPC(GetInstanceID(), this);
             }
+        }
+
+        public static void UpdateSpecialBillboardsFlag()
+        {
+            AnySpecialBillboardsPresent = false;
+            // Find all DaggerfallBillboards in the scene
+            var allBillboards = GameObject.FindObjectsOfType<DaggerfallBillboard>();
+            foreach (var billboard in allBillboards)
+            {
+                int archive = billboard.Summary.Archive;
+                if (archive == 1300 || archive == 1301 || archive == 1302 || archive == 1305)
+                {
+                    AnySpecialBillboardsPresent = true;
+                    break;
+                }
+            }
+        }
+
+        private IEnumerator DelayedNPCCheck()
+        {
+            // Wait 1 frame (or you can increase to 2-3 if needed)
+            yield return null;
+            yield return null;
+
+            // Update flag just in case (safe redundancy)
+            CustomStaticNPC.UpdateSpecialBillboardsFlag();
+
+            int livingNPCCount = CustomNPCBridgeMod.CustomNPCBridge.Instance.GetLivingNPCCountInInterior();
+
+            // ... everything else from your original Start(), except the OnTransitionExterior line!
+            int playerStealth = GameManager.Instance.PlayerEntity.Skills.GetLiveSkillValue(DFCareer.Skills.Stealth);
+            int playerPickpocket = GameManager.Instance.PlayerEntity.Skills.GetLiveSkillValue(DFCareer.Skills.Pickpocket);
+            string npcDisplayName = CustomDisplayName;
+            int houseID = GetCurrentHouseID(); // Implement this method to get the current house ID
+            npcTopicHash = GenerateHash(npcDisplayName, houseID);
+
+            // Log the current and last NPC display names
+            Debug.Log($"Hashbrowns: {npcDisplayName}");
+
+            // Check if the NPC display name is different from the last one
+            if (npcDisplayName != lastNpcDisplayName)
+            {
+                // Reset any necessary flags or states here
+                Debug.Log("NPC display name has changed, resetting necessary states.");
+            }
+
+            // Update the last NPC display name
+            lastNpcDisplayName = npcDisplayName;
+
+            // Check if the NPC is marked as dead
+            if (CustomNPCBridgeMod.CustomNPCBridge.Instance.IsNPCDead(npcTopicHash))
+            {
+                // Disable the MeshRenderer component
+                MeshRenderer meshRenderer = GetComponent<MeshRenderer>();
+                if (meshRenderer != null)
+                {
+                    meshRenderer.enabled = false;
+                }
+
+                // Disable the BoxCollider component
+                BoxCollider boxCollider = GetComponent<BoxCollider>();
+                if (boxCollider != null)
+                {
+                    boxCollider.enabled = false;
+                }
+            }
+            else
+            {
+                // Register the NPC with CustomNPCBridge
+                CustomNPCBridgeMod.CustomNPCBridge.Instance.RegisterCustomNPC(GetInstanceID(), this);
+            }
             // Get the current number of living custom NPCs in the interior
-            if (livingNPCCount <= 0)
+            if (livingNPCCount <= 0 && !CustomStaticNPC.AnySpecialBillboardsPresent)
             {
                 NothingHereAidan();
             }

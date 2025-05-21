@@ -260,7 +260,7 @@ namespace FamilyNameModifierMod
 
                         // Set race-based display name
                         SetRaceDisplayName(billboard, archiveIndex, raceLastNames);
-
+                        CustomStaticNPC.UpdateSpecialBillboardsFlag();
                         break;
 
                     default:
