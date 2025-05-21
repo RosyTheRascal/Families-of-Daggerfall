@@ -271,56 +271,49 @@ namespace FamilyNameModifierMod
             Debug.Log("ProcessBillboards: Finished processing billboards.");
         }
 
-        // inside FamilyNameModifier.cs, in your FamilyNameModifier class
-
-        // Generate a consistent racial name for a racial billboard NPC
-        public static string GenerateConsistentRacialName(
-            NameHelper.BankTypes nameBank,
-            Genders gender,
-            bool isHighElf,
-            int buildingId,
-            int worldX,
-            int worldZ,
-            int racialBillboardIndex = 0
-        )
+        private void SetRaceDisplayName(Billboard billboard, int archiveIndex, Dictionary<int, string> raceLastNames)
         {
-            int firstNameSeed = (worldX, worldZ, buildingId, racialBillboardIndex).GetHashCode();
-            DFRandom.srand(firstNameSeed);
-            string firstName = DaggerfallUnity.Instance.NameHelper.FirstName(nameBank, gender);
-
-            string lastName;
-            if (isHighElf)
+            // Existing logic remains unchanged
+            NameHelper.BankTypes race;
+            switch (archiveIndex)
             {
-                int surnameSeed = (worldX, worldZ, buildingId, racialBillboardIndex, 999).GetHashCode();
-                DFRandom.srand(surnameSeed);
-                lastName = DaggerfallUnity.Instance.NameHelper.Surname(NameHelper.BankTypes.HighElf); // <--- ONLY ONE ARG!
-            }
-            else
-            {
-                int surnameSeed = (worldX, worldZ, buildingId, 555).GetHashCode();
-                DFRandom.srand(surnameSeed);
-                lastName = DaggerfallUnity.Instance.NameHelper.Surname(nameBank); // <--- ONLY ONE ARG!
+                case 1300: race = NameHelper.BankTypes.DarkElf; break;
+                case 1301: race = NameHelper.BankTypes.HighElf; break;
+                case 1302: race = NameHelper.BankTypes.WoodElf; break;
+                case 1305: race = NameHelper.BankTypes.Khajiit; break;
+                default:
+                    Debug.LogWarning($"SetRaceDisplayName: Unsupported archive index {archiveIndex} for billboard '{billboard.name}'. Skipping.");
+                    return;
             }
 
-            return $"{firstName} {lastName}";
-        }
+            Genders gender = Genders.Female; // Default to female
+            switch (archiveIndex)
+            {
+                case 1300: if (new[] { 3, 5, 6, 7, 8 }.Contains(billboard.Summary.Record)) gender = Genders.Male; break;
+                case 1301: if (new[] { 2, 3, 4 }.Contains(billboard.Summary.Record)) gender = Genders.Male; break;
+                case 1302: if (new[] { 1, 2 }.Contains(billboard.Summary.Record)) gender = Genders.Male; break;
+                case 1305: gender = Genders.Male; break;
+            }
 
-        // Call this on your CustomStaticNPC after you set up its data
-        public static void SetRaceDisplayName(
-            CustomStaticNPCMod.CustomStaticNPC npc,
-            NameHelper.BankTypes nameBank,
-            Genders gender,
-            int buildingId,
-            int worldX,
-            int worldZ,
-            bool isHighElf,
-            int racialBillboardIndex = 0
-        )
-        {
-            string name = GenerateConsistentRacialName(
-                nameBank, gender, isHighElf, buildingId, worldX, worldZ, racialBillboardIndex
-            );
-            npc.SetCustomDisplayName(name);
+            if (!raceLastNames.ContainsKey(archiveIndex))
+            {
+                string lastName = DaggerfallUnity.Instance.NameHelper.Surname(race);
+                raceLastNames[archiveIndex] = lastName;
+                Debug.Log($"SetRaceDisplayName: Generated last name '{lastName}' for race {race} (archive index {archiveIndex}).");
+            }
+
+            string firstName = DaggerfallUnity.Instance.NameHelper.FirstName(race, gender);
+            string displayName = $"{firstName} {raceLastNames[archiveIndex]}";
+
+            // Assign the display name to the billboard and its CustomStaticNPC component (if available)
+            billboard.gameObject.name = displayName;
+            var customNpc = billboard.GetComponent<CustomStaticNPCMod.CustomStaticNPC>();
+            if (customNpc != null)
+            {
+                customNpc.SetCustomDisplayName(displayName); // Update CustomDisplayName
+            }
+
+            Debug.Log($"SetRaceDisplayName: Assigned display name '{displayName}' to billboard '{billboard.name}'.");
         }
 
         public void ReplaceAndRegisterNPC(StaticNPC originalNpc)
