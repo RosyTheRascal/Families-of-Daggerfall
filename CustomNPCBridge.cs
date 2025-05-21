@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using System.IO;
+using System.Linq;
 using DaggerfallConnect;
 using DaggerfallConnect.Arena2;
 using DaggerfallConnect.FallExe;
@@ -180,11 +181,17 @@ namespace CustomNPCBridgeMod
             Debug.Log($"NPC with hash {npcHash} marked as dead.");
         }
 
-        public int GetLivingNPCCountInInterior()
+        public int GetLivingNPCCountInInterior(bool forceRescan = false)
         {
+            if (forceRescan)
+            {
+                RescanAndRegisterCustomBillboards();
+            }
+
             int count = 0;
             foreach (var npc in customNPCs.Values)
             {
+                // Use whatever logic you normally use to get npcHash
                 int npcHash = npc.GenerateHash(npc.CustomDisplayName, npc.GetCurrentHouseID());
                 if (!IsNPCDead(npcHash))
                 {
@@ -192,6 +199,42 @@ namespace CustomNPCBridgeMod
                 }
             }
             return count;
+        }
+
+        private void RescanAndRegisterCustomBillboards()
+        {
+            // These are the archive indices you care about, nyan~
+            int[] targetArchives = { 1300, 1301, 1302, 1305 };
+
+            // Find all billboards in the scene, meow~
+            var billboards = GameObject.FindObjectsOfType<DaggerfallBillboard>();
+            foreach (var billboard in billboards)
+            {
+                if (billboard == null || billboard.gameObject == null)
+                    continue;
+
+                // Check if it's one of the target archives, uwu
+                if (targetArchives.Contains(billboard.Summary.Archive))
+                {
+                    // Try to get the CustomStaticNPC component or add it if missing
+                    var customNpc = billboard.GetComponent<CustomStaticNPCMod.CustomStaticNPC>();
+                    if (customNpc == null)
+                    {
+                        // Optionally, you could AddComponent here, but only do this if that's how your pipeline works
+                        // customNpc = billboard.gameObject.AddComponent<CustomStaticNPCMod.CustomStaticNPC>();
+                        // You may want to skip adding if you want to avoid side effects
+                        continue;
+                    }
+
+                    // Register it if not already registered
+                    int id = customNpc.GetInstanceID();
+                    if (!customNPCs.ContainsKey(id))
+                    {
+                        customNPCs[id] = customNpc;
+                        Debug.Log($"[CustomNPCBridge] Auto-registered billboard NPC (archive {billboard.Summary.Archive}, id {id})");
+                    }
+                }
+            }
         }
 
         public void MarkBuildingAsEmpty(int buildingKey)
