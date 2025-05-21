@@ -46,6 +46,8 @@ namespace CustomStaticNPCMod
         public int OriginalBillboardArchiveIndex { get; private set; }
         public int OriginalBillboardRecordIndex { get; private set; }
         private bool isProcessed = false;
+        public static bool aidanFired = false;
+        public static bool guardsCalled = false;
 
         private static Mod mod;
 
@@ -195,7 +197,7 @@ namespace CustomStaticNPCMod
                 CustomNPCBridgeMod.CustomNPCBridge.Instance.RegisterCustomNPC(GetInstanceID(), this);
             }
             // Get the current number of living custom NPCs in the interior
-            if (livingNPCCount <= 0 && !CustomStaticNPC.AnySpecialBillboardsPresent)
+            if (livingNPCCount <= 0 && !CustomStaticNPC.AnySpecialBillboardsPresent && !CustomStaticNPC.aidanFired)
             {
                 NothingHereAidan();
             }
@@ -237,6 +239,8 @@ namespace CustomStaticNPCMod
 
         private void NothingHereAidan()
         {
+            if (aidanFired) return; // Never fire again if already fired (safety net)
+            aidanFired = true;
             int livingNPCCount = CustomNPCBridgeMod.CustomNPCBridge.Instance.GetLivingNPCCountInInterior();
             int playerStealth = GameManager.Instance.PlayerEntity.Skills.GetLiveSkillValue(DFCareer.Skills.Stealth);
             int playerPickpocket = GameManager.Instance.PlayerEntity.Skills.GetLiveSkillValue(DFCareer.Skills.Pickpocket);
@@ -279,6 +283,8 @@ namespace CustomStaticNPCMod
 
         private void OnTransitionToExterior(PlayerEnterExit.TransitionEventArgs args)
         {
+            aidanFired = false;
+            guardsCalled = false;
             int playerStealth = GameManager.Instance.PlayerEntity.Skills.GetLiveSkillValue(DFCareer.Skills.Stealth);
             int playerPickpocket = GameManager.Instance.PlayerEntity.Skills.GetLiveSkillValue(DFCareer.Skills.Pickpocket);
 
@@ -353,12 +359,16 @@ namespace CustomStaticNPCMod
 
         public static bool ShouldCallGuards()
         {
+            if (guardsCalled) return false; // Don't call guards again if already called this session!
+
             int numNPCs = CustomNPCBridgeMod.CustomNPCBridge.Instance.GetLivingNPCCountInInterior();
             int playerStealth = GameManager.Instance.PlayerEntity.Skills.GetLiveSkillValue(DFCareer.Skills.Stealth);
             float randomFactor = UnityEngine.Random.Range(-0.5f, 0.5f); // Small randomness
             float probability = 1f / (1f + Mathf.Exp(-(0.5f * numNPCs - 2 + randomFactor) + (playerStealth - 50) / 25f));
             Debug.Log($"Guard probability rolled: {probability}");
-            return UnityEngine.Random.value < probability; // Random roll against probability
+            bool shouldCall = UnityEngine.Random.value < probability;
+            if (shouldCall) guardsCalled = true; // Set the flag when called!
+            return shouldCall;
         }
 
 
