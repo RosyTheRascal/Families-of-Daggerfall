@@ -271,10 +271,8 @@ namespace FamilyNameModifierMod
             Debug.Log("ProcessBillboards: Finished processing billboards.");
         }
 
-        // Helper: Generate a consistent name for a racial billboard NPC (not random every time)
-        // put these in youw FamilyNameModifierMod.FamilyNameModifier cwass, nya~
+        // inside FamilyNameModifier.cs, in your FamilyNameModifier class
 
-        // Use DFRandom.srand(seed) so DF's namegen is consistent with youw hash
         public static string GenerateConsistentRacialName(
             NameHelper.BankTypes nameBank,
             Genders gender,
@@ -282,10 +280,9 @@ namespace FamilyNameModifierMod
             int buildingId,
             int worldX,
             int worldZ,
-            int racialBillboardIndex = 0 // Use if you want unique high elf surnames
+            int racialBillboardIndex = 0
         )
         {
-            // make the hash for the first name
             int firstNameSeed = (worldX, worldZ, buildingId, racialBillboardIndex).GetHashCode();
             DFRandom.srand(firstNameSeed);
             string firstName = DaggerfallUnity.Instance.NameHelper.FirstName(nameBank, gender);
@@ -293,14 +290,12 @@ namespace FamilyNameModifierMod
             string lastName;
             if (isHighElf)
             {
-                // completely unique surname per high elf, even in same house
                 int surnameSeed = (worldX, worldZ, buildingId, racialBillboardIndex, 999).GetHashCode();
                 DFRandom.srand(surnameSeed);
                 lastName = DaggerfallUnity.Instance.NameHelper.Surname(NameHelper.BankTypes.HighElf, gender);
             }
             else
             {
-                // shared surname for all racial billboards in house (same surnameSeed for all)
                 int surnameSeed = (worldX, worldZ, buildingId, 555).GetHashCode();
                 DFRandom.srand(surnameSeed);
                 lastName = DaggerfallUnity.Instance.NameHelper.Surname(nameBank, gender);
@@ -309,7 +304,6 @@ namespace FamilyNameModifierMod
             return $"{firstName} {lastName}";
         }
 
-        // Call this on youw CustomStaticNPC (ow simiwaw) object aftew you set up its data
         public static void SetRaceDisplayName(
             CustomStaticNPCMod.CustomStaticNPC npc,
             NameHelper.BankTypes nameBank,
@@ -326,17 +320,6 @@ namespace FamilyNameModifierMod
             );
             npc.SetCustomDisplayName(name);
         }
-
-        // inside your NPC creation/init code:
-        int worldX = GameManager.Instance.PlayerGPS.WorldX;
-        int worldZ = GameManager.Instance.PlayerGPS.WorldZ;
-        int buildingId = npc.GetCurrentHouseID(); // however you get the house/building id
-        bool isHighElf = (npc.Race == Races.HighElf); // however you check for high elf
-        int racialBillboardIndex = 0; // change if you want unique per billboard
-
-        FamilyNameModifier.SetRaceDisplayName(
-            npc, npc.NameBank, npc.Gender, buildingId, worldX, worldZ, isHighElf, racialBillboardIndex
-        );
 
         public void ReplaceAndRegisterNPC(StaticNPC originalNpc)
         {
