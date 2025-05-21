@@ -271,49 +271,64 @@ namespace FamilyNameModifierMod
             Debug.Log("ProcessBillboards: Finished processing billboards.");
         }
 
-        private void SetRaceDisplayName(Billboard billboard, int archiveIndex, Dictionary<int, string> raceLastNames)
+        public static string GenerateConsistentRacialName(
+      NameHelper.BankTypes nameBank,
+      Genders gender,
+      bool isHighElf,
+      int buildingId,
+      int worldX,
+      int worldZ,
+      int racialBillboardIndex = 0 // Use a unique index for each racial billboard if needed, otherwise 0
+  )
         {
-            // Existing logic remains unchanged
-            NameHelper.BankTypes race;
-            switch (archiveIndex)
+            // Use house/location and GPS as the seed
+            var hashBase = $"{worldX}:{worldZ}:{buildingId}";
+            if (isHighElf)
+                hashBase += $":{racialBillboardIndex}"; // Only high elves get extra uniqueness for surname
+
+            int hash = hashBase.GetHashCode();
+            var rand = new System.Random(hash);
+
+            string firstName = DaggerfallUnity.Instance.NameHelper.FirstName(nameBank, gender, rand);
+
+            string lastName;
+            if (isHighElf)
             {
-                case 1300: race = NameHelper.BankTypes.DarkElf; break;
-                case 1301: race = NameHelper.BankTypes.HighElf; break;
-                case 1302: race = NameHelper.BankTypes.WoodElf; break;
-                case 1305: race = NameHelper.BankTypes.Khajiit; break;
-                default:
-                    Debug.LogWarning($"SetRaceDisplayName: Unsupported archive index {archiveIndex} for billboard '{billboard.name}'. Skipping.");
-                    return;
+                // Unique surname for high elves per instance
+                lastName = DaggerfallUnity.Instance.NameHelper.Surname(NameHelper.BankTypes.HighElf, gender, rand);
+            }
+            else
+            {
+                // Shared surname for all racial billboards in house (just don't use racialBillboardIndex in hash)
+                var surnameHash = $"{worldX}:{worldZ}:{buildingId}".GetHashCode();
+                var surnameRand = new System.Random(surnameHash);
+                lastName = DaggerfallUnity.Instance.NameHelper.Surname(nameBank, gender, surnameRand);
             }
 
-            Genders gender = Genders.Female; // Default to female
-            switch (archiveIndex)
-            {
-                case 1300: if (new[] { 3, 5, 6, 7, 8 }.Contains(billboard.Summary.Record)) gender = Genders.Male; break;
-                case 1301: if (new[] { 2, 3, 4 }.Contains(billboard.Summary.Record)) gender = Genders.Male; break;
-                case 1302: if (new[] { 1, 2 }.Contains(billboard.Summary.Record)) gender = Genders.Male; break;
-                case 1305: gender = Genders.Male; break;
-            }
+            return $"{firstName} {lastName}";
+        }
 
-            if (!raceLastNames.ContainsKey(archiveIndex))
-            {
-                string lastName = DaggerfallUnity.Instance.NameHelper.Surname(race);
-                raceLastNames[archiveIndex] = lastName;
-                Debug.Log($"SetRaceDisplayName: Generated last name '{lastName}' for race {race} (archive index {archiveIndex}).");
-            }
-
-            string firstName = DaggerfallUnity.Instance.NameHelper.FirstName(race, gender);
-            string displayName = $"{firstName} {raceLastNames[archiveIndex]}";
-
-            // Assign the display name to the billboard and its CustomStaticNPC component (if available)
-            billboard.gameObject.name = displayName;
-            var customNpc = billboard.GetComponent<CustomStaticNPCMod.CustomStaticNPC>();
-            if (customNpc != null)
-            {
-                customNpc.SetCustomDisplayName(displayName); // Update CustomDisplayName
-            }
-
-            Debug.Log($"SetRaceDisplayName: Assigned display name '{displayName}' to billboard '{billboard.name}'.");
+        // ☆彡 Set a racial NPC billboard's display name in a consistent, house-stable way
+        public void SetRaceDisplayName(
+            NameHelper.BankTypes nameBank,
+            Genders gender,
+            int buildingId,
+            int worldX,
+            int worldZ,
+            bool isHighElf,
+            int racialBillboardIndex = 0 // pass a unique index for each billboard, or 0 if not needed
+        )
+        {
+            string name = GenerateConsistentRacialName(
+                nameBank,
+                gender,
+                isHighElf,
+                buildingId,
+                worldX,
+                worldZ,
+                racialBillboardIndex
+            );
+            this.CustomDisplayName = name; // adjust if you use a different field/property
         }
 
         public void ReplaceAndRegisterNPC(StaticNPC originalNpc)
