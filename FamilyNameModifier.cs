@@ -271,9 +271,9 @@ namespace FamilyNameModifierMod
             Debug.Log("ProcessBillboards: Finished processing billboards.");
         }
 
-        private void SetRaceDisplayName(Billboard billboard, int archiveIndex, Dictionary<int, string> raceLastNames)
+        private void SetRaceDisplayName(Billboard billboard, int archiveIndex, Dictionary<string, string> raceLastNames)
         {
-            // Existing logic remains unchanged
+            // Determine race based on archive index
             NameHelper.BankTypes race;
             switch (archiveIndex)
             {
@@ -286,6 +286,7 @@ namespace FamilyNameModifierMod
                     return;
             }
 
+            // Determine gender based on race/archive index and record
             Genders gender = Genders.Female; // Default to female
             switch (archiveIndex)
             {
@@ -295,25 +296,29 @@ namespace FamilyNameModifierMod
                 case 1305: gender = Genders.Male; break;
             }
 
-            if (!raceLastNames.ContainsKey(archiveIndex))
+            // Use building ID as seed so names are stable per building
+            string buildingId = GetBuildingIdentifier();
+            string raceBuildingKey = $"{buildingId}_{race}";
+            int seed = buildingId.GetHashCode();
+
+            // Generate and cache a shared last name for this race/building combo
+            if (!raceLastNames.TryGetValue(raceBuildingKey, out string lastName))
             {
-                string lastName = DaggerfallUnity.Instance.NameHelper.Surname(race);
-                raceLastNames[archiveIndex] = lastName;
-                Debug.Log($"SetRaceDisplayName: Generated last name '{lastName}' for race {race} (archive index {archiveIndex}).");
+                UnityEngine.Random.InitState(seed + (int)race); // add race to seed for extra safety
+                lastName = DaggerfallUnity.Instance.NameHelper.Surname(race);
+                raceLastNames[raceBuildingKey] = lastName;
             }
 
+            // Generate a unique first name per NPC (using race/gender as usual)
             string firstName = DaggerfallUnity.Instance.NameHelper.FirstName(race, gender);
-            string displayName = $"{firstName} {raceLastNames[archiveIndex]}";
 
-            // Assign the display name to the billboard and its CustomStaticNPC component (if available)
-            billboard.gameObject.name = displayName;
-            var customNpc = billboard.GetComponent<CustomStaticNPCMod.CustomStaticNPC>();
-            if (customNpc != null)
+            // Set the display name
+            CustomStaticNPC customNPC = billboard.gameObject.GetComponent<CustomStaticNPC>();
+            if (customNPC != null)
             {
-                customNpc.SetCustomDisplayName(displayName); // Update CustomDisplayName
+                customNPC.CustomDisplayName = $"{firstName} {lastName}";
+                Debug.Log($"SetRaceDisplayName: Set name '{firstName} {lastName}' for race {race} (archive index {archiveIndex}), building '{buildingId}'.");
             }
-
-            Debug.Log($"SetRaceDisplayName: Assigned display name '{displayName}' to billboard '{billboard.name}'.");
         }
 
         public void ReplaceAndRegisterNPC(StaticNPC originalNpc)
