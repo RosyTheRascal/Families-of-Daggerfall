@@ -273,6 +273,7 @@ namespace FamilyNameModifierMod
 
         // inside FamilyNameModifier.cs, in your FamilyNameModifier class
 
+        // Generate a consistent racial name for a racial billboard NPC
         public static string GenerateConsistentRacialName(
             NameHelper.BankTypes nameBank,
             Genders gender,
@@ -292,18 +293,19 @@ namespace FamilyNameModifierMod
             {
                 int surnameSeed = (worldX, worldZ, buildingId, racialBillboardIndex, 999).GetHashCode();
                 DFRandom.srand(surnameSeed);
-                lastName = DaggerfallUnity.Instance.NameHelper.Surname(NameHelper.BankTypes.HighElf, gender);
+                lastName = DaggerfallUnity.Instance.NameHelper.Surname(NameHelper.BankTypes.HighElf); // <--- ONLY ONE ARG!
             }
             else
             {
                 int surnameSeed = (worldX, worldZ, buildingId, 555).GetHashCode();
                 DFRandom.srand(surnameSeed);
-                lastName = DaggerfallUnity.Instance.NameHelper.Surname(nameBank, gender);
+                lastName = DaggerfallUnity.Instance.NameHelper.Surname(nameBank); // <--- ONLY ONE ARG!
             }
 
             return $"{firstName} {lastName}";
         }
 
+        // Call this on your CustomStaticNPC after you set up its data
         public static void SetRaceDisplayName(
             CustomStaticNPCMod.CustomStaticNPC npc,
             NameHelper.BankTypes nameBank,
