@@ -271,65 +271,72 @@ namespace FamilyNameModifierMod
             Debug.Log("ProcessBillboards: Finished processing billboards.");
         }
 
+        // Helper: Generate a consistent name for a racial billboard NPC (not random every time)
+        // put these in youw FamilyNameModifierMod.FamilyNameModifier cwass, nya~
+
+        // Use DFRandom.srand(seed) so DF's namegen is consistent with youw hash
         public static string GenerateConsistentRacialName(
-      NameHelper.BankTypes nameBank,
-      Genders gender,
-      bool isHighElf,
-      int buildingId,
-      int worldX,
-      int worldZ,
-      int racialBillboardIndex = 0 // Use a unique index for each racial billboard if needed, otherwise 0
-  )
+            NameHelper.BankTypes nameBank,
+            Genders gender,
+            bool isHighElf,
+            int buildingId,
+            int worldX,
+            int worldZ,
+            int racialBillboardIndex = 0 // Use if you want unique high elf surnames
+        )
         {
-            // Use house/location and GPS as the seed
-            var hashBase = $"{worldX}:{worldZ}:{buildingId}";
-            if (isHighElf)
-                hashBase += $":{racialBillboardIndex}"; // Only high elves get extra uniqueness for surname
-
-            int hash = hashBase.GetHashCode();
-            var rand = new System.Random(hash);
-
-            string firstName = DaggerfallUnity.Instance.NameHelper.FirstName(nameBank, gender, rand);
+            // make the hash for the first name
+            int firstNameSeed = (worldX, worldZ, buildingId, racialBillboardIndex).GetHashCode();
+            DFRandom.srand(firstNameSeed);
+            string firstName = DaggerfallUnity.Instance.NameHelper.FirstName(nameBank, gender);
 
             string lastName;
             if (isHighElf)
             {
-                // Unique surname for high elves per instance
-                lastName = DaggerfallUnity.Instance.NameHelper.Surname(NameHelper.BankTypes.HighElf, gender, rand);
+                // completely unique surname per high elf, even in same house
+                int surnameSeed = (worldX, worldZ, buildingId, racialBillboardIndex, 999).GetHashCode();
+                DFRandom.srand(surnameSeed);
+                lastName = DaggerfallUnity.Instance.NameHelper.Surname(NameHelper.BankTypes.HighElf, gender);
             }
             else
             {
-                // Shared surname for all racial billboards in house (just don't use racialBillboardIndex in hash)
-                var surnameHash = $"{worldX}:{worldZ}:{buildingId}".GetHashCode();
-                var surnameRand = new System.Random(surnameHash);
-                lastName = DaggerfallUnity.Instance.NameHelper.Surname(nameBank, gender, surnameRand);
+                // shared surname for all racial billboards in house (same surnameSeed for all)
+                int surnameSeed = (worldX, worldZ, buildingId, 555).GetHashCode();
+                DFRandom.srand(surnameSeed);
+                lastName = DaggerfallUnity.Instance.NameHelper.Surname(nameBank, gender);
             }
 
             return $"{firstName} {lastName}";
         }
 
-        // ☆彡 Set a racial NPC billboard's display name in a consistent, house-stable way
-        public void SetRaceDisplayName(
+        // Call this on youw CustomStaticNPC (ow simiwaw) object aftew you set up its data
+        public static void SetRaceDisplayName(
+            CustomStaticNPCMod.CustomStaticNPC npc,
             NameHelper.BankTypes nameBank,
             Genders gender,
             int buildingId,
             int worldX,
             int worldZ,
             bool isHighElf,
-            int racialBillboardIndex = 0 // pass a unique index for each billboard, or 0 if not needed
+            int racialBillboardIndex = 0
         )
         {
             string name = GenerateConsistentRacialName(
-                nameBank,
-                gender,
-                isHighElf,
-                buildingId,
-                worldX,
-                worldZ,
-                racialBillboardIndex
+                nameBank, gender, isHighElf, buildingId, worldX, worldZ, racialBillboardIndex
             );
-            this.CustomDisplayName = name; // adjust if you use a different field/property
+            npc.SetCustomDisplayName(name);
         }
+
+        // inside your NPC creation/init code:
+        int worldX = GameManager.Instance.PlayerGPS.WorldX;
+        int worldZ = GameManager.Instance.PlayerGPS.WorldZ;
+        int buildingId = npc.GetCurrentHouseID(); // however you get the house/building id
+        bool isHighElf = (npc.Race == Races.HighElf); // however you check for high elf
+        int racialBillboardIndex = 0; // change if you want unique per billboard
+
+        FamilyNameModifier.SetRaceDisplayName(
+            npc, npc.NameBank, npc.Gender, buildingId, worldX, worldZ, isHighElf, racialBillboardIndex
+        );
 
         public void ReplaceAndRegisterNPC(StaticNPC originalNpc)
         {
