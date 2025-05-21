@@ -224,7 +224,7 @@ namespace FamilyNameModifierMod
         private void ProcessBillboards(GameObject parent)
         {
             // Dictionary to store shared last names for each race
-            Dictionary<int, string> raceLastNames = new Dictionary<int, string>();
+            Dictionary<string, string> raceLastNames = new Dictionary<string, string>();
 
             Billboard[] billboards = parent.GetComponentsInChildren<Billboard>();
             foreach (Billboard billboard in billboards)
