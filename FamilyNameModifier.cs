@@ -271,7 +271,7 @@ namespace FamilyNameModifierMod
             Debug.Log("ProcessBillboards: Finished processing billboards.");
         }
 
-        string[] surnames = DaggerfallUnity.Instance.NameHelper.GetSurnames(race);
+
 
         private void SetRaceDisplayName(Billboard billboard, int archiveIndex, Dictionary<string, string> raceLastNames)
         {
@@ -688,20 +688,6 @@ namespace FamilyNameModifierMod
                 foreach (var b in partsB)
                     list.Add(a + b);
             return list.ToArray();
-        }
-
-        // Add this to your NameHelper if missing!
-        public string[] GetSurnames(NameHelper.BankTypes race)
-        {
-            switch (race)
-            {
-                case NameHelper.BankTypes.DarkElf: return BankDarkElf.Surnames;
-                case NameHelper.BankTypes.HighElf: return BankHighElf.Surnames;
-                case NameHelper.BankTypes.WoodElf: return BankWoodElf.Surnames;
-                case NameHelper.BankTypes.Khajiit: return BankKhajiit.Surnames;
-                // etc...
-                default: return BankBreton.Surnames;
-            }
         }
     }
 
