@@ -41,7 +41,7 @@ namespace LightsOutScriptMod
 
         void Update()
         {
-            DebugLogAllDayNights();
+
             var now = DaggerfallUnity.Instance.WorldTime.Now;
             if (Mathf.Floor(now.Hour) != lastCheckedHour)
             {
@@ -52,36 +52,45 @@ namespace LightsOutScriptMod
                 if (now.Hour == 22)
                 {
                     Debug.Log("[LightsOut] 22:00 - Turning OFF residential windows, nya!");
-                    SetAllWindowEmissions(false); // Turn OFF
+                    SetAllWindowEmissionsVanilla(false); // Turn OFF
                 }
                 else if (now.Hour == 6)
                 {
                     Debug.Log("[LightsOut] 06:00 - Turning ON residential windows, nya!");
-                    SetAllWindowEmissions(true); // Turn ON
+                    SetAllWindowEmissionsVanilla(true); // Turn ON
                 }
                 else if (now.Hour == 8)
                 {
                     Debug.Log("[LightsOut] 08:00 - Turning OFF residential windows (let vanilla logic take over), nya!");
-                    SetAllWindowEmissions(false); // Let vanilla logic resume, or forcibly OFF
+                    SetAllWindowEmissionsVanilla(false); // Let vanilla logic resume, or forcibly OFF
                 }
             }
         }
 
-        void SetAllWindowEmissions(bool on)
+        void SetAllWindowEmissionsVanilla(bool on)
         {
-            var allDayNights = FindObjectsOfType<DayNight>(); // finds only active objects
+            // Find all MeshRenderers
+            var meshRenderers = GameObject.FindObjectsOfType<MeshRenderer>();
             int changed = 0;
-            foreach (var dn in allDayNights)
+            foreach (var mr in meshRenderers)
             {
-                var mat = GetEmissiveMaterial(dn);
-                if (mat != null)
+                foreach (var mat in mr.materials)
                 {
-                    var color = on ? dn.nightColor : dn.dayColor;
-                    mat.SetColor("_EmissionColor", color);
-                    changed++;
+                    if (mat.HasProperty("_EmissionColor"))
+                    {
+                        // Heuristic: Only touch materials whose name contains "window" (Daggerfall's window mats)
+                        if (mat.name.ToLower().Contains("window"))
+                        {
+                            // Set to yellowish for ON, grayish for OFF (tweak to taste)
+                            Color color = on ? new Color(1.2f, 1.2f, 0.6f) : new Color(0.05f, 0.05f, 0.05f);
+                            mat.SetColor("_EmissionColor", color);
+                            mat.EnableKeyword("_EMISSION");
+                            changed++;
+                        }
+                    }
                 }
             }
-            Debug.Log($"[LightsOut] Set emission for {changed} DayNight components in scene, nya!");
+            Debug.Log($"[LightsOut] Set emission for {changed} window materials in scene, nya!");
         }
 
         void SetResidentialWindows(bool on)
@@ -162,15 +171,51 @@ namespace LightsOutScriptMod
             }
         }
 
-        void DebugLogAllDayNights()
+        List<DayNight> FindAllDayNightDeep()
         {
-            var allDayNights = FindObjectsOfType<DayNight>();
-            Debug.Log($"[LightsOut] Found {allDayNights.Length} DayNight components in scene, nya!");
+            List<DayNight> results = new List<DayNight>();
+            foreach (GameObject go in Resources.FindObjectsOfTypeAll(typeof(GameObject)))
+            {
+                // skip prefabs (not in scene)
+                if (!go.scene.IsValid() || go.hideFlags != HideFlags.None)
+                    continue;
+
+                foreach (var dn in go.GetComponents<DayNight>())
+                {
+                    results.Add(dn);
+                }
+            }
+            return results;
+        }
+
+        void DebugLogAllDayNightsDeep()
+        {
+            var allDayNights = FindAllDayNightDeep();
+            Debug.Log($"[LightsOut] Found {allDayNights.Count} DayNight components in scene (deep scan), nya!");
             foreach (var dn in allDayNights)
             {
                 var parent = dn.transform.parent ? dn.transform.parent.name : dn.gameObject.name;
                 Debug.Log($"[LightsOut] DayNight on GameObject: {dn.gameObject.name}, parent: {parent}, pos: {dn.transform.position}, active: {dn.gameObject.activeInHierarchy}");
             }
+        }
+
+
+        void DebugLogAllMeshRenderers()
+        {
+            int count = 0;
+            foreach (GameObject go in Resources.FindObjectsOfTypeAll(typeof(GameObject)))
+            {
+                if (!go.scene.IsValid() || go.hideFlags != HideFlags.None)
+                    continue;
+
+                var mr = go.GetComponent<MeshRenderer>();
+                if (mr)
+                {
+                    Debug.Log($"[LightsOut] MeshRenderer found: {go.name} at {go.transform.position}");
+                    count++;
+                }
+            }
+            Debug.Log($"[LightsOut] Total MeshRenderers in scene: {count}");
         }
     }
 }
