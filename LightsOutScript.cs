@@ -41,7 +41,7 @@ namespace LightsOutScriptMod
 
         void Update()
         {
-
+            DebugLogAllEmissiveMaterials();
             var now = DaggerfallUnity.Instance.WorldTime.Now;
             if (Mathf.Floor(now.Hour) != lastCheckedHour)
             {
@@ -199,9 +199,26 @@ namespace LightsOutScriptMod
             }
         }
 
+        void DebugLogAllEmissiveMaterials()
+        {
+            var meshRenderers = GameObject.FindObjectsOfType<MeshRenderer>();
+            int count = 0;
+            foreach (var mr in meshRenderers)
+            {
+                foreach (var mat in mr.materials)
+                {
+                    if (mat.HasProperty("_EmissionColor"))
+                    {
+                        count++;
+                        Debug.Log($"[LightsOut] Material: {mat.name}, Shader: {mat.shader.name}, Emission: {mat.GetColor("_EmissionColor")}");
+                    }
+                }
+            }
+            Debug.Log($"[LightsOut] Found {count} materials with _EmissionColor property in scene, nya!");
+        }
 
         void DebugLogAllMeshRenderers()
-        {
+            {
             int count = 0;
             foreach (GameObject go in Resources.FindObjectsOfTypeAll(typeof(GameObject)))
             {
