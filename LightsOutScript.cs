@@ -144,11 +144,10 @@ namespace LightsOutScriptMod
             }
             Debug.Log($"[LightsOut] Set emission for {changed} window materials with faction {factionId}, nya!");
         }
-
         void SetResidentialWindows(bool on)
         {
             // Find the DaggerfallLocation parent (top-level for the current scene)
-            var locationGO = GameObject.FindObjectOfType<DaggerfallWorkshop.Game.DaggerfallLocation>();
+            var locationGO = GameObject.FindObjectOfType<DaggerfallWorkshop.DaggerfallLocation>();
             if (locationGO == null)
                 return;
 
@@ -157,7 +156,11 @@ namespace LightsOutScriptMod
 
             foreach (var bd in bds)
             {
-                foreach (var building in bd.GetBuildingsOfFaction(0))
+                var buildings = bd.GetBuildingsOfFaction(0);
+                if (buildings == null)
+                    continue;
+
+                foreach (var building in buildings)
                 {
                     // Your original logic here~
                     var obj = building; // You may need to map from BuildingSummary to the GameObject in the scene
