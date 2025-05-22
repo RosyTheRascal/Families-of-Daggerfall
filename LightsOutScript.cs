@@ -85,7 +85,7 @@ namespace LightsOutScriptMod
                         var bd = t.GetComponentInParent<BuildingDirectory>();
                         if (bd != null)
                         {
-                            BuildingDirectory.BuildingSummary summary;
+                            BuildingSummary summary; // <-- just this change!
                             if (bd.GetBuildingSummary(building.buildingKey, out summary))
                                 return summary.FactionId;
                         }
