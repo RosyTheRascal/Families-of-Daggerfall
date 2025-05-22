@@ -285,6 +285,16 @@ namespace LightsOutScriptMod
                 {
                     if (building.buildingKey == summary.buildingKey)
                     {
+                        // Search children for a MeshRenderer whose GameObject name contains the buildingKey (as string)
+                        foreach (Transform child in staticBuildings.transform)
+                        {
+                            var mesh = child.GetComponent<MeshRenderer>();
+                            if (mesh != null && child.name.Contains(summary.buildingKey.ToString()))
+                            {
+                                return child.gameObject;
+                            }
+                        }
+                        // Fallback: return staticBuildings GameObject if we can't find the child
                         return staticBuildings.gameObject;
                     }
                 }
