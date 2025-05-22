@@ -69,24 +69,19 @@ namespace LightsOutScriptMod
 
         void SetAllWindowEmissionsVanilla(bool on)
         {
-            // Find all MeshRenderers
             var meshRenderers = GameObject.FindObjectsOfType<MeshRenderer>();
             int changed = 0;
             foreach (var mr in meshRenderers)
             {
                 foreach (var mat in mr.materials)
                 {
-                    if (mat.HasProperty("_EmissionColor"))
+                    if (mat.HasProperty("_EmissionColor") && IsProbablyWindow(mat))
                     {
-                        // Heuristic: Only touch materials whose name contains "window" (Daggerfall's window mats)
-                        if (mat.name.ToLower().Contains("window"))
-                        {
-                            // Set to yellowish for ON, grayish for OFF (tweak to taste)
-                            Color color = on ? new Color(1.2f, 1.2f, 0.6f) : new Color(0.05f, 0.05f, 0.05f);
-                            mat.SetColor("_EmissionColor", color);
-                            mat.EnableKeyword("_EMISSION");
-                            changed++;
-                        }
+                        // Use a bright yellow for ON, dark for OFF
+                        Color color = on ? new Color(0.8f, 0.57f, 0.18f) : new Color(0.05f, 0.05f, 0.05f);
+                        mat.SetColor("_EmissionColor", color);
+                        mat.EnableKeyword("_EMISSION");
+                        changed++;
                     }
                 }
             }
@@ -233,6 +228,18 @@ namespace LightsOutScriptMod
                 }
             }
             Debug.Log($"[LightsOut] Total MeshRenderers in scene: {count}");
+        }
+
+        bool IsProbablyWindow(Material mat)
+        {
+            // Most Daggerfall windows are index=3 and use Daggerfall/Default shader
+            string name = mat.name;
+            bool hasWindowIndex = name.Contains("[Index=3]");
+            bool isDaggerfallShader = mat.shader != null && mat.shader.name == "Daggerfall/Default";
+            // Windows have a non-black emission color
+            Color emission = mat.HasProperty("_EmissionColor") ? mat.GetColor("_EmissionColor") : Color.black;
+            bool isEmissive = emission.maxColorComponent > 0.1f;
+            return hasWindowIndex && isDaggerfallShader && isEmissive;
         }
     }
 }
