@@ -41,7 +41,7 @@ namespace LightsOutScriptMod
 
         void Update()
         {
-           
+            Start();
             var now = DaggerfallUnity.Instance.WorldTime.Now;
             if (Mathf.Floor(now.Hour) != lastCheckedHour)
             {
@@ -63,6 +63,46 @@ namespace LightsOutScriptMod
                 {
                     Debug.Log("[LightsOut] 08:00 - Turning OFF residential windows (let vanilla logic take over), nya!");
                     SetAllWindowEmissionsForFaction(false, 0); // Let vanilla logic resume, or forcibly OFF
+                }
+            }
+        }
+
+        void Start()
+        {
+            DaggerfallWorkshop.Game.StreamingWorld.OnBlockLoad += OnBlockLoad;
+        }
+
+        void OnDestroy()
+        {
+            DaggerfallWorkshop.Game.StreamingWorld.OnBlockLoad -= OnBlockLoad;
+        }
+
+        private void OnBlockLoad(DaggerfallWorkshop.DaggerfallRMBBlock block)
+        {
+            // Get BuildingDirectory on this block
+            var bd = block.GetComponent<DaggerfallWorkshop.Game.BuildingDirectory>();
+            if (bd == null) return;
+
+            // Your logic to set windows for this block only
+            foreach (var building in bd.GetBuildingsOfFaction(0))
+            {
+                var go = FindBuildingGameObject(building);
+                if (go == null) continue;
+                var dayNight = go.GetComponentInChildren<DayNight>();
+                if (dayNight != null)
+                {
+                    var meshRenderer = go.GetComponentInChildren<MeshRenderer>();
+                    if (meshRenderer != null)
+                    {
+                        foreach (var mat in meshRenderer.materials)
+                        {
+                            if (mat.HasProperty("_EmissionColor"))
+                            {
+                                var color = /* Pick night or day color based on time */;
+                                mat.SetColor("_EmissionColor", color);
+                            }
+                        }
+                    }
                 }
             }
         }
