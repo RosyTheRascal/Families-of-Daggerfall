@@ -271,9 +271,11 @@ namespace FamilyNameModifierMod
             Debug.Log("ProcessBillboards: Finished processing billboards.");
         }
 
+        string[] surnames = DaggerfallUnity.Instance.NameHelper.GetSurnames(race);
+
         private void SetRaceDisplayName(Billboard billboard, int archiveIndex, Dictionary<string, string> raceLastNames)
         {
-            // Determine race based on archive index
+            // ... your original code here ...
             NameHelper.BankTypes race;
             switch (archiveIndex)
             {
@@ -286,7 +288,6 @@ namespace FamilyNameModifierMod
                     return;
             }
 
-            // Determine gender based on race/archive index and record
             Genders gender = Genders.Female; // Default to female
             switch (archiveIndex)
             {
@@ -296,23 +297,26 @@ namespace FamilyNameModifierMod
                 case 1305: gender = Genders.Male; break;
             }
 
-            // Use building ID as seed so names are stable per building
             string buildingId = GetBuildingIdentifier();
             string raceBuildingKey = $"{buildingId}_{race}";
-            int seed = buildingId.GetHashCode();
 
-            // Generate and cache a shared last name for this race/building combo
             if (!raceLastNames.TryGetValue(raceBuildingKey, out string lastName))
             {
-                UnityEngine.Random.InitState(seed + (int)race); // add race to seed for extra safety
-                lastName = DaggerfallUnity.Instance.NameHelper.Surname(race);
+                // Use deterministic System.Random for the surname only (not UnityEngine.Random!)
+                int deterministicSeed = (buildingId + race.ToString()).GetHashCode();
+                var rng = new System.Random(deterministicSeed);
+
+                // Pick a surname using your own random, not Unity's
+                string[] surnames = DaggerfallUnity.Instance.NameHelper.GetSurnames(race);
+                lastName = surnames[rng.Next(surnames.Length)];
+
                 raceLastNames[raceBuildingKey] = lastName;
             }
+            // --- End deterministic surname generation ---
 
             // Generate a unique first name per NPC (using race/gender as usual)
             string firstName = DaggerfallUnity.Instance.NameHelper.FirstName(race, gender);
 
-            // Set the display name
             CustomStaticNPC customNPC = billboard.gameObject.GetComponent<CustomStaticNPC>();
             if (customNPC != null)
             {
@@ -656,4 +660,49 @@ namespace FamilyNameModifierMod
             }
         }
     }
+
+    public static class NameHelperExtensions
+    {
+        public static string[] GetSurnames(this NameHelper nameHelper, NameHelper.BankTypes bank)
+        {
+            // Access the internal bankDict using reflection (read-only, safe for modding)
+            var field = typeof(NameHelper).GetField("bankDict", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+            var bankDict = field.GetValue(nameHelper) as System.Collections.IDictionary;
+            if (bankDict == null || !bankDict.Contains(bank))
+                return new string[0];
+
+            // Get the NameBank and then surname sets (4 and 5)
+            dynamic nameBank = bankDict[bank];
+            var sets = nameBank.sets as System.Array;
+            if (sets == null || sets.Length < 6)
+                return new string[0];
+
+            var partsA = ((dynamic)sets.GetValue(4)).parts as string[];
+            var partsB = ((dynamic)sets.GetValue(5)).parts as string[];
+            if (partsA == null || partsB == null)
+                return new string[0];
+
+            // Combine all possible surnames (safe for deterministic RNG)
+            var list = new System.Collections.Generic.List<string>();
+            foreach (var a in partsA)
+                foreach (var b in partsB)
+                    list.Add(a + b);
+            return list.ToArray();
+        }
+
+        // Add this to your NameHelper if missing!
+        public string[] GetSurnames(NameHelper.BankTypes race)
+        {
+            switch (race)
+            {
+                case NameHelper.BankTypes.DarkElf: return BankDarkElf.Surnames;
+                case NameHelper.BankTypes.HighElf: return BankHighElf.Surnames;
+                case NameHelper.BankTypes.WoodElf: return BankWoodElf.Surnames;
+                case NameHelper.BankTypes.Khajiit: return BankKhajiit.Surnames;
+                // etc...
+                default: return BankBreton.Surnames;
+            }
+        }
+    }
+
 }
