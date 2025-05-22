@@ -41,6 +41,7 @@ namespace LightsOutScriptMod
 
         void Update()
         {
+            DebugLogAllDayNights();
             var now = DaggerfallUnity.Instance.WorldTime.Now;
             if (Mathf.Floor(now.Hour) != lastCheckedHour)
             {
@@ -51,19 +52,36 @@ namespace LightsOutScriptMod
                 if (now.Hour == 22)
                 {
                     Debug.Log("[LightsOut] 22:00 - Turning OFF residential windows, nya!");
-                    SetResidentialWindows(false); // Turn OFF
+                    SetAllWindowEmissions(false); // Turn OFF
                 }
                 else if (now.Hour == 6)
                 {
                     Debug.Log("[LightsOut] 06:00 - Turning ON residential windows, nya!");
-                    SetResidentialWindows(true); // Turn ON
+                    SetAllWindowEmissions(true); // Turn ON
                 }
                 else if (now.Hour == 8)
                 {
                     Debug.Log("[LightsOut] 08:00 - Turning OFF residential windows (let vanilla logic take over), nya!");
-                    SetResidentialWindows(false); // Let vanilla logic resume, or forcibly OFF
+                    SetAllWindowEmissions(false); // Let vanilla logic resume, or forcibly OFF
                 }
             }
+        }
+
+        void SetAllWindowEmissions(bool on)
+        {
+            var allDayNights = FindObjectsOfType<DayNight>(); // finds only active objects
+            int changed = 0;
+            foreach (var dn in allDayNights)
+            {
+                var mat = GetEmissiveMaterial(dn);
+                if (mat != null)
+                {
+                    var color = on ? dn.nightColor : dn.dayColor;
+                    mat.SetColor("_EmissionColor", color);
+                    changed++;
+                }
+            }
+            Debug.Log($"[LightsOut] Set emission for {changed} DayNight components in scene, nya!");
         }
 
         void SetResidentialWindows(bool on)
@@ -82,7 +100,7 @@ namespace LightsOutScriptMod
                         continue;
                     }
 
-                    var dayNight = go.GetComponentInChildren<DayNight>();
+                    var dayNight = go.GetComponentInChildren<DayNight>(true);
                     if (dayNight == null)
                     {
                         Debug.LogWarning($"[LightsOut] No DayNight component found on buildingKey={building.buildingKey}, nya!");
@@ -141,6 +159,17 @@ namespace LightsOutScriptMod
             {
                 Debug.LogErrorFormat("[LightsOut] Failed to get emissive material: {0}", e.Message);
                 return null;
+            }
+        }
+
+        void DebugLogAllDayNights()
+        {
+            var allDayNights = FindObjectsOfType<DayNight>();
+            Debug.Log($"[LightsOut] Found {allDayNights.Length} DayNight components in scene, nya!");
+            foreach (var dn in allDayNights)
+            {
+                var parent = dn.transform.parent ? dn.transform.parent.name : dn.gameObject.name;
+                Debug.Log($"[LightsOut] DayNight on GameObject: {dn.gameObject.name}, parent: {parent}, pos: {dn.transform.position}, active: {dn.gameObject.activeInHierarchy}");
             }
         }
     }
