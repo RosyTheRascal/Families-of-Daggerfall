@@ -167,12 +167,18 @@ namespace LightsOutScriptMod
                     var dayNight = go.GetComponentInChildren<DayNight>();
                     if (dayNight != null)
                     {
-                        // Set emission manually, override DayNight logic here
-                        var mat = /* get emission material as in DayNight.InitEmissiveMaterial() */;
-                        if (mat != null)
+                        // Find a material with _EmissionColor, like DayNight.InitEmissiveMaterial()
+                        var meshRenderer = go.GetComponentInChildren<MeshRenderer>();
+                        if (meshRenderer != null)
                         {
-                            var color = on ? dayNight.nightColor : dayNight.dayColor;
-                            mat.SetColor("_EmissionColor", color);
+                            foreach (var mat in meshRenderer.materials)
+                            {
+                                if (mat.HasProperty("_EmissionColor"))
+                                {
+                                    var color = on ? dayNight.nightColor : dayNight.dayColor;
+                                    mat.SetColor("_EmissionColor", color);
+                                }
+                            }
                         }
                     }
                 }
