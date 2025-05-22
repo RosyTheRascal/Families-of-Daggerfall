@@ -41,7 +41,7 @@ namespace LightsOutScriptMod
 
         void Update()
         {
-            Start();
+            Start(); // (Nyaa, you should only call this once, not every frame, but let's leave it for now...)
             var now = DaggerfallUnity.Instance.WorldTime.Now;
             if (Mathf.Floor(now.Hour) != lastCheckedHour)
             {
@@ -52,17 +52,17 @@ namespace LightsOutScriptMod
                 if (now.Hour == 22)
                 {
                     Debug.Log("[LightsOut] 22:00 - Turning OFF residential windows, nya!");
-                    SetAllWindowEmissionsForFaction(false, 0); // Turn OFF
+                    SetResidentialWindows(false); // Turn OFF
                 }
                 else if (now.Hour == 6)
                 {
                     Debug.Log("[LightsOut] 06:00 - Turning ON residential windows, nya!");
-                    SetAllWindowEmissionsForFaction(true, 0); // Turn ON
+                    SetResidentialWindows(true); // Turn ON
                 }
                 else if (now.Hour == 8)
                 {
                     Debug.Log("[LightsOut] 08:00 - Turning OFF residential windows (let vanilla logic take over), nya!");
-                    SetAllWindowEmissionsForFaction(false, 0); // Let vanilla logic resume, or forcibly OFF
+                    SetResidentialWindows(false); // Let vanilla logic resume, or forcibly OFF
                 }
             }
         }
@@ -221,33 +221,35 @@ namespace LightsOutScriptMod
             }
             Debug.Log($"[LightsOut] Set emission for {changed} window materials with faction {factionId}, nya!");
         }
+
         void SetResidentialWindows(bool on)
         {
-            // Find the DaggerfallLocation parent (top-level for the current scene)
-            var locationGO = GameObject.FindObjectOfType<DaggerfallWorkshop.DaggerfallLocation>();
-            if (locationGO == null)
-                return;
+            var bdArray = FindObjectsOfType<DaggerfallWorkshop.Game.BuildingDirectory>();
+            Debug.Log($"[LightsOut] Found {bdArray.Length} BuildingDirectory components in scene.");
 
-            // Get all BuildingDirectory components under this location (even in inactive RMB blocks)
-            var bds = locationGO.GetComponentsInChildren<DaggerfallWorkshop.Game.BuildingDirectory>(true);
-
-            foreach (var bd in bds)
+            foreach (var bd in bdArray)
             {
+                var blockGO = bd.gameObject.transform.parent ? bd.gameObject.transform.parent.name : "(no parent)";
+                Debug.Log($"[LightsOut] Block parent: {blockGO}, BuildingDirectory: {bd.gameObject.name}");
+
                 var buildings = bd.GetBuildingsOfFaction(0);
-                if (buildings == null)
-                    continue;
+                Debug.Log($"[LightsOut] Buildings in this block: {(buildings != null ? buildings.Count : 0)}");
+
+                if (buildings == null) continue;
 
                 foreach (var building in buildings)
                 {
-                    // Your original logic here~
-                    var obj = building; // You may need to map from BuildingSummary to the GameObject in the scene
+                    var obj = building;
                     var go = FindBuildingGameObject(obj); // implement this!
-                    if (go == null) continue;
+                    if (go == null)
+                    {
+                        Debug.LogWarning($"[LightsOut] No GameObject found for building key {building.buildingKey} in block {blockGO}");
+                        continue;
+                    }
 
                     var dayNight = go.GetComponentInChildren<DayNight>();
                     if (dayNight != null)
                     {
-                        // Find a material with _EmissionColor, like DayNight.InitEmissiveMaterial()
                         var meshRenderer = go.GetComponentInChildren<MeshRenderer>();
                         if (meshRenderer != null)
                         {
@@ -257,9 +259,18 @@ namespace LightsOutScriptMod
                                 {
                                     var color = on ? dayNight.nightColor : dayNight.dayColor;
                                     mat.SetColor("_EmissionColor", color);
+                                    Debug.Log($"[LightsOut] Set emission for building {go.name} (key {building.buildingKey}) in block {blockGO}");
                                 }
                             }
                         }
+                        else
+                        {
+                            Debug.LogWarning($"[LightsOut] No MeshRenderer for building {go.name} (key {building.buildingKey})");
+                        }
+                    }
+                    else
+                    {
+                        Debug.LogWarning($"[LightsOut] No DayNight for building {go.name} (key {building.buildingKey})");
                     }
                 }
             }
