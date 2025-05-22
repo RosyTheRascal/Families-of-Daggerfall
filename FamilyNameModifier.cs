@@ -275,7 +275,7 @@ namespace FamilyNameModifierMod
 
         private void SetRaceDisplayName(Billboard billboard, int archiveIndex, Dictionary<string, string> raceLastNames)
         {
-            // ... your original code here ...
+            // Determine race based on archive index
             NameHelper.BankTypes race;
             switch (archiveIndex)
             {
@@ -288,6 +288,7 @@ namespace FamilyNameModifierMod
                     return;
             }
 
+            // Determine gender based on race/archive index and record
             Genders gender = Genders.Female; // Default to female
             switch (archiveIndex)
             {
@@ -298,25 +299,35 @@ namespace FamilyNameModifierMod
             }
 
             string buildingId = GetBuildingIdentifier();
-            string raceBuildingKey = $"{buildingId}_{race}";
+            string lastName;
+            bool isHighElf = (race == NameHelper.BankTypes.HighElf);
 
-            if (!raceLastNames.TryGetValue(raceBuildingKey, out string lastName))
+            if (isHighElf)
             {
-                // Use deterministic System.Random for the surname only (not UnityEngine.Random!)
-                int deterministicSeed = (buildingId + race.ToString()).GetHashCode();
-                var rng = new System.Random(deterministicSeed);
-
-                // Pick a surname using your own random, not Unity's
+                // Unique surname per High Elf per-billboard (but stable/deterministic per building+record)
+                // Use building, race, and record for unique seed
+                string uniqueKey = $"{buildingId}_{race}_{billboard.Summary.Record}";
+                int hashSeed = uniqueKey.GetHashCode();
+                var rng = new System.Random(hashSeed);
                 string[] surnames = DaggerfallUnity.Instance.NameHelper.GetSurnames(race);
-                lastName = surnames[rng.Next(surnames.Length)];
-
-                raceLastNames[raceBuildingKey] = lastName;
+                lastName = surnames.Length > 0 ? surnames[rng.Next(surnames.Length)] : "Unknown";
             }
-            // --- End deterministic surname generation ---
+            else
+            {
+                // Shared last name per building/race (original logic)
+                string raceBuildingKey = $"{buildingId}_{race}";
+                if (!raceLastNames.TryGetValue(raceBuildingKey, out lastName))
+                {
+                    UnityEngine.Random.InitState(buildingId.GetHashCode() + (int)race); // add race to seed for extra safety
+                    lastName = DaggerfallUnity.Instance.NameHelper.Surname(race);
+                    raceLastNames[raceBuildingKey] = lastName;
+                }
+            }
 
             // Generate a unique first name per NPC (using race/gender as usual)
             string firstName = DaggerfallUnity.Instance.NameHelper.FirstName(race, gender);
 
+            // Set the display name
             CustomStaticNPC customNPC = billboard.gameObject.GetComponent<CustomStaticNPC>();
             if (customNPC != null)
             {

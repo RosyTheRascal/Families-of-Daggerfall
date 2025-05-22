@@ -40,6 +40,29 @@ namespace CustomNPCBridgeMod
         private static Mod mod;
         private static Dictionary<int, CustomStaticNPCMod.CustomStaticNPC> customNPCs = new Dictionary<int, CustomStaticNPCMod.CustomStaticNPC>();
         private static Dictionary<int, int> npcGreetingSections = new Dictionary<int, int>(); // New dictionary to store NPC greeting sections
+        private static Dictionary<int, DeadFlags> buildingDeadFlags = new Dictionary<int, DeadFlags>();
+
+        [Flags]
+        public enum DeadFlags
+        {
+            None = 0,
+            ManDead = 1 << 0,
+            WomanDead = 1 << 1,
+            ChildDead = 1 << 2,
+        }
+
+        public void MarkBuildingNPCDead(int buildingKey, DeadFlags flag)
+        {
+            if (!buildingDeadFlags.TryGetValue(buildingKey, out DeadFlags flags))
+                flags = DeadFlags.None;
+            buildingDeadFlags[buildingKey] = flags | flag;
+            Debug.Log($"[FamiliesOfDaggerfall] Marked {flag} dead in building {buildingKey}");
+        }
+
+        public bool IsBuildingNPCDead(int buildingKey, DeadFlags flag)
+        {
+            return buildingDeadFlags.TryGetValue(buildingKey, out DeadFlags flags) && (flags & flag) != 0;
+        }
 
         private static HashSet<int> deadNPCs = new HashSet<int>();
         private static HashSet<int> emptyBuildings = new HashSet<int>();
@@ -179,6 +202,26 @@ namespace CustomNPCBridgeMod
         {
             deadNPCs.Add(npcHash);
             Debug.Log($"NPC with hash {npcHash} marked as dead.");
+        }
+
+        public void DisableDeadNPCsInInterior()
+        {
+            foreach (var npc in GetAllCustomNPCs().Values)
+            {
+                if (npc == null) continue;
+                int npcHash = npc.GenerateHash(npc.CustomDisplayName, npc.GetCurrentHouseID());
+                if (IsNPCDead(npcHash))
+                {
+                    // Disable render and collider, just like in CustomStaticNPC.Start()
+                    var meshRenderer = npc.GetComponent<MeshRenderer>();
+                    if (meshRenderer != null)
+                        meshRenderer.enabled = false;
+
+                    var boxCollider = npc.GetComponent<BoxCollider>();
+                    if (boxCollider != null)
+                        boxCollider.enabled = false;
+                }
+            }
         }
 
         public int GetLivingNPCCountInInterior(bool forceRescan = false)
