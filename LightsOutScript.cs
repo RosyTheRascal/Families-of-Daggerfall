@@ -69,12 +69,44 @@ namespace LightsOutScriptMod
 
         void Start()
         {
-            DaggerfallWorkshop.Game.StreamingWorld.OnBlockLoad += OnBlockLoad;
+            DaggerfallWorkshop.StreamingWorld.OnCreateLocationGameObject += OnLocationLoaded;
         }
 
         void OnDestroy()
         {
-            DaggerfallWorkshop.Game.StreamingWorld.OnBlockLoad -= OnBlockLoad;
+            DaggerfallWorkshop.StreamingWorld.OnCreateLocationGameObject -= OnLocationLoaded;
+        }
+
+        // This method will be called every time a new DaggerfallLocation is loaded.
+        private void OnLocationLoaded(DaggerfallWorkshop.DaggerfallLocation location)
+        {
+            // For each BuildingDirectory in this location, apply your logic
+            var buildingDirectories = location.GetComponentsInChildren<DaggerfallWorkshop.Game.BuildingDirectory>(true);
+            foreach (var bd in buildingDirectories)
+            {
+                foreach (var building in bd.GetBuildingsOfFaction(0))
+                {
+                    var go = FindBuildingGameObject(building);
+                    if (go == null) continue;
+                    var dayNight = go.GetComponentInChildren<DayNight>();
+                    if (dayNight != null)
+                    {
+                        var meshRenderer = go.GetComponentInChildren<MeshRenderer>();
+                        if (meshRenderer != null)
+                        {
+                            foreach (var mat in meshRenderer.materials)
+                            {
+                                if (mat.HasProperty("_EmissionColor"))
+                                {
+                                    var now = DaggerfallUnity.Instance.WorldTime.Now;
+                                    Color color = (now.Hour >= 6 && now.Hour < 8) ? dayNight.nightColor : dayNight.dayColor;
+                                    mat.SetColor("_EmissionColor", color);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         }
 
         private void OnBlockLoad(DaggerfallWorkshop.DaggerfallRMBBlock block)
@@ -98,7 +130,12 @@ namespace LightsOutScriptMod
                         {
                             if (mat.HasProperty("_EmissionColor"))
                             {
-                                var color = /* Pick night or day color based on time */;
+                                var now = DaggerfallUnity.Instance.WorldTime.Now;
+                                Color color;
+                                if (now.Hour >= 6 && now.Hour < 8)
+                                    color = dayNight.nightColor; // ON
+                                else
+                                    color = dayNight.dayColor;   // OFF
                                 mat.SetColor("_EmissionColor", color);
                             }
                         }
