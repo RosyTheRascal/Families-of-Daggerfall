@@ -145,6 +145,40 @@ namespace LightsOutScriptMod
             Debug.Log($"[LightsOut] Set emission for {changed} window materials with faction {factionId}, nya!");
         }
 
+        void SetResidentialWindows(bool on)
+        {
+            // Find the DaggerfallLocation parent (top-level for the current scene)
+            var locationGO = GameObject.FindObjectOfType<DaggerfallWorkshop.Game.DaggerfallLocation>();
+            if (locationGO == null)
+                return;
+
+            // Get all BuildingDirectory components under this location (even in inactive RMB blocks)
+            var bds = locationGO.GetComponentsInChildren<DaggerfallWorkshop.Game.BuildingDirectory>(true);
+
+            foreach (var bd in bds)
+            {
+                foreach (var building in bd.GetBuildingsOfFaction(0))
+                {
+                    // Your original logic here~
+                    var obj = building; // You may need to map from BuildingSummary to the GameObject in the scene
+                    var go = FindBuildingGameObject(obj); // implement this!
+                    if (go == null) continue;
+
+                    var dayNight = go.GetComponentInChildren<DayNight>();
+                    if (dayNight != null)
+                    {
+                        // Set emission manually, override DayNight logic here
+                        var mat = /* get emission material as in DayNight.InitEmissiveMaterial() */;
+                        if (mat != null)
+                        {
+                            var color = on ? dayNight.nightColor : dayNight.dayColor;
+                            mat.SetColor("_EmissionColor", color);
+                        }
+                    }
+                }
+            }
+        }
+
         GameObject FindBuildingGameObject(BuildingSummary summary)
         {
             foreach (var staticBuildings in FindObjectsOfType<DaggerfallWorkshop.DaggerfallStaticBuildings>())
