@@ -41,7 +41,7 @@ namespace LightsOutScriptMod
 
         void Update()
         {
-            DebugLogAllEmissiveMaterials();
+           
             var now = DaggerfallUnity.Instance.WorldTime.Now;
             if (Mathf.Floor(now.Hour) != lastCheckedHour)
             {
@@ -52,22 +52,77 @@ namespace LightsOutScriptMod
                 if (now.Hour == 22)
                 {
                     Debug.Log("[LightsOut] 22:00 - Turning OFF residential windows, nya!");
-                    SetAllWindowEmissionsVanilla(false); // Turn OFF
+                    SetAllWindowEmissionsForFaction(false, 0); // Turn OFF
                 }
                 else if (now.Hour == 6)
                 {
                     Debug.Log("[LightsOut] 06:00 - Turning ON residential windows, nya!");
-                    SetAllWindowEmissionsVanilla(true); // Turn ON
+                    SetAllWindowEmissionsForFaction(true, 0); // Turn ON
                 }
                 else if (now.Hour == 8)
                 {
                     Debug.Log("[LightsOut] 08:00 - Turning OFF residential windows (let vanilla logic take over), nya!");
-                    SetAllWindowEmissionsVanilla(false); // Let vanilla logic resume, or forcibly OFF
+                    SetAllWindowEmissionsForFaction(false, 0); // Let vanilla logic resume, or forcibly OFF
                 }
             }
         }
 
-        void SetAllWindowEmissionsVanilla(bool on)
+        int? GetFactionIdForMeshRenderer(MeshRenderer mr)
+        {
+            // Walk up to find the parent block object (should have DaggerfallStaticBuildings)
+            Transform t = mr.transform;
+            while (t != null)
+            {
+                var staticBuildings = t.GetComponent<DaggerfallWorkshop.DaggerfallStaticBuildings>();
+                if (staticBuildings != null)
+                {
+                    // Use bounds center as point-in-building test
+                    Vector3 point = mr.bounds.center;
+                    DaggerfallWorkshop.StaticBuilding building;
+                    if (staticBuildings.HasHit(point, out building))
+                    {
+                        // Use BuildingDirectory to get summary
+                        var bd = t.GetComponentInParent<BuildingDirectory>();
+                        if (bd != null)
+                        {
+                            BuildingDirectory.BuildingSummary summary;
+                            if (bd.GetBuildingSummary(building.buildingKey, out summary))
+                                return summary.FactionId;
+                        }
+                    }
+                }
+                t = t.parent;
+            }
+            return null; // Not found
+        }
+
+        bool IsPartOfFaction(GameObject go, int factionId)
+        {
+            Transform t = go.transform;
+            while (t != null)
+            {
+                var bd = t.GetComponent<BuildingDirectory>();
+                if (bd != null)
+                {
+                    // We found the BuildingDirectory (one per city block)
+                    // Now, try to find the closest building whose bounds contain this object's position
+                    Vector3 pos = go.transform.position;
+                    foreach (var summary in bd.GetBuildingsOfFaction(factionId))
+                    {
+                        // Try to find a matching building by proximity (since there's no direct GameObject link)
+                        // We'll use bounding box center as a heuristic
+                        if ((summary.Position - pos).sqrMagnitude < 16f) // You may need to tweak this threshold
+                        {
+                            return true;
+                        }
+                    }
+                }
+                t = t.parent;
+            }
+            return false;
+        }
+
+        void SetAllWindowEmissionsForFaction(bool on, int factionId)
         {
             var meshRenderers = GameObject.FindObjectsOfType<MeshRenderer>();
             int changed = 0;
@@ -77,7 +132,9 @@ namespace LightsOutScriptMod
                 {
                     if (mat.HasProperty("_EmissionColor") && IsProbablyWindow(mat))
                     {
-                        // Use a bright yellow for ON, dark for OFF
+                        int? meshFaction = GetFactionIdForMeshRenderer(mr);
+                        if (meshFaction != factionId)
+                            continue;
                         Color color = on ? new Color(0.8f, 0.57f, 0.18f) : new Color(0.05f, 0.05f, 0.05f);
                         mat.SetColor("_EmissionColor", color);
                         mat.EnableKeyword("_EMISSION");
@@ -85,47 +142,7 @@ namespace LightsOutScriptMod
                     }
                 }
             }
-            Debug.Log($"[LightsOut] Set emission for {changed} window materials in scene, nya!");
-        }
-
-        void SetResidentialWindows(bool on)
-        {
-            int foundBuildings = 0;
-            int changedWindows = 0;
-            foreach (var bd in FindObjectsOfType<DaggerfallWorkshop.Game.BuildingDirectory>())
-            {
-                foreach (var building in bd.GetBuildingsOfFaction(0))
-                {
-                    foundBuildings++;
-                    var go = FindBuildingGameObject(building);
-                    if (go == null)
-                    {
-                        Debug.LogWarning($"[LightsOut] No GameObject found for buildingKey={building.buildingKey}, nya!");
-                        continue;
-                    }
-
-                    var dayNight = go.GetComponentInChildren<DayNight>(true);
-                    if (dayNight == null)
-                    {
-                        Debug.LogWarning($"[LightsOut] No DayNight component found on buildingKey={building.buildingKey}, nya!");
-                        continue;
-                    }
-
-                    var mat = GetEmissiveMaterial(dayNight);
-                    if (mat != null)
-                    {
-                        var color = on ? dayNight.nightColor : dayNight.dayColor;
-                        mat.SetColor("_EmissionColor", color);
-                        Debug.Log($"[LightsOut] Set emission for buildingKey={building.buildingKey} to {(on ? "ON" : "OFF")}, nya!");
-                        changedWindows++;
-                    }
-                    else
-                    {
-                        Debug.LogWarning($"[LightsOut] No emission material found for buildingKey={building.buildingKey}, nya!");
-                    }
-                }
-            }
-            Debug.Log($"[LightsOut] Processed {foundBuildings} residential buildings, changed {changedWindows} window emissions, nya!");
+            Debug.Log($"[LightsOut] Set emission for {changed} window materials with faction {factionId}, nya!");
         }
 
         GameObject FindBuildingGameObject(BuildingSummary summary)
@@ -241,5 +258,13 @@ namespace LightsOutScriptMod
             bool isEmissive = emission.maxColorComponent > 0.1f;
             return hasWindowIndex && isDaggerfallShader && isEmissive;
         }
+
+        IEnumerable<BuildingSummary> GetAllBuildingSummaries(BuildingDirectory bd)
+        {
+            var field = typeof(BuildingDirectory).GetField("buildingDict", BindingFlags.NonPublic | BindingFlags.Instance);
+            var dict = field?.GetValue(bd) as Dictionary<int, BuildingSummary>;
+            return dict != null ? (IEnumerable<BuildingSummary>)dict.Values : new List<BuildingSummary>();
+        }
+
     }
 }
