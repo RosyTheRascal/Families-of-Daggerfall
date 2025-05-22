@@ -80,7 +80,7 @@ namespace LightsOutMod
             }
         }
 
-        GameObject FindBuildingGameObject(DaggerfallWorkshop.Game.BuildingDirectory.BuildingSummary summary)
+        GameObject FindBuildingGameObject(BuildingSummary summary)
         {
             foreach (var staticBuildings in FindObjectsOfType<DaggerfallWorkshop.DaggerfallStaticBuildings>())
             {
