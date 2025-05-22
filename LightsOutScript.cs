@@ -80,6 +80,22 @@ namespace LightsOutMod
             }
         }
 
+        GameObject FindBuildingGameObject(DaggerfallWorkshop.Game.BuildingDirectory.BuildingSummary summary)
+        {
+            foreach (var staticBuildings in FindObjectsOfType<DaggerfallWorkshop.DaggerfallStaticBuildings>())
+            {
+                if (staticBuildings.Buildings == null) continue;
+                foreach (var building in staticBuildings.Buildings)
+                {
+                    if (building.buildingKey == summary.buildingKey)
+                    {
+                        return staticBuildings.gameObject;
+                    }
+                }
+            }
+            return null;
+        }
+
         void SetResidentialWindows(bool on)
         {
             foreach (var bd in FindObjectsOfType<DaggerfallWorkshop.Game.BuildingDirectory>())
