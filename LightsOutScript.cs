@@ -60,6 +60,26 @@ namespace LightsOutMod
             }
         }
 
+        Material GetEmissiveMaterial(DayNight dayNight)
+        {
+            MeshRenderer renderer = dayNight.GetComponentInChildren<MeshRenderer>();
+            if (renderer == null)
+                return null;
+
+            try
+            {
+                var mat = renderer.materials[dayNight.materialIndex];
+                if (!mat.IsKeywordEnabled("_EMISSION"))
+                    mat.EnableKeyword("_EMISSION");
+                return mat;
+            }
+            catch (Exception e)
+            {
+                Debug.LogErrorFormat("LightsOut: Failed to get emissive material: {0}", e.Message);
+                return null;
+            }
+        }
+
         void SetResidentialWindows(bool on)
         {
             foreach (var bd in FindObjectsOfType<DaggerfallWorkshop.Game.BuildingDirectory>())
@@ -75,7 +95,7 @@ namespace LightsOutMod
                     if (dayNight != null)
                     {
                         // Set emission manually, override DayNight logic here
-                        var mat = /* get emission material as in DayNight.InitEmissiveMaterial() */;
+                        var mat = GetEmissiveMaterial(dayNight);
                         if (mat != null)
                         {
                             var color = on ? dayNight.nightColor : dayNight.dayColor;
