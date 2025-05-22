@@ -34,6 +34,16 @@ using CustomDaggerfallTalkWindowMod;
 
 namespace CustomNPCBridgeMod
 {
+    
+    [System.Flags]
+    public enum DeadFlags
+    {
+        None = 0,
+        ManDead = 1 << 0,
+        WomanDead = 1 << 1,
+        ChildDead = 1 << 2,
+    }
+
     public class CustomNPCBridge : MonoBehaviour, IHasModSaveData
     {
         private static CustomNPCBridge instance;
