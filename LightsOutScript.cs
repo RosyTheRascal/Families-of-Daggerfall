@@ -41,7 +41,7 @@ namespace LightsOutScriptMod
 
         void Update()
         {
-            DebugLogAllEmissiveMaterials();
+            
             var now = DaggerfallUnity.Instance.WorldTime.Now;
             if (Mathf.Floor(now.Hour) != lastCheckedHour)
             {
