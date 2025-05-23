@@ -281,6 +281,14 @@ namespace LightsOutScriptMod
             foreach (var staticBuildings in FindObjectsOfType<DaggerfallWorkshop.DaggerfallStaticBuildings>())
             {
                 if (staticBuildings.Buildings == null) continue;
+                // ---- STEP 2: Print all StaticBuildings for this block ----
+                for (int i = 0; i < staticBuildings.Buildings.Length; i++)
+                {
+                    var sb = staticBuildings.Buildings[i];
+                    Debug.Log($"[LightsOut] StaticBuilding[{i}] key={sb.buildingKey} centre={staticBuildings.transform.TransformPoint(sb.centre)}");
+                }
+                // ---- END STEP 2 ----
+
                 for (int i = 0; i < staticBuildings.Buildings.Length; i++)
                 {
                     var sb = staticBuildings.Buildings[i];
@@ -288,40 +296,23 @@ namespace LightsOutScriptMod
                     {
                         Vector3 targetPos = staticBuildings.transform.TransformPoint(sb.centre);
 
-                        // 1. Check all children directly
+                        // ---- STEP 1: Print all children and subchildren ----
+                        Debug.Log($"[LightsOut] RMB block {staticBuildings.gameObject.name} has children:");
                         foreach (Transform child in staticBuildings.transform)
                         {
-                            if ((child.position - targetPos).sqrMagnitude < 0.1f)
-                            {
-                                EnsureDayNight(child.gameObject);
-                                return child.gameObject;
-                            }
-
-                            // 2. Check CombinedModels
+                            Debug.Log($"[LightsOut] Child: {child.name} at {child.position}");
                             if (child.name == "CombinedModels")
                             {
                                 foreach (Transform subChild in child)
                                 {
-                                    if ((subChild.position - targetPos).sqrMagnitude < 0.1f)
-                                    {
-                                        EnsureDayNight(subChild.gameObject);
-                                        return subChild.gameObject;
-                                    }
+                                    Debug.Log($"[LightsOut]   SubChild: {subChild.name} at {subChild.position}");
                                 }
                             }
                         }
-                        // No match, fallback
-                        Debug.LogWarning($"[LightsOut] No child found at position {targetPos} for buildingKey {summary.buildingKey} under {staticBuildings.gameObject.name}");
-                        if (staticBuildings.gameObject.GetComponent<MeshRenderer>() != null)
-                        {
-                            EnsureDayNight(staticBuildings.gameObject);
-                            return staticBuildings.gameObject;
-                        }
-                        else
-                        {
-                            Debug.LogWarning($"[LightsOut] No mesh child or fallback mesh found for buildingKey {summary.buildingKey} in block {staticBuildings.gameObject.name}.");
-                            return null;
-                        }
+                        Debug.Log($"[LightsOut] Looking for buildingKey {summary.buildingKey} at {targetPos}");
+                        // ---- END STEP 1 ----
+
+                        // ...your matching logic continues here as before...
                     }
                 }
             }
