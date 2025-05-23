@@ -286,17 +286,26 @@ namespace LightsOutScriptMod
                     var sb = staticBuildings.Buildings[i];
                     if (sb.buildingKey == summary.buildingKey)
                     {
-                        // Find the child whose position matches the StaticBuilding's position
                         Vector3 targetPos = staticBuildings.transform.TransformPoint(sb.centre);
+
+                        // 1. Check all children directly (for legacy/edge cases)
                         foreach (Transform child in staticBuildings.transform)
                         {
-                            // Use position match with a small threshold, since classic Daggerfall uses integer positions
                             if ((child.position - targetPos).sqrMagnitude < 0.1f)
-                            {
                                 return child.gameObject;
+
+                            // 2. NEW: If child is "CombinedModels", check its children!
+                            if (child.name == "CombinedModels")
+                            {
+                                foreach (Transform subChild in child)
+                                {
+                                    if ((subChild.position - targetPos).sqrMagnitude < 0.1f)
+                                        return subChild.gameObject;
+                                }
                             }
                         }
-                        // Fallback: return staticBuildings GameObject if no child matched
+
+                        // If nothing matched, log a warning as before
                         Debug.LogWarning($"[LightsOut] No child found at position {targetPos} for buildingKey {summary.buildingKey} under {staticBuildings.gameObject.name}");
                         return staticBuildings.gameObject;
                     }
