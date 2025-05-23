@@ -312,8 +312,16 @@ namespace LightsOutScriptMod
                         }
                         // No match, fallback
                         Debug.LogWarning($"[LightsOut] No child found at position {targetPos} for buildingKey {summary.buildingKey} under {staticBuildings.gameObject.name}");
-                        EnsureDayNight(staticBuildings.gameObject);
-                        return staticBuildings.gameObject;
+                        if (staticBuildings.gameObject.GetComponent<MeshRenderer>() != null)
+                        {
+                            EnsureDayNight(staticBuildings.gameObject);
+                            return staticBuildings.gameObject;
+                        }
+                        else
+                        {
+                            Debug.LogWarning($"[LightsOut] No mesh child or fallback mesh found for buildingKey {summary.buildingKey} in block {staticBuildings.gameObject.name}.");
+                            return null;
+                        }
                     }
                 }
             }
@@ -323,21 +331,22 @@ namespace LightsOutScriptMod
         // Add DayNight if missing
         void EnsureDayNight(GameObject go)
         {
-            Debug.Log($"Poop");
+            Debug.Log($"[LightsOut] EnsureDayNight called for {go.name} at {go.transform.position}");
             var dn = go.GetComponent<DayNight>();
             if (!dn)
             {
-                // Only add if we have a MeshRenderer
                 var renderer = go.GetComponent<MeshRenderer>();
-                if (renderer == null) return;
+                if (renderer == null)
+                {
+                    Debug.LogWarning($"[LightsOut] No MeshRenderer found on {go.name} at {go.transform.position}, won't add DayNight.");
+                    return;
+                }
                 dn = go.AddComponent<DayNight>();
                 dn.dayColor = new Color(0.05f, 0.05f, 0.05f);
                 dn.nightColor = new Color(0.8f, 0.57f, 0.18f);
                 dn.materialIndex = 0;
                 dn.emissionColors = DayNight.EmissionColors.CustomColors;
-                // Try to init the emissive material
                 typeof(DayNight).GetMethod("InitEmissiveMaterial", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)?.Invoke(dn, null);
-                // If it failed, remove the component to avoid errors
                 var field = typeof(DayNight).GetField("emissiveMaterial", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
                 if (field == null || field.GetValue(dn) == null)
                 {
