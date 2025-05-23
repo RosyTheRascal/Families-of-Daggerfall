@@ -281,20 +281,23 @@ namespace LightsOutScriptMod
             foreach (var staticBuildings in FindObjectsOfType<DaggerfallWorkshop.DaggerfallStaticBuildings>())
             {
                 if (staticBuildings.Buildings == null) continue;
-                foreach (var building in staticBuildings.Buildings)
+                for (int i = 0; i < staticBuildings.Buildings.Length; i++)
                 {
-                    if (building.buildingKey == summary.buildingKey)
+                    var sb = staticBuildings.Buildings[i];
+                    if (sb.buildingKey == summary.buildingKey)
                     {
-                        // Search children for a MeshRenderer whose GameObject name contains the buildingKey (as string)
+                        // Find the child whose position matches the StaticBuilding's position
+                        Vector3 targetPos = staticBuildings.transform.TransformPoint(sb.centre);
                         foreach (Transform child in staticBuildings.transform)
                         {
-                            var mesh = child.GetComponent<MeshRenderer>();
-                            if (mesh != null && child.name.Contains(summary.buildingKey.ToString()))
+                            // Use position match with a small threshold, since classic Daggerfall uses integer positions
+                            if ((child.position - targetPos).sqrMagnitude < 0.1f)
                             {
                                 return child.gameObject;
                             }
                         }
-                        // Fallback: return staticBuildings GameObject if we can't find the child
+                        // Fallback: return staticBuildings GameObject if no child matched
+                        Debug.LogWarning($"[LightsOut] No child found at position {targetPos} for buildingKey {summary.buildingKey} under {staticBuildings.gameObject.name}");
                         return staticBuildings.gameObject;
                     }
                 }
