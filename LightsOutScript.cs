@@ -288,30 +288,67 @@ namespace LightsOutScriptMod
                     {
                         Vector3 targetPos = staticBuildings.transform.TransformPoint(sb.centre);
 
-                        // 1. Check all children directly (for legacy/edge cases)
+                        // 1. Check all children directly
                         foreach (Transform child in staticBuildings.transform)
                         {
                             if ((child.position - targetPos).sqrMagnitude < 0.1f)
+                            {
+                                EnsureDayNight(child.gameObject);
                                 return child.gameObject;
+                            }
 
-                            // 2. NEW: If child is "CombinedModels", check its children!
+                            // 2. Check CombinedModels
                             if (child.name == "CombinedModels")
                             {
                                 foreach (Transform subChild in child)
                                 {
                                     if ((subChild.position - targetPos).sqrMagnitude < 0.1f)
+                                    {
+                                        EnsureDayNight(subChild.gameObject);
                                         return subChild.gameObject;
+                                    }
                                 }
                             }
                         }
-
-                        // If nothing matched, log a warning as before
+                        // No match, fallback
                         Debug.LogWarning($"[LightsOut] No child found at position {targetPos} for buildingKey {summary.buildingKey} under {staticBuildings.gameObject.name}");
+                        EnsureDayNight(staticBuildings.gameObject);
                         return staticBuildings.gameObject;
                     }
                 }
             }
             return null;
+        }
+
+        // Add DayNight if missing
+        void EnsureDayNight(GameObject go)
+        {
+            Debug.Log($"Poop");
+            var dn = go.GetComponent<DayNight>();
+            if (!dn)
+            {
+                // Only add if we have a MeshRenderer
+                var renderer = go.GetComponent<MeshRenderer>();
+                if (renderer == null) return;
+                dn = go.AddComponent<DayNight>();
+                dn.dayColor = new Color(0.05f, 0.05f, 0.05f);
+                dn.nightColor = new Color(0.8f, 0.57f, 0.18f);
+                dn.materialIndex = 0;
+                dn.emissionColors = DayNight.EmissionColors.CustomColors;
+                // Try to init the emissive material
+                typeof(DayNight).GetMethod("InitEmissiveMaterial", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)?.Invoke(dn, null);
+                // If it failed, remove the component to avoid errors
+                var field = typeof(DayNight).GetField("emissiveMaterial", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+                if (field == null || field.GetValue(dn) == null)
+                {
+                    Destroy(dn);
+                    Debug.LogWarning($"[LightsOut] Removed DayNight from {go.name} (no valid emissive material)");
+                }
+                else
+                {
+                    Debug.Log($"[LightsOut] Added missing DayNight to {go.name} at {go.transform.position}, nya~");
+                }
+            }
         }
 
         Material GetEmissiveMaterial(DayNight dayNight)
