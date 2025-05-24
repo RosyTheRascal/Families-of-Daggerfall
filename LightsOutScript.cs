@@ -28,6 +28,7 @@ namespace LightsOutScriptMod
     {
         private static Mod mod;
         private float lastCheckedHour = -1;
+        private const float WindowAssignmentRadius = 12f; // How close a window must be to a door to be counted
 
         [Invoke(StateManager.StateTypes.Start, 0)]
         public static void Init(InitParams initParams)
@@ -39,207 +40,620 @@ namespace LightsOutScriptMod
             Debug.Log("[LightsOut] Mod initialized, nya~!");
         }
 
+        private readonly Dictionary<int, int> factionLightsOutHour = new Dictionary<int, int>()
+{
+    { 0, 22 },    // Residential
+    { 45, 19 },   // Armorer (example, update with true FactionID as needed!)
+    // Add more: { FactionID, CloseHour }
+};
+
+        // Helper to build a mapping from buildingKey to all StaticDoor(s) for that building
+        Dictionary<int, List<StaticDoor>> BuildExteriorDoorMap()
+        {
+            var allDoors = FindObjectsOfType<DaggerfallWorkshop.DaggerfallStaticDoors>();
+            var doorMap = new Dictionary<int, List<StaticDoor>>();
+            foreach (var doors in allDoors)
+            {
+                foreach (var door in doors.Doors)
+                {
+                    if (!doorMap.ContainsKey(door.buildingKey))
+                        doorMap[door.buildingKey] = new List<StaticDoor> { door };
+                    else
+                        doorMap[door.buildingKey].Add(door);
+                }
+            }
+            return doorMap;
+        }
+
         void Update()
         {
-            
             var now = DaggerfallUnity.Instance.WorldTime.Now;
             if (Mathf.Floor(now.Hour) != lastCheckedHour)
             {
                 lastCheckedHour = Mathf.Floor(now.Hour);
-
                 Debug.Log($"[LightsOut] Hour changed to {now.Hour}, checking window state, nya!");
 
                 if (now.Hour == 22)
                 {
-                    Debug.Log("[LightsOut] 22:00 - Turning OFF residential windows, nya!");
-                    SetAllWindowEmissionsVanilla(false); // Turn OFF
+                    Debug.Log("[LightsOut] 22:00 - Turning OFF windows based on mapping, nya!");
+                    MapWindowsToBuildingsAndSetEmission_BlockAware(false);
                 }
                 else if (now.Hour == 6)
                 {
-                    Debug.Log("[LightsOut] 06:00 - Turning ON residential windows, nya!");
-                    SetAllWindowEmissionsVanilla(true); // Turn ON
+                    Debug.Log("[LightsOut] 06:00 - Turning ON windows based on mapping, nya!");
+                    MapWindowsToBuildingsAndSetEmission_BlockAware(true);
                 }
-                else if (now.Hour == 8)
+            }
+            if (Input.GetKeyDown(KeyCode.Semicolon)) // Pick any debug key you like
+            {
+                Debug.Log("[LightsOut] Debugging window-to-building assignments, nya~!");
+                MapAndLogWindowsToBuildings();
+                DumpAllRMBBlocks();
+                DumpAllBuildingKeys();
+            }
+            if (Input.GetKeyDown(KeyCode.Backslash))
+            {
+                Debug.Log("[LightsOut] \\ key pressed! Debugging all blocks/buildings/window mappings, nya!");
+                DebugLogAllBlocksAndBuildings();
+                DebugLogAllWindowMaterialMappings();
+            }
+        }
+
+        void MapWindowsToBuildingsAndSetEmission_FactionAware(bool on)
+        {
+            var allBuildings = GetAllBuildingWorldInfo();
+            var windowMats = FindAllWindowMaterials();
+
+            foreach (var win in windowMats)
+            {
+                float minDist = float.MaxValue;
+                int matchedBuildingKey = -1;
+                int matchedFaction = -1;
+                string matchedType = null;
+
+                foreach (var b in allBuildings)
                 {
-                    Debug.Log("[LightsOut] 08:00 - Turning OFF residential windows (let vanilla logic take over), nya!");
-                    SetAllWindowEmissionsVanilla(false); // Let vanilla logic resume, or forcibly OFF
+                    float dist = Vector3.Distance(win.position, b.worldPos);
+                    if (dist < minDist && dist < WindowAssignmentRadius)
+                    {
+                        minDist = dist;
+                        matchedBuildingKey = b.buildingKey;
+                        matchedFaction = b.factionId;
+                        matchedType = b.buildingType;
+                    }
+                }
+
+                if (matchedBuildingKey != -1)
+                {
+                    // Here you can check matchedFaction or matchedType!
+                    bool shouldBeOn = on;
+                    if (matchedFaction == 0 && !on) // Example: only turn off for residential at night
+                        shouldBeOn = false;
+                    // (add more rules for other types/factions!)
+
+                    var color = shouldBeOn ? new Color(0.8f, 0.57f, 0.18f) : new Color(0.05f, 0.05f, 0.05f);
+                    win.mat.SetColor("_EmissionColor", color);
+                    win.mat.EnableKeyword("_EMISSION");
+                    Debug.Log($"[LightsOut] Set window at {win.position} for building {matchedBuildingKey} ({matchedType}, Faction {matchedFaction}) {(shouldBeOn ? "ON" : "OFF")}");
+                }
+                else
+                {
+                    Debug.Log($"[LightsOut][WARN] Window at {win.position} could not be matched to a building!");
                 }
             }
         }
 
-        void SetAllWindowEmissionsVanilla(bool on)
+        void DebugLogAllBlocksAndBuildings()
         {
-            var meshRenderers = GameObject.FindObjectsOfType<MeshRenderer>();
-            int changed = 0;
-            foreach (var mr in meshRenderers)
+            foreach (var building in GetAllBuildingsWithBlockName())
             {
+                Vector3 worldPos = GetBuildingWorldPosition(building.summary, building.blockName, building.locationTransform);
+                Debug.Log($"[LightsOut] BuildingKey={building.buildingKey} Block={building.blockName} FactionId={building.summary.FactionId} Type={building.summary.BuildingType} Pos={worldPos}");
+            }
+        }
+
+        void DebugLogAllWindowMaterialMappings()
+        {
+            int total = 0;
+            // Build a lookup dictionary so we can find blockName and locationTransform for any buildingKey, nya~
+            var buildingLookup = GetAllBuildingsWithBlockName()
+                .ToDictionary(b => b.buildingKey, b => (b.blockName, b.locationTransform));
+
+            foreach (var staticBuildings in FindObjectsOfType<DaggerfallWorkshop.DaggerfallStaticBuildings>())
+            {
+                var bd = staticBuildings.GetComponent<BuildingDirectory>();
+                if (bd == null) continue;
+                var meshRenderers = staticBuildings.GetComponentsInChildren<MeshRenderer>();
+                foreach (var mr in meshRenderers)
+                {
+                    for (int i = 0; i < mr.materials.Length; i++)
+                    {
+                        var mat = mr.materials[i];
+                        if (mat.HasProperty("_EmissionColor"))
+                        {
+                            Vector3 pos = mr.bounds.center;
+                            DaggerfallWorkshop.StaticBuilding statBldg;
+                            if (staticBuildings.HasHit(pos, out statBldg))
+                            {
+                                BuildingSummary summary;
+                                if (bd.GetBuildingSummary(statBldg.buildingKey, out summary))
+                                {
+                                    // UwU: Look up blockName and locationTransform for this buildingKey!
+                                    if (buildingLookup.TryGetValue(summary.buildingKey, out var binfo))
+                                    {
+                                        Vector3 worldPos = GetBuildingWorldPosition(summary, binfo.blockName, binfo.locationTransform);
+                                        Debug.Log($"[LightsOut] WindowMat: {mat.name} ({mr.gameObject.name} [{i}]) → BuildingKey={summary.buildingKey} FactionId={summary.FactionId} Type={summary.BuildingType} WorldPos={worldPos}");
+                                    }
+                                    else
+                                    {
+                                        Debug.Log($"[LightsOut] WindowMat: {mat.name} ({mr.gameObject.name} [{i}]) → Could not find block info for key={summary.buildingKey}");
+                                    }
+                                }
+                                else
+                                {
+                                    Debug.Log($"[LightsOut] WindowMat: {mat.name} ({mr.gameObject.name} [{i}]) → Could not find BuildingSummary for key={statBldg.buildingKey}");
+                                }
+                            }
+                            else
+                            {
+                                Debug.Log($"[LightsOut] WindowMat: {mat.name} ({mr.gameObject.name} [{i}]) → Not in any building bounds?");
+                            }
+                            total++;
+                        }
+                    }
+                }
+            }
+            Debug.Log($"[LightsOut] Total window materials mapped: {total}");
+        }
+
+        Dictionary<int, List<WindowMatInfo>> MapWindowsToBuildings(
+    List<WindowMatInfo> windowMats,
+    List<(int buildingKey, Vector3 pos)> allBuildings)
+        {
+            var result = new Dictionary<int, List<WindowMatInfo>>();
+            foreach (var win in windowMats)
+            {
+                float minDist = float.MaxValue;
+                int nearestBuildingKey = -1;
+                foreach (var b in allBuildings)
+                {
+                    float dist = Vector3.Distance(win.position, b.pos);
+                    if (dist < minDist)
+                    {
+                        minDist = dist;
+                        nearestBuildingKey = b.buildingKey;
+                    }
+                }
+                if (nearestBuildingKey != -1)
+                {
+                    if (!result.ContainsKey(nearestBuildingKey))
+                        result[nearestBuildingKey] = new List<WindowMatInfo>();
+                    result[nearestBuildingKey].Add(win);
+                }
+            }
+            return result;
+        }
+
+        void MapAndLogWindowsToBuildings()
+        {
+            Debug.Log($"Poop");
+            // 1. Gather all buildings (using world coordinates!)
+            var allBuildings = new List<(int buildingKey, Vector3 pos, int factionId, string type)>();
+            foreach (var building in GetAllBuildingsWithBlockName())
+            {
+                Vector3 worldPos = GetBuildingWorldPosition(building.summary, building.blockName, building.locationTransform);
+                allBuildings.Add((building.buildingKey, worldPos, building.summary.FactionId, building.summary.BuildingType.ToString()));
+            }
+
+            // 2. Gather all window materials
+            var windowMats = FindAllWindowMaterials();
+
+            // 3. Map windows to nearest building
+            var mapping = new Dictionary<int, List<WindowMatInfo>>();
+            foreach (var win in windowMats)
+            {
+                Debug.Log($"[LightsOut][DBG] Window candidate at {win.position}");
+            }
+            foreach (var b in allBuildings)
+            {
+                foreach (var win in windowMats)
+                {
+                    float dist = Vector3.Distance(win.position, b.pos);
+                    Debug.Log($"[LightsOut][DBG] Window at {win.position} -- dist to building {b.buildingKey} ({b.type}) at {b.pos}: {dist}");
+                }
+            }
+            foreach (var win in windowMats)
+            {
+                float minDist = float.MaxValue;
+                int nearestBuildingKey = -1;
+                foreach (var b in allBuildings)
+                {
+                    float dist = Vector3.Distance(win.position, b.pos);
+                    if (dist < minDist)
+                    {
+                        minDist = dist;
+                        nearestBuildingKey = b.buildingKey;
+                    }
+                }
+                if (nearestBuildingKey != -1)
+                {
+                    if (!mapping.ContainsKey(nearestBuildingKey))
+                        mapping[nearestBuildingKey] = new List<WindowMatInfo>();
+                    mapping[nearestBuildingKey].Add(win);
+                }
+            }
+
+            // 4. Log the assignment!
+            foreach (var b in allBuildings)
+            {
+                int count = mapping.ContainsKey(b.buildingKey) ? mapping[b.buildingKey].Count : 0;
+                Debug.Log($"[LightsOut] {b.type} (Faction {b.factionId}) at {b.pos} (buildingKey={b.buildingKey}) has {count} mapped windows, nya~!");
+            }
+        }
+
+        void MapWindowsToBuildingsAndSetEmission(bool on)
+        {
+            // 1. Get all blocks, buildings, and doors
+            foreach (var location in FindObjectsOfType<DaggerfallLocation>())
+            {
+                foreach (var bd in location.GetComponentsInChildren<DaggerfallWorkshop.Game.BuildingDirectory>())
+                {
+                    var block = bd.GetComponentInParent<DaggerfallWorkshop.DaggerfallRMBBlock>();
+                    foreach (var summary in GetAllBuildingSummaries(bd))
+                    {
+                        Vector3 buildingPos = summary.Position;
+                        if (block != null)
+                            buildingPos = block.transform.TransformPoint(summary.Position);
+                        int buildingKey = summary.buildingKey;
+                        string buildingType = summary.BuildingType.ToString();
+                        int factionId = summary.FactionId;
+
+                        // Use the door as the "front" of the building if possible, but fallback to Position
+                        Vector3 buildingFront = buildingPos;
+                        StaticDoor bestDoor;
+                        if (TryFindNearestDoor(location, buildingPos, buildingKey, out bestDoor))
+                            buildingFront = DaggerfallStaticDoors.GetDoorPosition(bestDoor);
+                        else
+                        {
+                            Debug.LogWarning($"[LightsOut] No door found for buildingKey={buildingKey} at {buildingPos}, skipping, nya!");
+                            continue;
+                        }
+
+                        // Guess how many windows this model should have (use modelId or fallback)
+                        int expectedWindowCount = GuessExpectedWindowCount(summary);
+
+                        // For each "window slot", find nearest window material and set emission
+                        var windowsSet = SetNearestWindowsFromDoor(bestDoor, expectedWindowCount, on);
+
+                        Debug.Log($"[LightsOut] {buildingType} (Faction {factionId}) at {buildingFront} (buildingKey={buildingKey}) - Set {windowsSet} windows {(on ? "ON" : "OFF")}, nya!");
+                    }
+                }
+            }
+        }
+
+        bool TryFindNearestDoor(DaggerfallLocation location, Vector3 buildingPos, int buildingKey, out StaticDoor nearestDoor)
+        {
+            nearestDoor = default;
+            float minDist = float.MaxValue;
+            bool found = false;
+            foreach (var doors in location.StaticDoorCollections)
+            {
+                foreach (var door in doors.Doors)
+                {
+                    if (door.buildingKey != buildingKey) continue;
+                    Vector3 doorPos = DaggerfallStaticDoors.GetDoorPosition(door);
+                    float dist = Vector3.Distance(buildingPos, doorPos);
+                    if (dist < minDist)
+                    {
+                        minDist = dist;
+                        nearestDoor = door;
+                        found = true;
+                    }
+                }
+            }
+            return found;
+        }
+
+        // Scene-wide (not block-aware)
+        List<WindowMatInfo> FindAllWindowMaterials()
+        {
+            var results = new List<WindowMatInfo>();
+            foreach (var mr in GameObject.FindObjectsOfType<MeshRenderer>())
+            {
+                Vector3 center = mr.bounds.center;
                 foreach (var mat in mr.materials)
                 {
                     if (mat.HasProperty("_EmissionColor") && IsProbablyWindow(mat))
-                    {
-                        // Use a bright yellow for ON, dark for OFF
-                        Color color = on ? new Color(0.8f, 0.57f, 0.18f) : new Color(0.05f, 0.05f, 0.05f);
-                        mat.SetColor("_EmissionColor", color);
-                        mat.EnableKeyword("_EMISSION");
-                        changed++;
-                    }
-                }
-            }
-            Debug.Log($"[LightsOut] Set emission for {changed} window materials in scene, nya!");
-        }
-
-        void SetResidentialWindows(bool on)
-        {
-            int foundBuildings = 0;
-            int changedWindows = 0;
-            foreach (var bd in FindObjectsOfType<DaggerfallWorkshop.Game.BuildingDirectory>())
-            {
-                foreach (var building in bd.GetBuildingsOfFaction(0))
-                {
-                    foundBuildings++;
-                    var go = FindBuildingGameObject(building);
-                    if (go == null)
-                    {
-                        Debug.LogWarning($"[LightsOut] No GameObject found for buildingKey={building.buildingKey}, nya!");
-                        continue;
-                    }
-
-                    var dayNight = go.GetComponentInChildren<DayNight>(true);
-                    if (dayNight == null)
-                    {
-                        Debug.LogWarning($"[LightsOut] No DayNight component found on buildingKey={building.buildingKey}, nya!");
-                        continue;
-                    }
-
-                    var mat = GetEmissiveMaterial(dayNight);
-                    if (mat != null)
-                    {
-                        var color = on ? dayNight.nightColor : dayNight.dayColor;
-                        mat.SetColor("_EmissionColor", color);
-                        Debug.Log($"[LightsOut] Set emission for buildingKey={building.buildingKey} to {(on ? "ON" : "OFF")}, nya!");
-                        changedWindows++;
-                    }
-                    else
-                    {
-                        Debug.LogWarning($"[LightsOut] No emission material found for buildingKey={building.buildingKey}, nya!");
-                    }
-                }
-            }
-            Debug.Log($"[LightsOut] Processed {foundBuildings} residential buildings, changed {changedWindows} window emissions, nya!");
-        }
-
-        GameObject FindBuildingGameObject(BuildingSummary summary)
-        {
-            foreach (var staticBuildings in FindObjectsOfType<DaggerfallWorkshop.DaggerfallStaticBuildings>())
-            {
-                if (staticBuildings.Buildings == null) continue;
-                foreach (var building in staticBuildings.Buildings)
-                {
-                    if (building.buildingKey == summary.buildingKey)
-                    {
-                        return staticBuildings.gameObject;
-                    }
-                }
-            }
-            return null;
-        }
-
-        Material GetEmissiveMaterial(DayNight dayNight)
-        {
-            MeshRenderer renderer = dayNight.GetComponentInChildren<MeshRenderer>();
-            if (renderer == null)
-            {
-                Debug.LogWarning("[LightsOut] No MeshRenderer found on DayNight, nya!");
-                return null;
-            }
-            try
-            {
-                var mat = renderer.materials[dayNight.materialIndex];
-                if (!mat.IsKeywordEnabled("_EMISSION"))
-                    mat.EnableKeyword("_EMISSION");
-                return mat;
-            }
-            catch (Exception e)
-            {
-                Debug.LogErrorFormat("[LightsOut] Failed to get emissive material: {0}", e.Message);
-                return null;
-            }
-        }
-
-        List<DayNight> FindAllDayNightDeep()
-        {
-            List<DayNight> results = new List<DayNight>();
-            foreach (GameObject go in Resources.FindObjectsOfTypeAll(typeof(GameObject)))
-            {
-                // skip prefabs (not in scene)
-                if (!go.scene.IsValid() || go.hideFlags != HideFlags.None)
-                    continue;
-
-                foreach (var dn in go.GetComponents<DayNight>())
-                {
-                    results.Add(dn);
+                        results.Add(new WindowMatInfo { mat = mat, position = center });
                 }
             }
             return results;
         }
 
-        void DebugLogAllDayNightsDeep()
+        int SetNearestWindowsFromDoor(StaticDoor door, int windowCount, bool on)
         {
-            var allDayNights = FindAllDayNightDeep();
-            Debug.Log($"[LightsOut] Found {allDayNights.Count} DayNight components in scene (deep scan), nya!");
-            foreach (var dn in allDayNights)
+            Vector3 doorPos = DaggerfallStaticDoors.GetDoorPosition(door);
+            Debug.Log($"[LightsOut][DEBUG] Door for building {door.buildingKey} at {doorPos}");
+            var windowMats = FindAllWindowMaterials();
+            Debug.Log($"[LightsOut][DEBUG] Found {windowMats.Count} window material candidates in scene.");
+            var used = new HashSet<Material>();
+            int setCount = 0;
+
+            for (int i = 0; i < windowCount; i++)
             {
-                var parent = dn.transform.parent ? dn.transform.parent.name : dn.gameObject.name;
-                Debug.Log($"[LightsOut] DayNight on GameObject: {dn.gameObject.name}, parent: {parent}, pos: {dn.transform.position}, active: {dn.gameObject.activeInHierarchy}");
+                float minDist = float.MaxValue;
+                Material nearestWin = null;
+                foreach (var matInfo in windowMats)
+                {
+                    float dist = Vector3.Distance(doorPos, matInfo.position);
+                    Debug.Log($"[LightsOut][DEBUG] Window {matInfo.mat.name} at {matInfo.position}, dist to door: {dist:0.00}");
+                    if (used.Contains(matInfo.mat)) continue;
+                    if (dist < minDist && dist < WindowAssignmentRadius)
+                    {
+                        minDist = dist;
+                        nearestWin = matInfo.mat;
+                    }
+                }
+                if (nearestWin != null)
+                {
+                    Color color = on ? new Color(0.8f, 0.57f, 0.18f) : new Color(0.05f, 0.05f, 0.05f);
+                    nearestWin.SetColor("_EmissionColor", color);
+                    nearestWin.EnableKeyword("_EMISSION");
+                    used.Add(nearestWin);
+                    setCount++;
+                }
+                else
+                {
+                    // No more windows in range to assign!
+                    break;
+                }
+            }
+            return setCount;
+        }
+
+        struct WindowMatInfo
+        {
+            public Material mat;
+            public Vector3 position;
+        }
+
+        void MapWindowsToBuildingsAndSetEmission_BlockAware(bool on)
+        {
+            float blockSize = 4096f; // RMB block size in world units (can get from RMBLayout.RMBSide if you want)
+            var allBlocks = GetAllBlockOrigins();
+
+            // Build a lookup so we can get blockName and locationTransform for any buildingKey, nya~
+            var buildingLookup = GetAllBuildingsWithBlockName()
+                .ToDictionary(b => b.buildingKey, b => (b.blockName, b.locationTransform));
+
+            foreach (var (blockOrigin, block) in allBlocks)
+            {
+                // 1. Get all buildings in this block (in world coordinates!)
+                var blockBuildings = new List<(int buildingKey, Vector3 pos, int factionId, string type)>();
+                foreach (var bd in block.GetComponentsInChildren<DaggerfallWorkshop.Game.BuildingDirectory>())
+                {
+                    foreach (var summary in GetAllBuildingSummaries(bd))
+                    {
+                        // UwU: lookup blockName/locationTransform for this summary!
+                        if (buildingLookup.TryGetValue(summary.buildingKey, out var binfo))
+                        {
+                            Vector3 worldPos = GetBuildingWorldPosition(summary, binfo.blockName, binfo.locationTransform);
+                            blockBuildings.Add((summary.buildingKey, worldPos, summary.FactionId, summary.BuildingType.ToString()));
+                        }
+                        else
+                        {
+                            // fallback: just use local position
+                            blockBuildings.Add((summary.buildingKey, summary.Position, summary.FactionId, summary.BuildingType.ToString()));
+                        }
+                    }
+                }
+
+                // 2. Get all windows in this block
+                var windowMats = FindAllWindowMaterialsInBlock(blockOrigin, blockSize);
+
+                // 3. Map windows to nearest building in this block
+                var mapping = new Dictionary<int, List<WindowMatInfo>>();
+                foreach (var win in windowMats)
+                {
+                    float minDist = float.MaxValue;
+                    int nearestBuildingKey = -1;
+                    foreach (var b in blockBuildings)
+                    {
+                        float dist = Vector3.Distance(win.position, b.pos);
+                        if (dist < minDist)
+                        {
+                            minDist = dist;
+                            nearestBuildingKey = b.buildingKey;
+                        }
+                    }
+                    if (nearestBuildingKey != -1)
+                    {
+                        if (!mapping.ContainsKey(nearestBuildingKey))
+                            mapping[nearestBuildingKey] = new List<WindowMatInfo>();
+                        mapping[nearestBuildingKey].Add(win);
+                    }
+                }
+
+                // 4. Set emission for each mapped window!
+                foreach (var b in blockBuildings)
+                {
+                    int count = mapping.ContainsKey(b.buildingKey) ? mapping[b.buildingKey].Count : 0;
+                    if (count == 0) continue;
+                    foreach (var win in mapping[b.buildingKey])
+                    {
+                        Color color = on ? new Color(0.8f, 0.57f, 0.18f) : new Color(0.05f, 0.05f, 0.05f);
+                        win.mat.SetColor("_EmissionColor", color);
+                        win.mat.EnableKeyword("_EMISSION");
+                    }
+                    Debug.Log($"[LightsOut] {b.type} (Faction {b.factionId}) at {b.pos} (buildingKey={b.buildingKey}) - Set {count} windows {(on ? "ON" : "OFF")}, nya!");
+                }
             }
         }
 
-        void DebugLogAllEmissiveMaterials()
+        List<WindowMatInfo> FindAllWindowMaterialsInBlock(Vector3 blockOrigin, float blockSize)
         {
-            var meshRenderers = GameObject.FindObjectsOfType<MeshRenderer>();
-            int count = 0;
-            foreach (var mr in meshRenderers)
+            var results = new List<WindowMatInfo>();
+            foreach (var mr in GameObject.FindObjectsOfType<MeshRenderer>())
             {
-                foreach (var mat in mr.materials)
+                Vector3 center = mr.bounds.center;
+                if (Vector3.Distance(center, blockOrigin) < blockSize * 0.7f) // slightly > half the block size for tolerance
                 {
-                    if (mat.HasProperty("_EmissionColor"))
+                    foreach (var mat in mr.materials)
                     {
-                        count++;
-                        Debug.Log($"[LightsOut] Material: {mat.name}, Shader: {mat.shader.name}, Emission: {mat.GetColor("_EmissionColor")}");
+                        if (mat.HasProperty("_EmissionColor") && IsProbablyWindow(mat))
+                            results.Add(new WindowMatInfo { mat = mat, position = center });
                     }
                 }
             }
-            Debug.Log($"[LightsOut] Found {count} materials with _EmissionColor property in scene, nya!");
+            return results;
         }
 
-        void DebugLogAllMeshRenderers()
+        // Guess window count by model (you can expand this for real model logic if you know it)
+        int GuessExpectedWindowCount(BuildingSummary summary)
+        {
+            // TODO: Use summary.ModelID or Type for smarter guess
+            // For now, just default to 2 for houses, 3 for shops, 4 for guilds etc.
+            switch (summary.BuildingType)
             {
-            int count = 0;
-            foreach (GameObject go in Resources.FindObjectsOfTypeAll(typeof(GameObject)))
-            {
-                if (!go.scene.IsValid() || go.hideFlags != HideFlags.None)
-                    continue;
+                case DFLocation.BuildingTypes.House1:
+                case DFLocation.BuildingTypes.House2:
+                case DFLocation.BuildingTypes.House3:
+                case DFLocation.BuildingTypes.House4:
+                case DFLocation.BuildingTypes.HouseForSale:
+                    return 2;
+                case DFLocation.BuildingTypes.Tavern:
+                case DFLocation.BuildingTypes.GeneralStore:
+                case DFLocation.BuildingTypes.Armorer:
+                case DFLocation.BuildingTypes.Bookseller:
+                case DFLocation.BuildingTypes.ClothingStore:
+                case DFLocation.BuildingTypes.FurnitureStore:
+                case DFLocation.BuildingTypes.GemStore:
+                case DFLocation.BuildingTypes.PawnShop:
+                case DFLocation.BuildingTypes.WeaponSmith:
+                    return 3;
+                case DFLocation.BuildingTypes.GuildHall:
+                case DFLocation.BuildingTypes.Temple:
+                    return 4;
+                default:
+                    return 2;
+            }
+        }
 
-                var mr = go.GetComponent<MeshRenderer>();
-                if (mr)
+        Vector3 GetBuildingWorldPosition(BuildingSummary summary, string blockName, Transform locationTransform)
+        {
+            Debug.Log($"[LightsOut][DBG] GetBuildingWorldPosition called for buildingKey={summary.buildingKey} in block '{blockName}'");
+
+            if (locationTransform == null)
+            {
+                Debug.LogWarning($"[LightsOut][DBG] No DaggerfallLocation provided! Returning local position.");
+                return summary.Position;
+            }
+
+            // Find the RMB block GameObject by matching the block name
+            DaggerfallWorkshop.DaggerfallRMBBlock foundBlock = null;
+            foreach (var block in locationTransform.GetComponentsInChildren<DaggerfallWorkshop.DaggerfallRMBBlock>())
+            {
+                // RMB blocks are usually named like "DaggerfallBlock [TEMPAAH0.RMB]"
+                if (!string.IsNullOrEmpty(blockName) && block.name.Contains(blockName))
                 {
-                    Debug.Log($"[LightsOut] MeshRenderer found: {go.name} at {go.transform.position}");
-                    count++;
+                    foundBlock = block;
+                    break;
                 }
             }
-            Debug.Log($"[LightsOut] Total MeshRenderers in scene: {count}");
+
+            if (foundBlock == null)
+            {
+                Debug.LogWarning($"[LightsOut][DBG] No RMB block found matching name '{blockName}'! Returning local position.");
+                return summary.Position;
+            }
+
+            Debug.Log($"[LightsOut][DBG] Found block {foundBlock.name} @ world {foundBlock.transform.position}, local {foundBlock.transform.localPosition} (parent: {foundBlock.transform.parent?.name})");
+
+            // Convert building local position (block-local) to world position
+            Vector3 worldPos = foundBlock.transform.TransformPoint(summary.Position);
+
+            Debug.Log($"[LightsOut][DBG] Building world position is {worldPos} (block-local {summary.Position})");
+
+            return worldPos;
+        }
+
+        List<(Vector3 origin, DaggerfallRMBBlock block)> GetAllBlockOrigins()
+        {
+            var blocks = new List<(Vector3, DaggerfallRMBBlock)>();
+            foreach (var block in FindObjectsOfType<DaggerfallWorkshop.DaggerfallRMBBlock>())
+                blocks.Add((block.transform.position, block));
+            return blocks;
+        }
+
+        // --- Utility/Logging/Debug ---
+        IEnumerable<BuildingSummary> GetAllBuildingSummaries(BuildingDirectory bd)
+        {
+            var field = typeof(BuildingDirectory).GetField("buildingDict", BindingFlags.NonPublic | BindingFlags.Instance);
+            var dict = field?.GetValue(bd) as Dictionary<int, BuildingSummary>;
+            return dict != null ? (IEnumerable<BuildingSummary>)dict.Values : new List<BuildingSummary>();
         }
 
         bool IsProbablyWindow(Material mat)
         {
-            // Most Daggerfall windows are index=3 and use Daggerfall/Default shader
-            string name = mat.name;
-            bool hasWindowIndex = name.Contains("[Index=3]");
-            bool isDaggerfallShader = mat.shader != null && mat.shader.name == "Daggerfall/Default";
-            // Windows have a non-black emission color
-            Color emission = mat.HasProperty("_EmissionColor") ? mat.GetColor("_EmissionColor") : Color.black;
-            bool isEmissive = emission.maxColorComponent > 0.1f;
-            return hasWindowIndex && isDaggerfallShader && isEmissive;
+            // Accept any mat with "_EmissionColor" and Daggerfall shader, name containing "Window" or "[Index=3]" or "[Index=2]"
+            string name = mat.name.ToLower();
+            bool hasEmission = mat.HasProperty("_EmissionColor");
+            bool isDaggerfall = mat.shader && mat.shader.name.Contains("Daggerfall");
+            bool nameLooksLikeWindow = name.Contains("window") || name.Contains("[index=3]") || name.Contains("[index=2]");
+            return hasEmission && isDaggerfall && nameLooksLikeWindow;
+        }
+
+        void DumpAllRMBBlocks()
+        {
+            foreach (var location in FindObjectsOfType<DaggerfallWorkshop.DaggerfallLocation>())
+            {
+                Debug.Log($"[LightsOut][DBG] Location: {location.name} @ {location.transform.position}");
+                foreach (var block in location.GetComponentsInChildren<DaggerfallWorkshop.DaggerfallRMBBlock>(true))
+                {
+                    Debug.Log($"[LightsOut][DBG]   Block: {block.name}, localPos={block.transform.localPosition}, worldPos={block.transform.position}, parent={block.transform.parent?.name}");
+                }
+            }
+        }
+
+        void DumpAllBuildingKeys()
+        {
+            foreach (var location in FindObjectsOfType<DaggerfallLocation>())
+            {
+                foreach (var bd in location.GetComponentsInChildren<DaggerfallWorkshop.Game.BuildingDirectory>())
+                {
+                    foreach (var summary in GetAllBuildingSummaries(bd))
+                    {
+                        int layoutX, layoutY, recordIndex;
+                        DaggerfallWorkshop.Game.BuildingDirectory.ReverseBuildingKey(summary.buildingKey, out layoutX, out layoutY, out recordIndex);
+                        Debug.Log($"[LightsOut][DBG] BuildingKey={summary.buildingKey} layout=({layoutX},{layoutY}) record={recordIndex} type={summary.BuildingType}");
+                    }
+                }
+            }
+        }
+
+        // Gathers all buildings, with their block name and location transform for world space lookups, nya~
+        // Gathers all buildings with their world position, faction, and type, nya~
+        List<(int buildingKey, Vector3 worldPos, int factionId, string buildingType, BuildingSummary summary)> GetAllBuildingWorldInfo()
+        {
+            var result = new List<(int, Vector3, int, string, BuildingSummary)>();
+            foreach (var location in FindObjectsOfType<DaggerfallLocation>())
+            {
+                var locationTransform = location.transform;
+                foreach (var block in location.GetComponentsInChildren<DaggerfallWorkshop.DaggerfallRMBBlock>())
+                {
+                    string blockName = block.name;
+                    foreach (var bd in block.GetComponentsInChildren<DaggerfallWorkshop.Game.BuildingDirectory>())
+                    {
+                        foreach (var summary in GetAllBuildingSummaries(bd))
+                        {
+                            // Convert block-local position to world space
+                            Vector3 worldPos = block.transform.TransformPoint(summary.Position);
+                            result.Add((summary.buildingKey, worldPos, summary.FactionId, summary.BuildingType.ToString(), summary));
+                        }
+                    }
+                }
+            }
+            return result;
         }
     }
 }
