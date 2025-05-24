@@ -87,7 +87,7 @@ namespace LightsOutScriptMod
             if (Input.GetKeyDown(KeyCode.Semicolon)) // Pick any debug key you like
             {
                 Debug.Log("[LightsOut] Debugging window-to-building assignments, nya~!");
-                MapAndLogWindowsToBuildings();
+                MapAndLogWindowsToBuildings_SuperDebug();
                 DumpAllRMBBlocks();
                 DumpAllBuildingKeys();
             }
@@ -97,6 +97,29 @@ namespace LightsOutScriptMod
                 DebugLogAllBlocksAndBuildings();
                 DebugLogAllWindowMaterialMappings();
             }
+        }
+
+        // Add this to your LightsOutScript class, nya~
+        List<(int buildingKey, BuildingSummary summary, string blockName, Transform locationTransform)> GetAllBuildingsWithBlockName()
+        {
+            var result = new List<(int, BuildingSummary, string, Transform)>();
+            foreach (var location in FindObjectsOfType<DaggerfallLocation>())
+            {
+                Transform locationTransform = location.transform;
+                foreach (var block in location.GetComponentsInChildren<DaggerfallWorkshop.DaggerfallRMBBlock>())
+                {
+                    string blockName = block.name;
+                    foreach (var bd in block.GetComponentsInChildren<DaggerfallWorkshop.Game.BuildingDirectory>())
+                    {
+                        foreach (var summary in GetAllBuildingSummaries(bd))
+                        {
+                            // We want to know: the buildingKey, the summary, the blockName, and the location's transform!
+                            result.Add((summary.buildingKey, summary, blockName, locationTransform));
+                        }
+                    }
+                }
+            }
+            return result;
         }
 
         void MapWindowsToBuildingsAndSetEmission_FactionAware(bool on)
@@ -232,6 +255,77 @@ namespace LightsOutScriptMod
                 }
             }
             return result;
+        }
+
+        void MapAndLogWindowsToBuildings_SuperDebug()
+        {
+            // 1. Gather all buildings
+            var allBuildings = new List<(int buildingKey, Vector3 pos, int factionId, string type)>();
+            foreach (var building in GetAllBuildingsWithBlockName())
+            {
+                Vector3 worldPos = GetBuildingWorldPosition(building.summary, building.blockName, building.locationTransform);
+                allBuildings.Add((building.buildingKey, worldPos, building.summary.FactionId, building.summary.BuildingType.ToString()));
+                Debug.Log($"[LightsOut][DBG] Building: key={building.buildingKey} type={building.summary.BuildingType} faction={building.summary.FactionId} worldPos={worldPos}");
+            }
+
+            // 2. Gather all window materials
+            var windowMats = FindAllWindowMaterials();
+
+            // 3. For each window, find the closest N buildings and log
+            int N = 3; // How many closest to log
+            foreach (var win in windowMats)
+            {
+                var dists = allBuildings
+                    .Select(b => (b, dist: Vector3.Distance(win.position, b.pos)))
+                    .OrderBy(x => x.dist)
+                    .Take(N)
+                    .ToList();
+
+                string closestList = string.Join(", ", dists.Select(x => $"key={x.b.buildingKey} type={x.b.type} dist={x.dist:0.00}"));
+                Debug.Log($"[LightsOut][DBG] Window at {win.position} - {closestList}");
+
+                // Optionally, color window differently if ambiguous
+                float first = dists[0].dist;
+                float second = (dists.Count > 1) ? dists[1].dist : float.MaxValue;
+                if (second - first < 2.0f) // if two are nearly the same distance
+                {
+                    win.mat.SetColor("_EmissionColor", Color.magenta);
+                    win.mat.EnableKeyword("_EMISSION");
+                }
+            }
+
+            // 4. Map windows to nearest building as before, but warn if distance > threshold
+            var mapping = new Dictionary<int, List<WindowMatInfo>>();
+            float assignRadius = WindowAssignmentRadius;
+            foreach (var win in windowMats)
+            {
+                float minDist = float.MaxValue;
+                int nearestKey = -1;
+                foreach (var b in allBuildings)
+                {
+                    float dist = Vector3.Distance(win.position, b.pos);
+                    if (dist < minDist)
+                    {
+                        minDist = dist;
+                        nearestKey = b.buildingKey;
+                    }
+                }
+                if (nearestKey != -1 && minDist < assignRadius)
+                {
+                    if (!mapping.ContainsKey(nearestKey)) mapping[nearestKey] = new List<WindowMatInfo>();
+                    mapping[nearestKey].Add(win);
+                }
+                else
+                {
+                    Debug.LogWarning($"[LightsOut][WARN] Window at {win.position} could not be confidently assigned! Closest is {minDist:0.00} units away.");
+                }
+            }
+            // 5. Summary log
+            foreach (var b in allBuildings)
+            {
+                int count = mapping.ContainsKey(b.buildingKey) ? mapping[b.buildingKey].Count : 0;
+                Debug.Log($"[LightsOut] Building key={b.buildingKey} type={b.type} at {b.pos} has {count} mapped windows.");
+            }
         }
 
         void MapAndLogWindowsToBuildings()
@@ -539,6 +633,7 @@ namespace LightsOutScriptMod
             }
         }
 
+        // Revised GetBuildingWorldPosition, more robust logging and fallback!
         Vector3 GetBuildingWorldPosition(BuildingSummary summary, string blockName, Transform locationTransform)
         {
             Debug.Log($"[LightsOut][DBG] GetBuildingWorldPosition called for buildingKey={summary.buildingKey} in block '{blockName}'");
@@ -549,12 +644,13 @@ namespace LightsOutScriptMod
                 return summary.Position;
             }
 
-            // Find the RMB block GameObject by matching the block name
+            // Try to find the RMB block by name match (case-insensitive, ignore spaces etc)
             DaggerfallWorkshop.DaggerfallRMBBlock foundBlock = null;
             foreach (var block in locationTransform.GetComponentsInChildren<DaggerfallWorkshop.DaggerfallRMBBlock>())
             {
-                // RMB blocks are usually named like "DaggerfallBlock [TEMPAAH0.RMB]"
-                if (!string.IsNullOrEmpty(blockName) && block.name.Contains(blockName))
+                string cleanedBlockName = block.name.Replace(" ", "").ToLower();
+                string cleanedTarget = blockName.Replace(" ", "").ToLower();
+                if (!string.IsNullOrEmpty(blockName) && cleanedBlockName.Contains(cleanedTarget))
                 {
                     foundBlock = block;
                     break;
@@ -567,12 +663,10 @@ namespace LightsOutScriptMod
                 return summary.Position;
             }
 
-            Debug.Log($"[LightsOut][DBG] Found block {foundBlock.name} @ world {foundBlock.transform.position}, local {foundBlock.transform.localPosition} (parent: {foundBlock.transform.parent?.name})");
-
-            // Convert building local position (block-local) to world position
+            // Convert block-local position (summary.Position) to world position
             Vector3 worldPos = foundBlock.transform.TransformPoint(summary.Position);
 
-            Debug.Log($"[LightsOut][DBG] Building world position is {worldPos} (block-local {summary.Position})");
+            Debug.Log($"[LightsOut][DBG] BuildingKey={summary.buildingKey} block='{blockName}' block-local={summary.Position} block-world={foundBlock.transform.position} => world={worldPos}");
 
             return worldPos;
         }
