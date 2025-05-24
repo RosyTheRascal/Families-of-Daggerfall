@@ -281,6 +281,12 @@ namespace LightsOutScriptMod
                     .Take(N)
                     .ToList();
 
+                if (dists.Count == 0)
+                {
+                    Debug.LogWarning($"[LightsOut][WARN] No buildings found to assign window at {win.position}!");
+                    continue;
+                }
+
                 string closestList = string.Join(", ", dists.Select(x => $"key={x.b.buildingKey} type={x.b.type} dist={x.dist:0.00}"));
                 Debug.Log($"[LightsOut][DBG] Window at {win.position} - {closestList}");
 
