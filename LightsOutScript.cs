@@ -90,6 +90,7 @@ namespace LightsOutScriptMod
                 MapAndLogWindowsToBuildings_SuperDebug();
                 DumpAllRMBBlocks();
                 DumpAllBuildingKeys();
+                DrawDebugWindowPositions();
             }
             if (Input.GetKeyDown(KeyCode.Backslash))
             {
@@ -511,6 +512,17 @@ namespace LightsOutScriptMod
             return setCount;
         }
 
+        void DrawDebugWindowPositions()
+        {
+#if UNITY_EDITOR
+    foreach (var win in FindAllWindowMaterials())
+    {
+        UnityEditor.Handles.color = Color.cyan;
+        UnityEditor.Handles.SphereHandleCap(0, win.position, Quaternion.identity, 1.5f, EventType.Repaint);
+    }
+#endif
+        }
+
         struct WindowMatInfo
         {
             public Material mat;
@@ -639,24 +651,31 @@ namespace LightsOutScriptMod
             }
         }
 
+        void LogTransformChain(Transform t)
+        {
+            Debug.Log("[LightsOut][DBG] Transform chain:");
+            while (t != null)
+            {
+                Debug.Log($"  - {t.name} at pos {t.position} (local {t.localPosition})");
+                t = t.parent;
+            }
+        }
+
         // Revised GetBuildingWorldPosition, more robust logging and fallback!
         Vector3 GetBuildingWorldPosition(BuildingSummary summary, string blockName, Transform locationTransform)
         {
             Debug.Log($"[LightsOut][DBG] GetBuildingWorldPosition called for buildingKey={summary.buildingKey} in block '{blockName}'");
-
             if (locationTransform == null)
             {
-                Debug.LogWarning($"[LightsOut][DBG] No DaggerfallLocation provided! Returning local position.");
+                Debug.LogWarning($"[LightsOut][DBG] No DaggerfallLocation provided! Returning local position: {summary.Position}");
                 return summary.Position;
             }
 
-            // Try to find the RMB block by name match (case-insensitive, ignore spaces etc)
+            // Find the RMB block by name
             DaggerfallWorkshop.DaggerfallRMBBlock foundBlock = null;
-            foreach (var block in locationTransform.GetComponentsInChildren<DaggerfallWorkshop.DaggerfallRMBBlock>())
+            foreach (var block in locationTransform.GetComponentsInChildren<DaggerfallWorkshop.DaggerfallRMBBlock>(true))
             {
-                string cleanedBlockName = block.name.Replace(" ", "").ToLower();
-                string cleanedTarget = blockName.Replace(" ", "").ToLower();
-                if (!string.IsNullOrEmpty(blockName) && cleanedBlockName.Contains(cleanedTarget))
+                if (!string.IsNullOrEmpty(blockName) && block.name.Contains(blockName))
                 {
                     foundBlock = block;
                     break;
@@ -665,15 +684,29 @@ namespace LightsOutScriptMod
 
             if (foundBlock == null)
             {
-                Debug.LogWarning($"[LightsOut][DBG] No RMB block found matching name '{blockName}'! Returning local position.");
+                Debug.LogWarning($"[LightsOut][DBG] No RMB block found matching name '{blockName}'! Returning local position: {summary.Position}");
                 return summary.Position;
             }
 
-            // Convert block-local position (summary.Position) to world position
-            Vector3 worldPos = foundBlock.transform.TransformPoint(summary.Position);
+            // Compose the full transform chain (from building local to worldspace)
+            Vector3 blockLocal = summary.Position;
+            Vector3 blockWorld = foundBlock.transform.TransformPoint(blockLocal);
+            Vector3 worldPos = blockWorld;
+            // Sometimes blocks might be parented under the location, so add location transform if needed
+            if (foundBlock.transform.parent != null && foundBlock.transform.parent != locationTransform)
+            {
+                worldPos = foundBlock.transform.parent.TransformPoint(blockWorld);
+                Debug.LogWarning($"[LightsOut][DBG] Block's parent is not location! Applied parent's transform. Parent: {foundBlock.transform.parent.name}");
+            }
 
-            Debug.Log($"[LightsOut][DBG] BuildingKey={summary.buildingKey} block='{blockName}' block-local={summary.Position} block-world={foundBlock.transform.position} => world={worldPos}");
+            Debug.Log($"[LightsOut][DBG] BuildingKey={summary.buildingKey} block='{blockName}' block-local={blockLocal} block-world={blockWorld} final-world={worldPos} (foundBlock at {foundBlock.transform.position})");
 
+#if UNITY_EDITOR
+    // Draw a sphere in the Scene view for visual debugging!
+    UnityEditor.Handles.color = Color.green;
+    UnityEditor.Handles.SphereHandleCap(0, worldPos, Quaternion.identity, 2f, EventType.Repaint);
+#endif
+            LogTransformChain();
             return worldPos;
         }
 
