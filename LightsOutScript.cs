@@ -60,22 +60,39 @@ namespace LightsOutScriptMod
             var allLocations = GameObject.FindObjectsOfType<DaggerfallLocation>();
             int totalBuildings = 0;
             float rmbSize = 4096f;
-            float epsilon = 0.1f; // For floating point comparison
+            float fuzz = 1.0f; // how close must localPosition be to "expected" to count as a match
 
             foreach (var location in allLocations)
             {
-                // 1. Build a grid lookup: (x, y) => list of RMB blocks
-                var blockGrid = new Dictionary<(int x, int y), List<DaggerfallRMBBlock>>();
-                var blocks = location.GetComponentsInChildren<DaggerfallRMBBlock>(true);
+                // Build grid mapping: (x, y) => RMB block, using grid order instead of float math, nya!
+                var blockGrid = new Dictionary<(int x, int y), DaggerfallRMBBlock>();
+                var blocks = location.GetComponentsInChildren<DaggerfallRMBBlock>(true); // true for all, even inactive
+                int width = location.Summary.BlockWidth;
+                int height = location.Summary.BlockHeight;
+
                 foreach (var block in blocks)
                 {
+                    // Try to guess which grid slot this block is in by comparing its localPosition to expected
                     Vector3 lp = block.transform.localPosition;
-                    int x = Mathf.RoundToInt(lp.x / rmbSize);
-                    int y = Mathf.RoundToInt(lp.z / rmbSize);
-                    var key = (x, y);
-                    if (!blockGrid.ContainsKey(key))
-                        blockGrid[key] = new List<DaggerfallRMBBlock>();
-                    blockGrid[key].Add(block);
+                    bool found = false;
+                    for (int y = 0; y < height; y++)
+                    {
+                        for (int x = 0; x < width; x++)
+                        {
+                            Vector3 expected = new Vector3(x * rmbSize, lp.y, y * rmbSize);
+                            if ((lp - expected).sqrMagnitude < fuzz * fuzz)
+                            {
+                                blockGrid[(x, y)] = block;
+                                found = true;
+                                break;
+                            }
+                        }
+                        if (found) break;
+                    }
+                    if (!found)
+                    {
+                        Debug.LogWarning($"[LightsOutScript][WARN] RMB block '{block.name}' at {lp} could not be mapped to grid position in '{location.name}'!");
+                    }
                 }
 
                 foreach (var bd in location.GetComponentsInChildren<DaggerfallWorkshop.Game.BuildingDirectory>())
@@ -98,44 +115,15 @@ namespace LightsOutScriptMod
                         int layoutX, layoutY, recordIndex;
                         DaggerfallWorkshop.Game.BuildingDirectory.ReverseBuildingKey(key, out layoutX, out layoutY, out recordIndex);
 
-                        var gridKey = (layoutX, layoutY);
-                        DaggerfallRMBBlock rmbBlock = null;
-                        if (blockGrid.TryGetValue(gridKey, out var blockList) && blockList.Count > 0)
+                        if (blockGrid.TryGetValue((layoutX, layoutY), out var rmbBlock))
                         {
-                            // Sometimes there are multiple blocks at the same slot (rare), pick the first active one
-                            rmbBlock = blockList.FirstOrDefault(b => b.gameObject.activeInHierarchy) ?? blockList[0];
                             Vector3 worldPos = rmbBlock.transform.TransformPoint(summary.Position);
                             Debug.Log($"[LightsOutScript] {location.name} Block=({layoutX},{layoutY}) record={recordIndex} Faction={summary.FactionId} Type={summary.BuildingType} WorldPos={worldPos} (buildingKey={key})");
                         }
                         else
                         {
-                            // Try to find a block whose localPosition is "close" to the correct (x, y)
-                            bool found = false;
-                            foreach (var block in blocks)
-                            {
-                                Vector3 lp = block.transform.localPosition;
-                                int bx = Mathf.RoundToInt(lp.x / rmbSize);
-                                int by = Mathf.RoundToInt(lp.z / rmbSize);
-                                if (Mathf.Abs(bx - layoutX) < 1 && Mathf.Abs(by - layoutY) < 1)
-                                {
-                                    if ((lp - new Vector3(layoutX * rmbSize, lp.y, layoutY * rmbSize)).sqrMagnitude < (epsilon * epsilon))
-                                    {
-                                        rmbBlock = block;
-                                        found = true;
-                                        break;
-                                    }
-                                }
-                            }
-                            if (found && rmbBlock != null)
-                            {
-                                Vector3 worldPos = rmbBlock.transform.TransformPoint(summary.Position);
-                                Debug.Log($"[LightsOutScript][Fuzzy] {location.name} Block=({layoutX},{layoutY}) record={recordIndex} Faction={summary.FactionId} Type={summary.BuildingType} WorldPos={worldPos} (buildingKey={key})");
-                            }
-                            else
-                            {
-                                Debug.LogWarning($"[LightsOutScript][WARN] Could not find RMB block at ({layoutX},{layoutY}) in '{location.name}' for buildingKey={key}, logging localPos only.");
-                                Debug.Log($"[LightsOutScript] {location.name} Block=({layoutX},{layoutY}) record={recordIndex} Faction={summary.FactionId} Type={summary.BuildingType} LocalPos={summary.Position} (buildingKey={key})");
-                            }
+                            Debug.LogWarning($"[LightsOutScript][WARN] Could not find RMB block at ({layoutX},{layoutY}) in '{location.name}' for buildingKey={key}, logging localPos only.");
+                            Debug.Log($"[LightsOutScript] {location.name} Block=({layoutX},{layoutY}) record={recordIndex} Faction={summary.FactionId} Type={summary.BuildingType} LocalPos={summary.Position} (buildingKey={key})");
                         }
                         totalBuildings++;
                     }
