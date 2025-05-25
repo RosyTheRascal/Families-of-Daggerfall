@@ -88,31 +88,12 @@ namespace LightsOutScriptMod
                     var key = kvp.Key;
                     var summary = kvp.Value;
 
-                    // The key encodes layoutX, layoutY, recordIndex
+                    // Get layoutX, layoutY, recordIndex from buildingKey
                     int layoutX, layoutY, recordIndex;
                     DaggerfallWorkshop.Game.BuildingDirectory.ReverseBuildingKey(key, out layoutX, out layoutY, out recordIndex);
 
-                    // Find the RMB block for this building by matching its name to layoutX/layoutY
-                    DaggerfallRMBBlock block = null;
-                    foreach (var b in allBlocks)
-                    {
-                        // Block names contain their RMB name, which you can get from summary.BlockName if available
-                        // But fallback: match by index (if you know your block order), or just print block.name for now
-                        // You can also log all block names to cross-check!
-                        // For now, let's just try all blocks and use the first one (could refine later)
-                        if (b.name.Contains(summary.BlockName))
-                        {
-                            block = b;
-                            break;
-                        }
-                    }
-
-                    // If we can't find the block, just log the local position
-                    Vector3 worldPos = summary.Position;
-                    if (block != null)
-                        worldPos = block.transform.TransformPoint(summary.Position);
-
-                    Debug.Log($"[LightsOutScript] BuildingKey={key} (layout=({layoutX},{layoutY}) record={recordIndex}) Type={summary.BuildingType} Faction={summary.FactionId} WorldPos={worldPos} (block: {block?.name ?? "NOT FOUND"})");
+                    // Log building info (no block name)
+                    Debug.Log($"[LightsOutScript] BuildingKey={key} layout=({layoutX},{layoutY}) record={recordIndex} Type={summary.BuildingType} Faction={summary.FactionId} WorldPos={summary.Position}");
                     totalBuildings++;
                 }
             }
