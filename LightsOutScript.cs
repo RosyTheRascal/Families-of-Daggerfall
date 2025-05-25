@@ -96,7 +96,7 @@ namespace LightsOutScriptMod
                 {
                     // Use reflection to access the private 'buildingDict' field
                     var field = typeof(DaggerfallWorkshop.Game.BuildingDirectory).GetField("buildingDict", BindingFlags.NonPublic | BindingFlags.Instance);
-                    var dict = field?.GetValue(bd) as Dictionary<int, DaggerfallWorkshop.Game.BuildingSummary>;
+                    var dict = field?.GetValue(bd) as Dictionary<int, BuildingSummary>;
                     if (dict == null)
                     {
                         Debug.LogWarning($"[LightsOutScript][WARN] BuildingDirectory on block '{block.name}' has no buildingDict, nya?!");
