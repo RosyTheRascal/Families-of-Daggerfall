@@ -52,7 +52,8 @@ namespace LightsOutScriptMod
             {
                 CollectAndLogBuildingWorldspaceInfo();
                 ListAllWindowMaterialsAndLogPositions();
-                MapAndLogWindowsByBuildingKey();
+                //MapAndLogWindowsByBuildingKey();
+                CreateFacadesForNonResidentials();
             }
 
         }
@@ -324,6 +325,74 @@ namespace LightsOutScriptMod
                 totWindows += kvp.Value.Count;
             }
             Debug.Log($"[LightsOut][WindowDump] Total windows mapped to buildings: {totWindows} nya~!");
+        }
+
+        // (｡･ω･｡)ﾉ♡ spawn facades fow each non-residential building!
+        void CreateFacadesForNonResidentials()
+        {
+            int facades = 0;
+            foreach (var location in FindObjectsOfType<DaggerfallLocation>())
+            {
+                var locationTransform = location.transform;
+                foreach (var block in location.GetComponentsInChildren<DaggerfallWorkshop.DaggerfallRMBBlock>())
+                {
+                    // get the mesh and materials of the block (combinedmodel)
+                    var meshFilter = block.GetComponentInChildren<MeshFilter>();
+                    var meshRenderer = block.GetComponentInChildren<MeshRenderer>();
+                    if (meshFilter == null || meshRenderer == null)
+                    {
+                        Debug.LogWarning("[LightsOutScript] No mesh found in RMB block!");
+                        continue;
+                    }
+
+                    var blockMesh = meshFilter.sharedMesh;
+                    var blockMaterials = meshRenderer.sharedMaterials;
+
+                    // for every building in this block
+                    foreach (var bd in block.GetComponentsInChildren<DaggerfallWorkshop.Game.BuildingDirectory>())
+                    {
+                        foreach (var summary in GetAllBuildingSummaries(bd))
+                        {
+                            // only spawn facade if faction > 0
+                            if (summary.FactionId == 0)
+                                continue;
+
+                            // calculate world position of building
+                            Vector3 worldPos = block.transform.TransformPoint(summary.Position);
+
+                            // create new gameobject for facade
+                            var facadeGO = new GameObject("Facade_" + summary.buildingKey);
+                            facadeGO.transform.position = worldPos;
+                            facadeGO.transform.rotation = block.transform.rotation;
+                            facadeGO.transform.localScale = block.transform.lossyScale * 1.01f; // slightly bigger to avoid z-fighting
+
+                            // add mesh filter and renderer
+                            var newMF = facadeGO.AddComponent<MeshFilter>();
+                            var newMR = facadeGO.AddComponent<MeshRenderer>();
+                            newMF.sharedMesh = blockMesh;
+
+                            // copy materials and strip emission from windows
+                            Material[] newMats = new Material[blockMaterials.Length];
+                            for (int i = 0; i < blockMaterials.Length; i++)
+                            {
+                                var origMat = blockMaterials[i];
+                                Material mat = new Material(origMat); // copy so we don't affect original
+                                if (IsProbablyWindow(mat))
+                                {
+                                    mat.SetColor("_EmissionColor", Color.black);
+                                    mat.DisableKeyword("_EMISSION");
+                                }
+                                newMats[i] = mat;
+                            }
+                            newMR.materials = newMats;
+
+                            // no collider needed (facade should be non-blocking)
+                            facades++;
+                        }
+                    }
+                }
+            }
+            Debug.Log("[LightsOutScript] Facades spawned: " + facades);
         }
     }
 }
