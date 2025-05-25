@@ -57,56 +57,73 @@ namespace LightsOutScriptMod
 
         public void CollectAndLogBuildingWorldspaceInfo()
         {
-            // 1. Find all RMB blocks in the scene, nya~
-            var allBlocks = GameObject.FindObjectsOfType<DaggerfallRMBBlock>();
-            Debug.Log($"[LightsOutScript] Found {allBlocks.Length} RMB blocks in the entire scene, nya!");
-
-            // Build a lookup so we can find an RMB block by name, ignoring dupwicates (keep first)
-            var blockNameLookup = new Dictionary<string, DaggerfallRMBBlock>();
-            foreach (var b in allBlocks)
-            {
-                if (!blockNameLookup.ContainsKey(b.name))
-                    blockNameLookup[b.name] = b;
-                else
-                    Debug.LogWarning($"[LightsOutScript][WARN] Duplicate RMB block name '{b.name}' detected! Only the first will be used, nya~");
-            }
-
+            // 1. Find every city/town in the scene (DaggerfallLocation is the city root)
+            var allLocations = GameObject.FindObjectsOfType<DaggerfallLocation>();
             int totalBuildings = 0;
-            // 2. Find all BuildingDirectory components ANYWHERE in the scene
-            var allDirs = GameObject.FindObjectsOfType<DaggerfallWorkshop.Game.BuildingDirectory>();
-            foreach (var bd in allDirs)
+
+            foreach (var location in allLocations)
             {
-                // Use reflection to access the private 'buildingDict' field
-                var field = typeof(DaggerfallWorkshop.Game.BuildingDirectory).GetField("buildingDict", BindingFlags.NonPublic | BindingFlags.Instance);
-                var dict = field?.GetValue(bd) as Dictionary<int, BuildingSummary>;
-                if (dict == null)
+                // 1a. Build a grid lookup: (layoutX, layoutY) => RMB block GameObject
+                var blockGrid = new Dictionary<(int x, int y), DaggerfallRMBBlock>();
+                var blocks = location.GetComponentsInChildren<DaggerfallRMBBlock>();
+                foreach (var block in blocks)
                 {
-                    Debug.LogWarning($"[LightsOutScript][WARN] BuildingDirectory on '{bd.gameObject.name}' has no buildingDict, nya?!");
-                    continue;
+                    // RMB blocks are placed at (x * 4096, 0, y * 4096) in localPosition
+                    Vector3 lp = block.transform.localPosition;
+                    int x = Mathf.RoundToInt(lp.x / 4096f);
+                    int y = Mathf.RoundToInt(lp.z / 4096f); // Z axis is Y in grid!
+                    if (!blockGrid.ContainsKey((x, y)))
+                        blockGrid[(x, y)] = block;
+                    else
+                        Debug.LogWarning($"[LightsOutScript][WARN] Duplicate RMB block at ({x},{y}) in {location.name}, nya!");
                 }
 
-                Debug.Log($"[LightsOutScript] Found BuildingDirectory on '{bd.gameObject.name}', contains {dict.Count} buildings!");
-
-                foreach (var kvp in dict)
+                // 1b. For each BuildingDirectory (should be just one per city)
+                foreach (var bd in location.GetComponentsInChildren<DaggerfallWorkshop.Game.BuildingDirectory>())
                 {
-                    var key = kvp.Key;
-                    var summary = kvp.Value;
+                    // Get the private buildingDict field
+                    var field = typeof(DaggerfallWorkshop.Game.BuildingDirectory).GetField("buildingDict", BindingFlags.NonPublic | BindingFlags.Instance);
+                    var dict = field?.GetValue(bd) as Dictionary<int, BuildingSummary>;
+                    if (dict == null)
+                    {
+                        Debug.LogWarning($"[LightsOutScript][WARN] BuildingDirectory on '{bd.gameObject.name}' has no buildingDict, nya?!");
+                        continue;
+                    }
 
-                    // The key encodes layoutX, layoutY, recordIndex
-                    int layoutX, layoutY, recordIndex;
-                    DaggerfallWorkshop.Game.BuildingDirectory.ReverseBuildingKey(key, out layoutX, out layoutY, out recordIndex);
+                    Debug.Log($"[LightsOutScript] Found BuildingDirectory on '{bd.gameObject.name}', contains {dict.Count} buildings!");
 
-                    // Find the RMB block for this building by searching for name containing layoutX and layoutY
-                    // (Block name doesn't store layoutX/layoutY directly, so this is just a stub for now.)
-                    // For now, just log building info with local position
-                    Debug.Log($"[LightsOutScript] BuildingKey={key} (layout=({layoutX},{layoutY}) record={recordIndex}) Type={summary.BuildingType} Faction={summary.FactionId} LocalPos={summary.Position}");
-                    totalBuildings++;
+                    foreach (var kvp in dict)
+                    {
+                        int key = kvp.Key;
+                        BuildingSummary summary = kvp.Value;
+
+                        // Decode the building key to get block grid coords & which building in block
+                        int layoutX, layoutY, recordIndex;
+                        DaggerfallWorkshop.Game.BuildingDirectory.ReverseBuildingKey(key, out layoutX, out layoutY, out recordIndex);
+
+                        // Try to find the RMB block GameObject for this building
+                        if (blockGrid.TryGetValue((layoutX, layoutY), out var rmbBlock))
+                        {
+                            // Convert building's block-local position to world space
+                            Vector3 worldPos = rmbBlock.transform.TransformPoint(summary.Position);
+
+                            Debug.Log($"[LightsOutScript] {location.name} Block=({layoutX},{layoutY}) record={recordIndex} Faction={summary.FactionId} Type={summary.BuildingType} WorldPos={worldPos} (buildingKey={key})");
+                        }
+                        else
+                        {
+                            // Block not found: fallback to just block-local info
+                            Debug.LogWarning($"[LightsOutScript][WARN] Could not find RMB block at ({layoutX},{layoutY}) in '{location.name}' for buildingKey={key}, logging localPos only.");
+                            Debug.Log($"[LightsOutScript] {location.name} Block=({layoutX},{layoutY}) record={recordIndex} Faction={summary.FactionId} Type={summary.BuildingType} LocalPos={summary.Position} (buildingKey={key})");
+                        }
+                        totalBuildings++;
+                    }
                 }
             }
 
             Debug.Log($"[LightsOutScript] Total buildings found and logged: {totalBuildings}");
 
-            // 4. Old logic for RMB blocks/meshes (kept for your investigation, not needed for buildings)
+            // Original mesh/block logic (unchanged, still useful for debug!)
+            var allBlocks = GameObject.FindObjectsOfType<DaggerfallRMBBlock>();
             foreach (var block in allBlocks)
             {
                 Debug.Log($"[LightsOutScript] RMB Block '{block.name}' world position: {block.transform.position}");
@@ -130,7 +147,7 @@ namespace LightsOutScriptMod
                 Debug.Log($"[LightsOutScript][DBG] RMB Block '{block.name}' had {childCount} children, {meshCount} with DaggerfallMesh, nya!");
             }
 
-            // 5. Log player position for reference
+            // Log player position for reference
             var player = GameManager.Instance.PlayerObject;
             if (player != null)
             {
@@ -141,5 +158,7 @@ namespace LightsOutScriptMod
                 Debug.LogWarning("[LightsOutScript] Could not find player object to log position, nya~");
             }
         }
+
+
     }
 }
