@@ -61,11 +61,15 @@ namespace LightsOutScriptMod
             var allBlocks = GameObject.FindObjectsOfType<DaggerfallRMBBlock>();
             Debug.Log($"[LightsOutScript] Found {allBlocks.Length} RMB blocks in the entire scene, nya!");
 
-            // Build a lookup so we can find an RMB block by layoutX, layoutY
-            // RMB blocks are usually named like "DaggerfallBlock [TEMPAAH0.RMB]" or similar.
-            var blockNameLookup = allBlocks.ToDictionary(
-                b => b.name, // fallback, since block LayoutX/LayoutY is not public, use name-matching below
-                b => b);
+            // Build a lookup so we can find an RMB block by name, ignoring dupwicates (keep first)
+            var blockNameLookup = new Dictionary<string, DaggerfallRMBBlock>();
+            foreach (var b in allBlocks)
+            {
+                if (!blockNameLookup.ContainsKey(b.name))
+                    blockNameLookup[b.name] = b;
+                else
+                    Debug.LogWarning($"[LightsOutScript][WARN] Duplicate RMB block name '{b.name}' detected! Only the first will be used, nya~");
+            }
 
             int totalBuildings = 0;
             // 2. Find all BuildingDirectory components ANYWHERE in the scene
@@ -88,12 +92,14 @@ namespace LightsOutScriptMod
                     var key = kvp.Key;
                     var summary = kvp.Value;
 
-                    // Get layoutX, layoutY, recordIndex from buildingKey
+                    // The key encodes layoutX, layoutY, recordIndex
                     int layoutX, layoutY, recordIndex;
                     DaggerfallWorkshop.Game.BuildingDirectory.ReverseBuildingKey(key, out layoutX, out layoutY, out recordIndex);
 
-                    // Log building info (no block name)
-                    Debug.Log($"[LightsOutScript] BuildingKey={key} layout=({layoutX},{layoutY}) record={recordIndex} Type={summary.BuildingType} Faction={summary.FactionId} WorldPos={summary.Position}");
+                    // Find the RMB block for this building by searching for name containing layoutX and layoutY
+                    // (Block name doesn't store layoutX/layoutY directly, so this is just a stub for now.)
+                    // For now, just log building info with local position
+                    Debug.Log($"[LightsOutScript] BuildingKey={key} (layout=({layoutX},{layoutY}) record={recordIndex}) Type={summary.BuildingType} Faction={summary.FactionId} LocalPos={summary.Position}");
                     totalBuildings++;
                 }
             }
