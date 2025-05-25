@@ -60,15 +60,18 @@ namespace LightsOutScriptMod
             var allLocations = GameObject.FindObjectsOfType<DaggerfallLocation>();
             int totalBuildings = 0;
             float rmbSize = 4096f;
-            float fuzz = 2.0f; // fudge for float rounding, nya~
+            float fuzz = 4.0f; // Try a wider fuzz in case of floating point weirdness, nya!
 
             foreach (var location in allLocations)
             {
                 Vector3 cityOrigin = location.transform.position;
+                Debug.Log($"[LightsOutScript][DBG] City origin for '{location.name}' is {cityOrigin}");
+
                 var blocks = location.GetComponentsInChildren<DaggerfallRMBBlock>(true);
 
                 int width = location.Summary.BlockWidth;
                 int height = location.Summary.BlockHeight;
+                Debug.Log($"[LightsOutScript][DBG] '{location.name}' grid size: width={width}, height={height}");
 
                 // Build grid mapping: (x, y) => RMB block, ignore Y (height) when matching!
                 var blockGrid = new Dictionary<(int x, int y), DaggerfallRMBBlock>();
@@ -82,13 +85,19 @@ namespace LightsOutScriptMod
                         for (int x = 0; x < width; x++)
                         {
                             Vector3 expected = cityOrigin + new Vector3(x * rmbSize, 0, y * rmbSize);
-                            // UwU: Ignore Y! Only compare X and Z positions, nya~
                             float dx = wp.x - expected.x;
                             float dz = wp.z - expected.z;
-                            if ((dx * dx + dz * dz) < fuzz * fuzz)
+                            float dist = Mathf.Sqrt(dx * dx + dz * dz);
+
+                            Debug.Log($"[LightsOutScript][DBG] Comparing block '{block.name}' @ XZ=({wp.x},{wp.z}) to grid ({x},{y}) expected XZ=({expected.x},{expected.z}) dist={dist}");
+
+                            if (dist < fuzz)
                             {
                                 if (!blockGrid.ContainsKey((x, y)))
+                                {
                                     blockGrid[(x, y)] = block;
+                                    Debug.Log($"[LightsOutScript][DBG] Mapped '{block.name}' to grid ({x},{y})");
+                                }
                                 found = true;
                                 break;
                             }
@@ -120,6 +129,8 @@ namespace LightsOutScriptMod
 
                         int layoutX, layoutY, recordIndex;
                         DaggerfallWorkshop.Game.BuildingDirectory.ReverseBuildingKey(key, out layoutX, out layoutY, out recordIndex);
+
+                        Debug.Log($"[LightsOutScript][DBG] BuildingKey={key} expects grid=({layoutX},{layoutY})");
 
                         if (blockGrid.TryGetValue((layoutX, layoutY), out var rmbBlock))
                         {
