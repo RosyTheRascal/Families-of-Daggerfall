@@ -61,31 +61,43 @@ namespace LightsOutScriptMod
             var location = FindObjectOfType<DaggerfallLocation>();
             if (location == null)
             {
-                Debug.LogWarning("LightsOutScript: No DaggerfallLocation found, are you outside a town/city?");
+                Debug.LogWarning("LightsOutScript: No DaggerfallLocation found, awe you outside a town/city, nya?");
                 return;
             }
 
-            // 2. Find all buildings (they have DaggerfallRMBBlock and are children of location)
+            // 2. Find all RMB blocks
             var buildingBlocks = location.GetComponentsInChildren<DaggerfallRMBBlock>(true);
 
             Debug.Log($"[LightsOutScript] Found {buildingBlocks.Length} RMB blocks in this location, nya!");
 
             int totalBuildings = 0;
-
             foreach (var block in buildingBlocks)
             {
-                // Each block has lots of children, but buildings are usually top-level children under the block
+                // Log the world position of the RMB block itself!
+                Debug.Log($"[LightsOutScript] RMB Block '{block.name}' world position: {block.transform.position}");
+
+                int childCount = 0;
+                int meshCount = 0;
+
+                // Log all direct children of the block for investigation
                 foreach (Transform child in block.transform)
                 {
-                    // Heuristic: buildings have DaggerfallMesh, are usually named "CombinedModels" or similar
-                    var mesh = child.GetComponent<DaggerfallWorkshop.Utility.DaggerfallMesh>();
+                    childCount++;
+                    var mesh = child.GetComponent<DaggerfallMesh>();
                     if (mesh != null)
                     {
-                        // Log building name and worldspace position
                         Debug.Log($"[LightsOutScript] Building GameObject: '{child.name}' | World Pos: {child.position} (block: {block.name})");
-                        totalBuildings++;
+                        meshCount++;
+                    }
+                    else
+                    {
+                        // Log what the child is for investigation
+                        Debug.Log($"[LightsOutScript][DBG] Child '{child.name}' has no DaggerfallMesh (type: {child.GetType()})");
                     }
                 }
+                Debug.Log($"[LightsOutScript][DBG] RMB Block '{block.name}' had {childCount} children, {meshCount} with DaggerfallMesh, nya!");
+
+                totalBuildings += meshCount;
             }
 
             Debug.Log($"[LightsOutScript] Total buildings found and logged: {totalBuildings} (in {buildingBlocks.Length} blocks)");
