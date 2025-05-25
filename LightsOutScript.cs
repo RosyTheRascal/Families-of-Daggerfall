@@ -57,21 +57,13 @@ namespace LightsOutScriptMod
 
         public void CollectAndLogBuildingWorldspaceInfo()
         {
-            // 1. Find DaggerfallLocation in scene
-            var location = FindObjectOfType<DaggerfallLocation>();
-            if (location == null)
-            {
-                Debug.LogWarning("LightsOutScript: No DaggerfallLocation found, awe you outside a town/city, nya?");
-                return;
-            }
+            // 1. Find ALL RMB blocks in the scene, not just under DaggerfallLocation, nya~
+            var allBlocks = GameObject.FindObjectsOfType<DaggerfallRMBBlock>();
 
-            // 2. Find all RMB blocks
-            var buildingBlocks = location.GetComponentsInChildren<DaggerfallRMBBlock>(true);
-
-            Debug.Log($"[LightsOutScript] Found {buildingBlocks.Length} RMB blocks in this location, nya!");
+            Debug.Log($"[LightsOutScript] Found {allBlocks.Length} RMB blocks in the entire scene, nya!");
 
             int totalBuildings = 0;
-            foreach (var block in buildingBlocks)
+            foreach (var block in allBlocks)
             {
                 // Log the world position of the RMB block itself!
                 Debug.Log($"[LightsOutScript] RMB Block '{block.name}' world position: {block.transform.position}");
@@ -91,7 +83,6 @@ namespace LightsOutScriptMod
                     }
                     else
                     {
-                        // Log what the child is for investigation
                         Debug.Log($"[LightsOutScript][DBG] Child '{child.name}' has no DaggerfallMesh (type: {child.GetType()})");
                     }
                 }
@@ -100,7 +91,7 @@ namespace LightsOutScriptMod
                 totalBuildings += meshCount;
             }
 
-            Debug.Log($"[LightsOutScript] Total buildings found and logged: {totalBuildings} (in {buildingBlocks.Length} blocks)");
+            Debug.Log($"[LightsOutScript] Total buildings found and logged: {totalBuildings} (in {allBlocks.Length} blocks)");
 
             // 3. Log player position for reference
             var player = GameManager.Instance.PlayerObject;
