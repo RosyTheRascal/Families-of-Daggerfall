@@ -60,20 +60,17 @@ namespace LightsOutScriptMod
             var allLocations = GameObject.FindObjectsOfType<DaggerfallLocation>();
             int totalBuildings = 0;
             float rmbSize = 4096f;
-            float fuzz = 2.0f; // fudge for float rounding
+            float fuzz = 2.0f; // fudge for float rounding, nya~
 
             foreach (var location in allLocations)
             {
-                // Get world position of this city/town
                 Vector3 cityOrigin = location.transform.position;
-
-                // UwU: Only use RMB blocks that are children of THIS location!
                 var blocks = location.GetComponentsInChildren<DaggerfallRMBBlock>(true);
 
                 int width = location.Summary.BlockWidth;
                 int height = location.Summary.BlockHeight;
 
-                // Build grid mapping: (x, y) => RMB block, by comparing world positions
+                // Build grid mapping: (x, y) => RMB block, ignore Y (height) when matching!
                 var blockGrid = new Dictionary<(int x, int y), DaggerfallRMBBlock>();
 
                 foreach (var block in blocks)
@@ -85,7 +82,10 @@ namespace LightsOutScriptMod
                         for (int x = 0; x < width; x++)
                         {
                             Vector3 expected = cityOrigin + new Vector3(x * rmbSize, 0, y * rmbSize);
-                            if ((wp - expected).sqrMagnitude < fuzz * fuzz)
+                            // Ignore Y (height): compare only X and Z
+                            float dx = wp.x - expected.x;
+                            float dz = wp.z - expected.z;
+                            if ((dx * dx + dz * dz) < fuzz * fuzz)
                             {
                                 if (!blockGrid.ContainsKey((x, y)))
                                     blockGrid[(x, y)] = block;
@@ -138,7 +138,7 @@ namespace LightsOutScriptMod
 
             Debug.Log($"[LightsOutScript] Total buildings found and logged: {totalBuildings}");
 
-            // Your original mesh/block logging, untouched!
+            // Rest of your original mesh/block logging, nya~!
             var allBlocks = GameObject.FindObjectsOfType<DaggerfallRMBBlock>();
             foreach (var block in allBlocks)
             {
