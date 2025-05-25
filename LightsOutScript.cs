@@ -57,31 +57,29 @@ namespace LightsOutScriptMod
 
         public void CollectAndLogBuildingWorldspaceInfo()
         {
-            // 1. Find every city/town in the scene (DaggerfallLocation is the city root)
             var allLocations = GameObject.FindObjectsOfType<DaggerfallLocation>();
             int totalBuildings = 0;
+            float rmbSize = 4096f;
+            float epsilon = 0.1f; // For floating point comparison
 
             foreach (var location in allLocations)
             {
-                // 1a. Build a grid lookup: (layoutX, layoutY) => RMB block GameObject
-                var blockGrid = new Dictionary<(int x, int y), DaggerfallRMBBlock>();
-                var blocks = location.GetComponentsInChildren<DaggerfallRMBBlock>();
+                // 1. Build a grid lookup: (x, y) => list of RMB blocks
+                var blockGrid = new Dictionary<(int x, int y), List<DaggerfallRMBBlock>>();
+                var blocks = location.GetComponentsInChildren<DaggerfallRMBBlock>(true);
                 foreach (var block in blocks)
                 {
-                    // RMB blocks are placed at (x * 4096, 0, y * 4096) in localPosition
                     Vector3 lp = block.transform.localPosition;
-                    int x = Mathf.RoundToInt(lp.x / 4096f);
-                    int y = Mathf.RoundToInt(lp.z / 4096f); // Z axis is Y in grid!
-                    if (!blockGrid.ContainsKey((x, y)))
-                        blockGrid[(x, y)] = block;
-                    else
-                        Debug.LogWarning($"[LightsOutScript][WARN] Duplicate RMB block at ({x},{y}) in {location.name}, nya!");
+                    int x = Mathf.RoundToInt(lp.x / rmbSize);
+                    int y = Mathf.RoundToInt(lp.z / rmbSize);
+                    var key = (x, y);
+                    if (!blockGrid.ContainsKey(key))
+                        blockGrid[key] = new List<DaggerfallRMBBlock>();
+                    blockGrid[key].Add(block);
                 }
 
-                // 1b. For each BuildingDirectory (should be just one per city)
                 foreach (var bd in location.GetComponentsInChildren<DaggerfallWorkshop.Game.BuildingDirectory>())
                 {
-                    // Get the private buildingDict field
                     var field = typeof(DaggerfallWorkshop.Game.BuildingDirectory).GetField("buildingDict", BindingFlags.NonPublic | BindingFlags.Instance);
                     var dict = field?.GetValue(bd) as Dictionary<int, BuildingSummary>;
                     if (dict == null)
@@ -90,30 +88,54 @@ namespace LightsOutScriptMod
                         continue;
                     }
 
-                    Debug.Log($"[LightsOutScript] Found BuildingDirectory on '{bd.gameObject.name}', contains {dict.Count} buildings!");
+                    Debug.Log($"[LightsOutScript] Found BuildingDirectory on '{location.name}', contains {dict.Count} buildings!");
 
                     foreach (var kvp in dict)
                     {
                         int key = kvp.Key;
                         BuildingSummary summary = kvp.Value;
 
-                        // Decode the building key to get block grid coords & which building in block
                         int layoutX, layoutY, recordIndex;
                         DaggerfallWorkshop.Game.BuildingDirectory.ReverseBuildingKey(key, out layoutX, out layoutY, out recordIndex);
 
-                        // Try to find the RMB block GameObject for this building
-                        if (blockGrid.TryGetValue((layoutX, layoutY), out var rmbBlock))
+                        var gridKey = (layoutX, layoutY);
+                        DaggerfallRMBBlock rmbBlock = null;
+                        if (blockGrid.TryGetValue(gridKey, out var blockList) && blockList.Count > 0)
                         {
-                            // Convert building's block-local position to world space
+                            // Sometimes there are multiple blocks at the same slot (rare), pick the first active one
+                            rmbBlock = blockList.FirstOrDefault(b => b.gameObject.activeInHierarchy) ?? blockList[0];
                             Vector3 worldPos = rmbBlock.transform.TransformPoint(summary.Position);
-
                             Debug.Log($"[LightsOutScript] {location.name} Block=({layoutX},{layoutY}) record={recordIndex} Faction={summary.FactionId} Type={summary.BuildingType} WorldPos={worldPos} (buildingKey={key})");
                         }
                         else
                         {
-                            // Block not found: fallback to just block-local info
-                            Debug.LogWarning($"[LightsOutScript][WARN] Could not find RMB block at ({layoutX},{layoutY}) in '{location.name}' for buildingKey={key}, logging localPos only.");
-                            Debug.Log($"[LightsOutScript] {location.name} Block=({layoutX},{layoutY}) record={recordIndex} Faction={summary.FactionId} Type={summary.BuildingType} LocalPos={summary.Position} (buildingKey={key})");
+                            // Try to find a block whose localPosition is "close" to the correct (x, y)
+                            bool found = false;
+                            foreach (var block in blocks)
+                            {
+                                Vector3 lp = block.transform.localPosition;
+                                int bx = Mathf.RoundToInt(lp.x / rmbSize);
+                                int by = Mathf.RoundToInt(lp.z / rmbSize);
+                                if (Mathf.Abs(bx - layoutX) < 1 && Mathf.Abs(by - layoutY) < 1)
+                                {
+                                    if ((lp - new Vector3(layoutX * rmbSize, lp.y, layoutY * rmbSize)).sqrMagnitude < (epsilon * epsilon))
+                                    {
+                                        rmbBlock = block;
+                                        found = true;
+                                        break;
+                                    }
+                                }
+                            }
+                            if (found && rmbBlock != null)
+                            {
+                                Vector3 worldPos = rmbBlock.transform.TransformPoint(summary.Position);
+                                Debug.Log($"[LightsOutScript][Fuzzy] {location.name} Block=({layoutX},{layoutY}) record={recordIndex} Faction={summary.FactionId} Type={summary.BuildingType} WorldPos={worldPos} (buildingKey={key})");
+                            }
+                            else
+                            {
+                                Debug.LogWarning($"[LightsOutScript][WARN] Could not find RMB block at ({layoutX},{layoutY}) in '{location.name}' for buildingKey={key}, logging localPos only.");
+                                Debug.Log($"[LightsOutScript] {location.name} Block=({layoutX},{layoutY}) record={recordIndex} Faction={summary.FactionId} Type={summary.BuildingType} LocalPos={summary.Position} (buildingKey={key})");
+                            }
                         }
                         totalBuildings++;
                     }
@@ -122,7 +144,7 @@ namespace LightsOutScriptMod
 
             Debug.Log($"[LightsOutScript] Total buildings found and logged: {totalBuildings}");
 
-            // Original mesh/block logic (unchanged, still useful for debug!)
+            // The rest of your original mesh/block logging...
             var allBlocks = GameObject.FindObjectsOfType<DaggerfallRMBBlock>();
             foreach (var block in allBlocks)
             {
@@ -147,18 +169,11 @@ namespace LightsOutScriptMod
                 Debug.Log($"[LightsOutScript][DBG] RMB Block '{block.name}' had {childCount} children, {meshCount} with DaggerfallMesh, nya!");
             }
 
-            // Log player position for reference
             var player = GameManager.Instance.PlayerObject;
             if (player != null)
-            {
                 Debug.Log($"[LightsOutScript] Player world position: {player.transform.position}");
-            }
             else
-            {
                 Debug.LogWarning("[LightsOutScript] Could not find player object to log position, nya~");
-            }
         }
-
-
     }
 }
