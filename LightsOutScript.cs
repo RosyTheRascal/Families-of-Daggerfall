@@ -218,6 +218,13 @@ namespace LightsOutScriptMod
             return hasWindowIndex && isDaggerfallShader && isEmissive;
         }
 
+        IEnumerable<BuildingSummary> GetAllBuildingSummaries(BuildingDirectory bd)
+        {
+            var field = typeof(BuildingDirectory).GetField("buildingDict", BindingFlags.NonPublic | BindingFlags.Instance);
+            var dict = field?.GetValue(bd) as Dictionary<int, BuildingSummary>;
+            return dict != null ? (IEnumerable<BuildingSummary>)dict.Values : new List<BuildingSummary>();
+        }
+
         // =^._.^= ∫  List and log every window material in the scene, nya!
         void ListAllWindowMaterialsAndLogPositions()
         {
