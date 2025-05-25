@@ -60,7 +60,7 @@ namespace LightsOutScriptMod
             var allLocations = GameObject.FindObjectsOfType<DaggerfallLocation>();
             int totalBuildings = 0;
             float rmbSize = 4096f;
-            float fuzz = 4.0f; // Try a wider fuzz in case of floating point weirdness, nya!
+            float fuzz = 4.0f;
 
             foreach (var location in allLocations)
             {
@@ -73,40 +73,49 @@ namespace LightsOutScriptMod
                 int height = location.Summary.BlockHeight;
                 Debug.Log($"[LightsOutScript][DBG] '{location.name}' grid size: width={width}, height={height}");
 
-                // Build grid mapping: (x, y) => RMB block, ignore Y (height) when matching!
                 var blockGrid = new Dictionary<(int x, int y), DaggerfallRMBBlock>();
 
-                foreach (var block in blocks)
+                if (width == 1 && height == 1 && blocks.Length == 1)
                 {
-                    Vector3 wp = block.transform.position;
-                    bool found = false;
-                    for (int y = 0; y < height; y++)
+                    // Special case: village, just map the only block to (0,0)!
+                    blockGrid[(0, 0)] = blocks[0];
+                    Debug.Log($"[LightsOutScript][DBG] Special case: village with 1x1 grid, mapped block '{blocks[0].name}' at {blocks[0].transform.position} to (0,0)");
+                }
+                else
+                {
+                    // Normal mapping for towns/cities
+                    foreach (var block in blocks)
                     {
-                        for (int x = 0; x < width; x++)
+                        Vector3 wp = block.transform.position;
+                        bool found = false;
+                        for (int y = 0; y < height; y++)
                         {
-                            Vector3 expected = cityOrigin + new Vector3(x * rmbSize, 0, y * rmbSize);
-                            float dx = wp.x - expected.x;
-                            float dz = wp.z - expected.z;
-                            float dist = Mathf.Sqrt(dx * dx + dz * dz);
-
-                            Debug.Log($"[LightsOutScript][DBG] Comparing block '{block.name}' @ XZ=({wp.x},{wp.z}) to grid ({x},{y}) expected XZ=({expected.x},{expected.z}) dist={dist}");
-
-                            if (dist < fuzz)
+                            for (int x = 0; x < width; x++)
                             {
-                                if (!blockGrid.ContainsKey((x, y)))
+                                Vector3 expected = cityOrigin + new Vector3(x * rmbSize, 0, y * rmbSize);
+                                float dx = wp.x - expected.x;
+                                float dz = wp.z - expected.z;
+                                float dist = Mathf.Sqrt(dx * dx + dz * dz);
+
+                                Debug.Log($"[LightsOutScript][DBG] Comparing block '{block.name}' @ XZ=({wp.x},{wp.z}) to grid ({x},{y}) expected XZ=({expected.x},{expected.z}) dist={dist}");
+
+                                if (dist < fuzz)
                                 {
-                                    blockGrid[(x, y)] = block;
-                                    Debug.Log($"[LightsOutScript][DBG] Mapped '{block.name}' to grid ({x},{y})");
+                                    if (!blockGrid.ContainsKey((x, y)))
+                                    {
+                                        blockGrid[(x, y)] = block;
+                                        Debug.Log($"[LightsOutScript][DBG] Mapped '{block.name}' to grid ({x},{y})");
+                                    }
+                                    found = true;
+                                    break;
                                 }
-                                found = true;
-                                break;
                             }
+                            if (found) break;
                         }
-                        if (found) break;
-                    }
-                    if (!found)
-                    {
-                        Debug.LogWarning($"[LightsOutScript][WARN] RMB block '{block.name}' at {wp} could not be mapped to grid position in '{location.name}'!");
+                        if (!found)
+                        {
+                            Debug.LogWarning($"[LightsOutScript][WARN] RMB block '{block.name}' at {wp} could not be mapped to grid position in '{location.name}'!");
+                        }
                     }
                 }
 
@@ -149,7 +158,6 @@ namespace LightsOutScriptMod
 
             Debug.Log($"[LightsOutScript] Total buildings found and logged: {totalBuildings}");
 
-            // The rest of your original mesh/block logging, nya~!
             var allBlocks = GameObject.FindObjectsOfType<DaggerfallRMBBlock>();
             foreach (var block in allBlocks)
             {
