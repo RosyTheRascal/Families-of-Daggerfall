@@ -75,15 +75,29 @@ namespace LightsOutScriptMod
 
                 var blockGrid = new Dictionary<(int x, int y), DaggerfallRMBBlock>();
 
-                if (width == 1 && height == 1 && blocks.Length == 1)
+                if (blocks.Length == width * height)
                 {
-                    // Special case: village, just map the only block to (0,0)!
+                    // Sort blocks by Z (south to north), then X (west to east)
+                    var sortedBlocks = blocks.OrderBy(b => b.transform.position.z).ThenBy(b => b.transform.position.x).ToArray();
+
+                    for (int y = 0; y < height; y++)
+                    {
+                        for (int x = 0; x < width; x++)
+                        {
+                            int idx = y * width + x;
+                            blockGrid[(x, y)] = sortedBlocks[idx];
+                            Debug.Log($"[LightsOutScript][DBG] Auto-mapped block '{sortedBlocks[idx].name}' at {sortedBlocks[idx].transform.position} to grid ({x},{y})");
+                        }
+                    }
+                }
+                else if (width == 1 && height == 1 && blocks.Length == 1)
+                {
                     blockGrid[(0, 0)] = blocks[0];
                     Debug.Log($"[LightsOutScript][DBG] Special case: village with 1x1 grid, mapped block '{blocks[0].name}' at {blocks[0].transform.position} to (0,0)");
                 }
                 else
                 {
-                    // Normal mapping for towns/cities
+                    // Fallback to old (city) logic if weird mismatch
                     foreach (var block in blocks)
                     {
                         Vector3 wp = block.transform.position;
