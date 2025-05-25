@@ -331,8 +331,8 @@ namespace LightsOutScriptMod
         // (｡･ω･｡)ﾉ♡ spawns a cute facade for each non-residential building (faction > 0) at its world position!
         void CreateFacadesForNonResidentials()
         {
-            // get all building info with positions, factions, etc.
-            var buildings = CollectAndLogBuildingWorldspaceInfo();
+            // use the method that actually returns the list!
+            var buildings = GetAllBuildingWorldInfo();
 
             int facades = 0;
             foreach (var b in buildings)
@@ -342,14 +342,14 @@ namespace LightsOutScriptMod
                     continue;
 
                 // spawn a new GameObject as the facade
-                GameObject facadeGO = GameObject.CreatePrimitive(PrimitiveType.Cube); // just a cube for now, you can swap in a mesh later!
+                GameObject facadeGO = GameObject.CreatePrimitive(PrimitiveType.Cube); // cute cube for now!
                 facadeGO.name = $"Facade_{b.buildingKey}_{b.buildingType}";
 
                 // set position to building world position
                 facadeGO.transform.position = b.worldPos;
 
                 // make it just a little bigger than 1 unit so it "covers" the windows
-                facadeGO.transform.localScale = new Vector3(8f, 8f, 8f); // you may need to adjust this to fit your buildings
+                facadeGO.transform.localScale = new Vector3(8f, 8f, 8f); // adjust if you want!
 
                 // remove collider so you can still click doors and stuff
                 var collider = facadeGO.GetComponent<Collider>();
@@ -360,7 +360,7 @@ namespace LightsOutScriptMod
                 if (renderer)
                 {
                     var mat = new Material(Shader.Find("Standard"));
-                    mat.color = new Color(0.1f, 0.1f, 0.1f, 0.85f); // dark and transparent
+                    mat.color = new Color(0.1f, 0.1f, 0.1f, 0.85f); // dark and a bit transparent
                     mat.SetColor("_EmissionColor", Color.black);
                     mat.DisableKeyword("_EMISSION");
                     renderer.material = mat;
