@@ -82,7 +82,7 @@ namespace LightsOutScriptMod
                         for (int x = 0; x < width; x++)
                         {
                             Vector3 expected = cityOrigin + new Vector3(x * rmbSize, 0, y * rmbSize);
-                            // Ignore Y (height): compare only X and Z
+                            // UwU: Ignore Y! Only compare X and Z positions, nya~
                             float dx = wp.x - expected.x;
                             float dz = wp.z - expected.z;
                             if ((dx * dx + dz * dz) < fuzz * fuzz)
@@ -138,7 +138,7 @@ namespace LightsOutScriptMod
 
             Debug.Log($"[LightsOutScript] Total buildings found and logged: {totalBuildings}");
 
-            // Rest of your original mesh/block logging, nya~!
+            // The rest of your original mesh/block logging, nya~!
             var allBlocks = GameObject.FindObjectsOfType<DaggerfallRMBBlock>();
             foreach (var block in allBlocks)
             {
