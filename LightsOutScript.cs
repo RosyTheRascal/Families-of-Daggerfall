@@ -57,7 +57,7 @@ namespace LightsOutScriptMod
 
         public void CollectAndLogBuildingWorldspaceInfo()
         {
-            // 1. Find ALL RMB blocks in the scene, not just under DaggerfallLocation, nya~
+            // Find all RMB blocks in the scene, nya~
             var allBlocks = GameObject.FindObjectsOfType<DaggerfallRMBBlock>();
 
             Debug.Log($"[LightsOutScript] Found {allBlocks.Length} RMB blocks in the entire scene, nya!");
@@ -65,13 +65,13 @@ namespace LightsOutScriptMod
             int totalBuildings = 0;
             foreach (var block in allBlocks)
             {
-                // Log the world position of the RMB block itself!
+                // Log world position of the RMB block itself!
                 Debug.Log($"[LightsOutScript] RMB Block '{block.name}' world position: {block.transform.position}");
 
                 int childCount = 0;
                 int meshCount = 0;
 
-                // Log all direct children of the block for investigation
+                // Old logic: log all direct children for investigation
                 foreach (Transform child in block.transform)
                 {
                     childCount++;
@@ -88,7 +88,33 @@ namespace LightsOutScriptMod
                 }
                 Debug.Log($"[LightsOutScript][DBG] RMB Block '{block.name}' had {childCount} children, {meshCount} with DaggerfallMesh, nya!");
 
-                totalBuildings += meshCount;
+                // -------- NEW LOGIC: Enumerate buildings by BuildingDirectory! --------
+                // Look for BuildingDirectory on this block or its children!
+                var bds = block.GetComponentsInChildren<DaggerfallWorkshop.Game.BuildingDirectory>(true);
+                int buildingsInBlock = 0;
+                foreach (var bd in bds)
+                {
+                    // Use reflection to access the private 'buildingDict' field
+                    var field = typeof(DaggerfallWorkshop.Game.BuildingDirectory).GetField("buildingDict", BindingFlags.NonPublic | BindingFlags.Instance);
+                    var dict = field?.GetValue(bd) as Dictionary<int, DaggerfallWorkshop.Game.BuildingSummary>;
+                    if (dict == null)
+                    {
+                        Debug.LogWarning($"[LightsOutScript][WARN] BuildingDirectory on block '{block.name}' has no buildingDict, nya?!");
+                        continue;
+                    }
+
+                    foreach (var kvp in dict)
+                    {
+                        var key = kvp.Key;
+                        var summary = kvp.Value;
+                        // Convert from block-local to worldspace
+                        Vector3 worldPos = block.transform.TransformPoint(summary.Position);
+                        Debug.Log($"[LightsOutScript] Building Key={key} Type={summary.BuildingType} Faction={summary.FactionId} WorldPos={worldPos} (block: {block.name})");
+                        buildingsInBlock++;
+                        totalBuildings++;
+                    }
+                }
+                Debug.Log($"[LightsOutScript] RMB Block '{block.name}' had {buildingsInBlock} buildings from BuildingDirectory (in addition to {meshCount} mesh objects), nya!");
             }
 
             Debug.Log($"[LightsOutScript] Total buildings found and logged: {totalBuildings} (in {allBlocks.Length} blocks)");
