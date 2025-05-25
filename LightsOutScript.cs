@@ -60,24 +60,25 @@ namespace LightsOutScriptMod
             var allLocations = GameObject.FindObjectsOfType<DaggerfallLocation>();
             int totalBuildings = 0;
             float rmbSize = 4096f;
-            float fuzz = 2.0f; // fudge factor for matching, a little higher in case of float rounding
+            float fuzz = 2.0f; // fudge for float rounding
 
             foreach (var location in allLocations)
             {
                 // Get world position of this city/town
                 Vector3 cityOrigin = location.transform.position;
 
-                // Build grid mapping: (x, y) => RMB block, using WORLD positions not local!
-                var blockGrid = new Dictionary<(int x, int y), DaggerfallRMBBlock>();
-                var blocks = GameObject.FindObjectsOfType<DaggerfallRMBBlock>();
+                // UwU: Only use RMB blocks that are children of THIS location!
+                var blocks = location.GetComponentsInChildren<DaggerfallRMBBlock>(true);
 
                 int width = location.Summary.BlockWidth;
                 int height = location.Summary.BlockHeight;
 
+                // Build grid mapping: (x, y) => RMB block, by comparing world positions
+                var blockGrid = new Dictionary<(int x, int y), DaggerfallRMBBlock>();
+
                 foreach (var block in blocks)
                 {
                     Vector3 wp = block.transform.position;
-                    // Try to match this block to a grid slot in this city by world position
                     bool found = false;
                     for (int y = 0; y < height; y++)
                     {
@@ -86,7 +87,6 @@ namespace LightsOutScriptMod
                             Vector3 expected = cityOrigin + new Vector3(x * rmbSize, 0, y * rmbSize);
                             if ((wp - expected).sqrMagnitude < fuzz * fuzz)
                             {
-                                // Only assign if this block isn't already mapped (if multiple blocks, first wins)
                                 if (!blockGrid.ContainsKey((x, y)))
                                     blockGrid[(x, y)] = block;
                                 found = true;
@@ -138,7 +138,7 @@ namespace LightsOutScriptMod
 
             Debug.Log($"[LightsOutScript] Total buildings found and logged: {totalBuildings}");
 
-            // The rest of your original mesh/block logging...
+            // Your original mesh/block logging, untouched!
             var allBlocks = GameObject.FindObjectsOfType<DaggerfallRMBBlock>();
             foreach (var block in allBlocks)
             {
