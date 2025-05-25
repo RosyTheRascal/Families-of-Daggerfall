@@ -60,29 +60,35 @@ namespace LightsOutScriptMod
             var allLocations = GameObject.FindObjectsOfType<DaggerfallLocation>();
             int totalBuildings = 0;
             float rmbSize = 4096f;
-            float fuzz = 1.0f; // how close must localPosition be to "expected" to count as a match
+            float fuzz = 2.0f; // fudge factor for matching, a little higher in case of float rounding
 
             foreach (var location in allLocations)
             {
-                // Build grid mapping: (x, y) => RMB block, using grid order instead of float math, nya!
+                // Get world position of this city/town
+                Vector3 cityOrigin = location.transform.position;
+
+                // Build grid mapping: (x, y) => RMB block, using WORLD positions not local!
                 var blockGrid = new Dictionary<(int x, int y), DaggerfallRMBBlock>();
-                var blocks = location.GetComponentsInChildren<DaggerfallRMBBlock>(true); // true for all, even inactive
+                var blocks = GameObject.FindObjectsOfType<DaggerfallRMBBlock>();
+
                 int width = location.Summary.BlockWidth;
                 int height = location.Summary.BlockHeight;
 
                 foreach (var block in blocks)
                 {
-                    // Try to guess which grid slot this block is in by comparing its localPosition to expected
-                    Vector3 lp = block.transform.localPosition;
+                    Vector3 wp = block.transform.position;
+                    // Try to match this block to a grid slot in this city by world position
                     bool found = false;
                     for (int y = 0; y < height; y++)
                     {
                         for (int x = 0; x < width; x++)
                         {
-                            Vector3 expected = new Vector3(x * rmbSize, lp.y, y * rmbSize);
-                            if ((lp - expected).sqrMagnitude < fuzz * fuzz)
+                            Vector3 expected = cityOrigin + new Vector3(x * rmbSize, 0, y * rmbSize);
+                            if ((wp - expected).sqrMagnitude < fuzz * fuzz)
                             {
-                                blockGrid[(x, y)] = block;
+                                // Only assign if this block isn't already mapped (if multiple blocks, first wins)
+                                if (!blockGrid.ContainsKey((x, y)))
+                                    blockGrid[(x, y)] = block;
                                 found = true;
                                 break;
                             }
@@ -91,7 +97,7 @@ namespace LightsOutScriptMod
                     }
                     if (!found)
                     {
-                        Debug.LogWarning($"[LightsOutScript][WARN] RMB block '{block.name}' at {lp} could not be mapped to grid position in '{location.name}'!");
+                        Debug.LogWarning($"[LightsOutScript][WARN] RMB block '{block.name}' at {wp} could not be mapped to grid position in '{location.name}'!");
                     }
                 }
 
