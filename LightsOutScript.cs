@@ -52,6 +52,7 @@ namespace LightsOutScriptMod
             {
                 CollectAndLogBuildingWorldspaceInfo();
                 ListAllWindowMaterialsAndLogPositions();
+                MapAndLogWindowsByBuildingKey();
             }
 
         }
@@ -234,6 +235,88 @@ namespace LightsOutScriptMod
                 }
             }
             Debug.Log($"[LightsOut][WindowDump] Total windows found: {count} nya~!");
+        }
+
+        // (｡･ω･｡)ﾉ♡ This will map each window in the scene to its nearest building (via static door), and log the totals, nya!
+        void MapAndLogWindowsByBuildingKey()
+        {
+            // 1. Gather all buildings with their buildingKeys
+            var buildingMap = new Dictionary<int, string>(); // buildingKey -> buildingType (for logging)
+            foreach (var location in FindObjectsOfType<DaggerfallLocation>())
+            {
+                foreach (var bd in location.GetComponentsInChildren<DaggerfallWorkshop.Game.BuildingDirectory>())
+                {
+                    foreach (var summary in GetAllBuildingSummaries(bd))
+                    {
+                        buildingMap[summary.buildingKey] = summary.BuildingType.ToString();
+                    }
+                }
+            }
+
+            // 2. Gather all static doors, grouped by buildingKey
+            var doorPositions = new Dictionary<int, List<Vector3>>(); // buildingKey -> door world positions
+            foreach (var doorsObj in FindObjectsOfType<DaggerfallWorkshop.DaggerfallStaticDoors>())
+            {
+                foreach (var door in doorsObj.Doors)
+                {
+                    if (!doorPositions.ContainsKey(door.buildingKey))
+                        doorPositions[door.buildingKey] = new List<Vector3>();
+                    doorPositions[door.buildingKey].Add(DaggerfallWorkshop.DaggerfallStaticDoors.GetDoorPosition(door));
+                }
+            }
+
+            // 3. Gather all window candidates (world position)
+            var windowList = new List<(Material mat, Vector3 pos)>();
+            foreach (var mr in GameObject.FindObjectsOfType<MeshRenderer>())
+            {
+                Vector3 center = mr.bounds.center;
+                foreach (var mat in mr.materials)
+                {
+                    if (IsProbablyWindow(mat))
+                        windowList.Add((mat, center));
+                }
+            }
+
+            // 4. Assign each window to the nearest door/buildingKey
+            var buildingWindows = new Dictionary<int, List<Vector3>>(); // buildingKey -> window positions
+            float maxAssignDist = 16f; // fudge this if needed, nya~
+            foreach (var (mat, winPos) in windowList)
+            {
+                float minDist = float.MaxValue;
+                int closestKey = -1;
+                foreach (var kvp in doorPositions)
+                {
+                    foreach (var doorPos in kvp.Value)
+                    {
+                        float dist = Vector3.Distance(winPos, doorPos);
+                        if (dist < minDist && dist < maxAssignDist)
+                        {
+                            minDist = dist;
+                            closestKey = kvp.Key;
+                        }
+                    }
+                }
+                if (closestKey != -1)
+                {
+                    if (!buildingWindows.ContainsKey(closestKey))
+                        buildingWindows[closestKey] = new List<Vector3>();
+                    buildingWindows[closestKey].Add(winPos);
+                }
+                else
+                {
+                    Debug.LogWarning($"[LightsOut][WindowDump] Window at {winPos} could not be mapped to a building!");
+                }
+            }
+
+            // 5. Log the window count per building, nya!
+            int totWindows = 0;
+            foreach (var kvp in buildingWindows)
+            {
+                string btype = buildingMap.ContainsKey(kvp.Key) ? buildingMap[kvp.Key] : "???";
+                Debug.Log($"[LightsOut][WindowDump] BuildingKey={kvp.Key} ({btype}) has {kvp.Value.Count} windows.");
+                totWindows += kvp.Value.Count;
+            }
+            Debug.Log($"[LightsOut][WindowDump] Total windows mapped to buildings: {totWindows} nya~!");
         }
     }
 }
