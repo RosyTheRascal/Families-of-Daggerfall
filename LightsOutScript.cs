@@ -328,71 +328,48 @@ namespace LightsOutScriptMod
         }
 
         // (｡･ω･｡)ﾉ♡ spawn facades fow each non-residential building!
+        // (｡･ω･｡)ﾉ♡ spawns a cute facade for each non-residential building (faction > 0) at its world position!
         void CreateFacadesForNonResidentials()
         {
+            // get all building info with positions, factions, etc.
+            var buildings = CollectAndLogBuildingWorldspaceInfo();
+
             int facades = 0;
-            foreach (var location in FindObjectsOfType<DaggerfallLocation>())
+            foreach (var b in buildings)
             {
-                var locationTransform = location.transform;
-                foreach (var block in location.GetComponentsInChildren<DaggerfallWorkshop.DaggerfallRMBBlock>())
+                // only do facades for faction > 0
+                if (b.factionId == 0)
+                    continue;
+
+                // spawn a new GameObject as the facade
+                GameObject facadeGO = GameObject.CreatePrimitive(PrimitiveType.Cube); // just a cube for now, you can swap in a mesh later!
+                facadeGO.name = $"Facade_{b.buildingKey}_{b.buildingType}";
+
+                // set position to building world position
+                facadeGO.transform.position = b.worldPos;
+
+                // make it just a little bigger than 1 unit so it "covers" the windows
+                facadeGO.transform.localScale = new Vector3(8f, 8f, 8f); // you may need to adjust this to fit your buildings
+
+                // remove collider so you can still click doors and stuff
+                var collider = facadeGO.GetComponent<Collider>();
+                if (collider) DestroyImmediate(collider);
+
+                // set material to something obvious, emission off (so it's dark)
+                var renderer = facadeGO.GetComponent<MeshRenderer>();
+                if (renderer)
                 {
-                    // get the mesh and materials of the block (combinedmodel)
-                    var meshFilter = block.GetComponentInChildren<MeshFilter>();
-                    var meshRenderer = block.GetComponentInChildren<MeshRenderer>();
-                    if (meshFilter == null || meshRenderer == null)
-                    {
-                        Debug.LogWarning("[LightsOutScript] No mesh found in RMB block!");
-                        continue;
-                    }
-
-                    var blockMesh = meshFilter.sharedMesh;
-                    var blockMaterials = meshRenderer.sharedMaterials;
-
-                    // for every building in this block
-                    foreach (var bd in block.GetComponentsInChildren<DaggerfallWorkshop.Game.BuildingDirectory>())
-                    {
-                        foreach (var summary in GetAllBuildingSummaries(bd))
-                        {
-                            // only spawn facade if faction > 0
-                            if (summary.FactionId == 0)
-                                continue;
-
-                            // calculate world position of building
-                            Vector3 worldPos = block.transform.TransformPoint(summary.Position);
-
-                            // create new gameobject for facade
-                            var facadeGO = new GameObject("Facade_" + summary.buildingKey);
-                            facadeGO.transform.position = worldPos;
-                            facadeGO.transform.rotation = block.transform.rotation;
-                            facadeGO.transform.localScale = block.transform.lossyScale * 1.01f; // slightly bigger to avoid z-fighting
-
-                            // add mesh filter and renderer
-                            var newMF = facadeGO.AddComponent<MeshFilter>();
-                            var newMR = facadeGO.AddComponent<MeshRenderer>();
-                            newMF.sharedMesh = blockMesh;
-
-                            // copy materials and strip emission from windows
-                            Material[] newMats = new Material[blockMaterials.Length];
-                            for (int i = 0; i < blockMaterials.Length; i++)
-                            {
-                                var origMat = blockMaterials[i];
-                                Material mat = new Material(origMat); // copy so we don't affect original
-                                if (IsProbablyWindow(mat))
-                                {
-                                    mat.SetColor("_EmissionColor", Color.black);
-                                    mat.DisableKeyword("_EMISSION");
-                                }
-                                newMats[i] = mat;
-                            }
-                            newMR.materials = newMats;
-
-                            // no collider needed (facade should be non-blocking)
-                            facades++;
-                        }
-                    }
+                    var mat = new Material(Shader.Find("Standard"));
+                    mat.color = new Color(0.1f, 0.1f, 0.1f, 0.85f); // dark and transparent
+                    mat.SetColor("_EmissionColor", Color.black);
+                    mat.DisableKeyword("_EMISSION");
+                    renderer.material = mat;
                 }
+
+                Debug.Log($"[LightsOutScript] Facade spawned for {b.buildingType} (faction={b.factionId}) at {b.worldPos} (buildingKey={b.buildingKey})");
+                facades++;
             }
-            Debug.Log("[LightsOutScript] Facades spawned: " + facades);
+            Debug.Log($"[LightsOutScript] Facades spawned: {facades}");
         }
     }
 }
