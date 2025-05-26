@@ -157,12 +157,12 @@ namespace LightsOutScriptMod
                         if (blockGrid.TryGetValue((layoutX, layoutY), out var rmbBlock))
                         {
                             Vector3 worldPos = rmbBlock.transform.TransformPoint(summary.Position);
-                            Debug.Log($"[LightsOutScript] {location.name} Block=({layoutX},{layoutY}) record={recordIndex} Faction={summary.FactionId} Type={summary.BuildingType} WorldPos={worldPos} (buildingKey={key})");
+                            Debug.Log($"[LightsOutScript] {location.name} Block=({layoutX},{layoutY}) record={recordIndex} Faction={summary.FactionId} Type={summary.BuildingType} WorldPos={worldPos} ([...]");
                         }
                         else
                         {
                             Debug.LogWarning($"[LightsOutScript][WARN] Could not find RMB block at ({layoutX},{layoutY}) in '{location.name}' for buildingKey={key}, logging localPos only.");
-                            Debug.Log($"[LightsOutScript] {location.name} Block=({layoutX},{layoutY}) record={recordIndex} Faction={summary.FactionId} Type={summary.BuildingType} LocalPos={summary.Position} (buildingKey={key})");
+                            Debug.Log($"[LightsOutScript] {location.name} Block=({layoutX},{layoutY}) record={recordIndex} Faction={summary.FactionId} Type={summary.BuildingType} LocalPos={summary.Position} ([...]");
                         }
                         totalBuildings++;
                     }
@@ -176,23 +176,33 @@ namespace LightsOutScriptMod
             {
                 Debug.Log($"[LightsOutScript] RMB Block '{block.name}' world position: {block.transform.position}");
 
-                int childCount = 0;
-                int meshCount = 0;
-                foreach (Transform child in block.transform)
+                // this is the onwy pawt that changed, nya~
+                Transform modelsChild = block.transform.Find("Models");
+                if (modelsChild != null)
                 {
-                    childCount++;
-                    var mesh = child.GetComponent<DaggerfallMesh>();
-                    if (mesh != null)
+                    Transform combinedModels = modelsChild.Find("CombinedModels");
+                    if (combinedModels != null)
                     {
-                        Debug.Log($"[LightsOutScript] Building GameObject: '{child.name}' | World Pos: {child.position} (block: {block.name})");
-                        meshCount++;
+                        var mesh = combinedModels.GetComponent<DaggerfallMesh>();
+                        if (mesh != null)
+                        {
+                            Debug.Log($"[LightsOutScript] Found CombinedModels GameObject with DaggerfallMesh in block '{block.name}': '{combinedModels.name}' | World Pos: {combinedModels.position}");
+                            Debug.Log($"[LightsOutScript][DBG] RMB Block '{block.name}' Models->CombinedModels had 1 child (itself!), 1 with DaggerfallMesh, nya!");
+                        }
+                        else
+                        {
+                            Debug.Log($"[LightsOutScript][DBG] RMB Block '{block.name}' Models->CombinedModels exists but has no DaggerfallMesh, nya? (name: '{combinedModels.name}')");
+                        }
                     }
                     else
                     {
-                        Debug.Log($"[LightsOutScript][DBG] Child '{child.name}' has no DaggerfallMesh (type: {child.GetType()})");
+                        Debug.Log($"[LightsOutScript][DBG] RMB Block '{block.name}' has no Models->CombinedModels child, nya!");
                     }
                 }
-                Debug.Log($"[LightsOutScript][DBG] RMB Block '{block.name}' had {childCount} children, {meshCount} with DaggerfallMesh, nya!");
+                else
+                {
+                    Debug.Log($"[LightsOutScript][DBG] RMB Block '{block.name}' has no Models child, nya!");
+                }
             }
 
             var player = GameManager.Instance.PlayerObject;
@@ -201,5 +211,6 @@ namespace LightsOutScriptMod
             else
                 Debug.LogWarning("[LightsOutScript] Could not find player object to log position, nya~");
         }
+
     }
 }
