@@ -257,20 +257,9 @@ namespace LightsOutScriptMod
                             DaggerfallWorkshop.Game.BuildingDirectory.ReverseBuildingKey(summary.buildingKey, out layoutX, out layoutY, out recordIndex);
 
                             int trueFaction = summary.FactionId; // fallback
-                                                                 // Use actual RMB data if possible
                             if (hasBlock && recordIndex >= 0 && recordIndex < dfBlock.RmbBlock.SubRecords.Length)
                             {
-                                // Extra debug to see all available fields!
-                                var subRecord = dfBlock.RmbBlock.SubRecords[recordIndex];
-                                // Try to use .Building.Faction if it exists
-                                try
-                                {
-                                    trueFaction = subRecord.Building.Faction;
-                                }
-                                catch (Exception e)
-                                {
-                                    Debug.LogWarning($"[LightsOutScript][nyan~] Could not access subRecord.Building.Faction! Fields: [{string.Join(", ", subRecord.GetType().GetFields().Select(f => f.Name))}]");
-                                }
+                                trueFaction = dfBlock.RmbBlock.SubRecords[recordIndex].Faction;
                             }
 
                             Vector3 worldPos = block.transform.TransformPoint(summary.Position);
