@@ -226,6 +226,30 @@ namespace LightsOutScriptMod
             return dict != null ? (IEnumerable<BuildingSummary>)dict.Values : new List<BuildingSummary>();
         }
 
+        // (o･ω･o) This collects all building info (key, worldPos, factionId, type) as a list!
+        List<(int buildingKey, Vector3 worldPos, int factionId, string buildingType)> GetAllBuildingWorldspaceInfo()
+        {
+            var buildings = new List<(int, Vector3, int, string)>();
+            foreach (var location in FindObjectsOfType<DaggerfallLocation>())
+            {
+                var locationTransform = location.transform;
+                foreach (var block in location.GetComponentsInChildren<DaggerfallWorkshop.DaggerfallRMBBlock>())
+                {
+                    string blockName = block.name;
+                    foreach (var bd in block.GetComponentsInChildren<DaggerfallWorkshop.Game.BuildingDirectory>())
+                    {
+                        // uwu: you already have GetAllBuildingSummaries(bd)!
+                        foreach (var summary in GetAllBuildingSummaries(bd))
+                        {
+                            Vector3 worldPos = block.transform.TransformPoint(summary.Position);
+                            buildings.Add((summary.buildingKey, worldPos, summary.FactionId, summary.BuildingType.ToString()));
+                        }
+                    }
+                }
+            }
+            return buildings;
+        }
+
         // =^._.^= ∫  List and log every window material in the scene, nya!
         void ListAllWindowMaterialsAndLogPositions()
         {
@@ -329,38 +353,32 @@ namespace LightsOutScriptMod
 
         // (｡･ω･｡)ﾉ♡ spawn facades fow each non-residential building!
         // (｡･ω･｡)ﾉ♡ spawns a cute facade for each non-residential building (faction > 0) at its world position!
+        // (｡･ω･｡)ﾉ♡ spawn a facade for every non-residential building!
         void CreateFacadesForNonResidentials()
         {
-            // use the method that actually returns the list!
-            var buildings = GetAllBuildingWorldInfo();
+            var buildings = GetAllBuildingWorldspaceInfo();
 
             int facades = 0;
             foreach (var b in buildings)
             {
-                // only do facades for faction > 0
+                // only if not residential (factionId != 0)
                 if (b.factionId == 0)
                     continue;
 
-                // spawn a new GameObject as the facade
-                GameObject facadeGO = GameObject.CreatePrimitive(PrimitiveType.Cube); // cute cube for now!
+                GameObject facadeGO = GameObject.CreatePrimitive(PrimitiveType.Cube); // cute cube!
                 facadeGO.name = $"Facade_{b.buildingKey}_{b.buildingType}";
 
-                // set position to building world position
                 facadeGO.transform.position = b.worldPos;
+                facadeGO.transform.localScale = new Vector3(8f, 8f, 8f); // make it fit!
 
-                // make it just a little bigger than 1 unit so it "covers" the windows
-                facadeGO.transform.localScale = new Vector3(8f, 8f, 8f); // adjust if you want!
-
-                // remove collider so you can still click doors and stuff
                 var collider = facadeGO.GetComponent<Collider>();
                 if (collider) DestroyImmediate(collider);
 
-                // set material to something obvious, emission off (so it's dark)
                 var renderer = facadeGO.GetComponent<MeshRenderer>();
                 if (renderer)
                 {
                     var mat = new Material(Shader.Find("Standard"));
-                    mat.color = new Color(0.1f, 0.1f, 0.1f, 0.85f); // dark and a bit transparent
+                    mat.color = new Color(0.1f, 0.1f, 0.1f, 0.85f);
                     mat.SetColor("_EmissionColor", Color.black);
                     mat.DisableKeyword("_EMISSION");
                     renderer.material = mat;
