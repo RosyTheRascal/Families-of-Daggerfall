@@ -229,7 +229,8 @@ namespace LightsOutScriptMod
         // (o･ω･o) This collects all building info (key, worldPos, factionId, type) as a list!
         List<(int buildingKey, Vector3 worldPos, int factionId, string buildingType)> GetAllBuildingWorldspaceInfo()
         {
-            var buildings = new List<(int, Vector3, int, string)>();
+            var result = new List<(int, Vector3, int, string)>();
+            int nonZeroFactionCount = 0;
             foreach (var location in FindObjectsOfType<DaggerfallLocation>())
             {
                 var locationTransform = location.transform;
@@ -238,16 +239,23 @@ namespace LightsOutScriptMod
                     string blockName = block.name;
                     foreach (var bd in block.GetComponentsInChildren<DaggerfallWorkshop.Game.BuildingDirectory>())
                     {
-                        // uwu: you already have GetAllBuildingSummaries(bd)!
                         foreach (var summary in GetAllBuildingSummaries(bd))
                         {
                             Vector3 worldPos = block.transform.TransformPoint(summary.Position);
-                            buildings.Add((summary.buildingKey, worldPos, summary.FactionId, summary.BuildingType.ToString()));
+                            int factionId = summary.FactionId;
+                            string buiwdingType = summary.BuildingType.ToString();
+
+                            result.Add((summary.buildingKey, worldPos, factionId, buiwdingType));
+
+                            Debug.Log($"[LightsOutScript] DaggerfallLocation [Region={location.Summary.RegionName}, Name={location.Summary.LocationName}] Block={blockName} record={summary.buildingKey} Faction={factionId} Type={buiwdingType} WorldPos=({worldPos.x}, {worldPos.y}, {worldPos.z}) (buildingKey={summary.buildingKey})");
+                            if (factionId != 0)
+                                nonZeroFactionCount++;
                         }
                     }
                 }
             }
-            return buildings;
+            Debug.Log($"[LightsOutScript] Total non-0-faction buildings: {nonZeroFactionCount}");
+            return result;
         }
 
         // =^._.^= ∫  List and log every window material in the scene, nya!
@@ -356,29 +364,33 @@ namespace LightsOutScriptMod
         // (｡･ω･｡)ﾉ♡ spawn a facade for every non-residential building!
         void CreateFacadesForNonResidentials()
         {
-            var buildings = GetAllBuildingWorldspaceInfo();
-
+            var buildings = CollectAndLogBuildingWorldspaceInfo();
             int facades = 0;
+
             foreach (var b in buildings)
             {
-                // only if not residential (factionId != 0)
                 if (b.factionId == 0)
                     continue;
 
-                GameObject facadeGO = GameObject.CreatePrimitive(PrimitiveType.Cube); // cute cube!
+                GameObject facadeGO = GameObject.CreatePrimitive(PrimitiveType.Cube);
                 facadeGO.name = $"Facade_{b.buildingKey}_{b.buildingType}";
 
-                facadeGO.transform.position = b.worldPos;
-                facadeGO.transform.localScale = new Vector3(8f, 8f, 8f); // make it fit!
+                // Set position (keep y the same, or maybe raise it a bit so it doesn't intersect ground)
+                facadeGO.transform.position = b.worldPos + new Vector3(0, 4f, 0); // raise by 4 units for visibility, adjust as needed
 
+                // Scale the cube to kinda cover a buiwding, you can tweak
+                facadeGO.transform.localScale = new Vector3(8f, 8f, 8f);
+
+                // Remove collider so player can still click doors/windows
                 var collider = facadeGO.GetComponent<Collider>();
                 if (collider) DestroyImmediate(collider);
 
+                // Make it look shadowy/dark
                 var renderer = facadeGO.GetComponent<MeshRenderer>();
                 if (renderer)
                 {
                     var mat = new Material(Shader.Find("Standard"));
-                    mat.color = new Color(0.1f, 0.1f, 0.1f, 0.85f);
+                    mat.color = new Color(0.1f, 0.1f, 0.1f, 0.85f); // dark and kinda see-thru
                     mat.SetColor("_EmissionColor", Color.black);
                     mat.DisableKeyword("_EMISSION");
                     renderer.material = mat;
