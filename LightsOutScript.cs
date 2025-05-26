@@ -51,6 +51,7 @@ namespace LightsOutScriptMod
             if (Input.GetKeyDown(KeyCode.Semicolon)) // Pick any debug key you like
             {
                 CollectAndLogBuildingWorldspaceInfo();
+                SpawnCubesAtFactionBuildings();
             }
         }
 
@@ -212,5 +213,107 @@ namespace LightsOutScriptMod
                 Debug.LogWarning("[LightsOutScript] Could not find player object to log position, nya~");
         }
 
+        public void SpawnCubesAtFactionBuildings()
+        {
+            var allLocations = GameObject.FindObjectsOfType<DaggerfallLocation>();
+            float cubeSize = 3.0f; // adjust as you wish, nya~
+            Color cubeColor = Color.white;
+
+            // types to skip (House1, House2, House3)
+            var houseTypes = new HashSet<DaggerfallWorkshop.Game.BuildingTypes>
+    {
+        DaggerfallWorkshop.Game.BuildingTypes.House1,
+        DaggerfallWorkshop.Game.BuildingTypes.House2,
+        DaggerfallWorkshop.Game.BuildingTypes.House3,
+    };
+
+            foreach (var location in allLocations)
+            {
+                var blocks = location.GetComponentsInChildren<DaggerfallRMBBlock>(true);
+                int width = location.Summary.BlockWidth;
+                int height = location.Summary.BlockHeight;
+
+                var blockGrid = new Dictionary<(int x, int y), DaggerfallRMBBlock>();
+                if (blocks.Length == width * height)
+                {
+                    var sortedBlocks = blocks.OrderBy(b => b.transform.position.z).ThenBy(b => b.transform.position.x).ToArray();
+                    for (int y = 0; y < height; y++)
+                    {
+                        for (int x = 0; x < width; x++)
+                        {
+                            int idx = y * width + x;
+                            blockGrid[(x, y)] = sortedBlocks[idx];
+                        }
+                    }
+                }
+                else if (width == 1 && height == 1 && blocks.Length == 1)
+                {
+                    blockGrid[(0, 0)] = blocks[0];
+                }
+                else
+                {
+                    float rmbSize = 4096f;
+                    float fuzz = 4.0f;
+                    Vector3 cityOrigin = location.transform.position;
+                    foreach (var block in blocks)
+                    {
+                        Vector3 wp = block.transform.position;
+                        bool found = false;
+                        for (int y = 0; y < height; y++)
+                        {
+                            for (int x = 0; x < width; x++)
+                            {
+                                Vector3 expected = cityOrigin + new Vector3(x * rmbSize, 0, y * rmbSize);
+                                float dx = wp.x - expected.x;
+                                float dz = wp.z - expected.z;
+                                float dist = Mathf.Sqrt(dx * dx + dz * dz);
+                                if (dist < fuzz)
+                                {
+                                    if (!blockGrid.ContainsKey((x, y)))
+                                        blockGrid[(x, y)] = block;
+                                    found = true;
+                                    break;
+                                }
+                            }
+                            if (found) break;
+                        }
+                    }
+                }
+
+                foreach (var bd in location.GetComponentsInChildren<DaggerfallWorkshop.Game.BuildingDirectory>())
+                {
+                    var field = typeof(DaggerfallWorkshop.Game.BuildingDirectory).GetField("buildingDict", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+                    var dict = field?.GetValue(bd) as Dictionary<int, BuildingSummary>;
+                    if (dict == null)
+                        continue;
+
+                    foreach (var kvp in dict)
+                    {
+                        int key = kvp.Key;
+                        BuildingSummary summary = kvp.Value;
+
+                        int layoutX, layoutY, recordIndex;
+                        DaggerfallWorkshop.Game.BuildingDirectory.ReverseBuildingKey(key, out layoutX, out layoutY, out recordIndex);
+
+                        // skip if building is a house, nya~
+                        if (houseTypes.Contains(summary.BuildingType))
+                            continue;
+
+                        if (blockGrid.TryGetValue((layoutX, layoutY), out var rmbBlock))
+                        {
+                            Vector3 worldPos = rmbBlock.transform.TransformPoint(summary.Position);
+
+                            // spawn a white cube at worldPos, nya!
+                            var cube = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                            cube.transform.position = worldPos;
+                            cube.transform.localScale = new Vector3(cubeSize, cubeSize, cubeSize);
+                            var renderer = cube.GetComponent<Renderer>();
+                            renderer.material.color = cubeColor;
+                            cube.name = $"Dummy_{summary.BuildingType}_{location.name}_{layoutX}_{layoutY}_{recordIndex}";
+                        }
+                    }
+                }
+            }
+        }
     }
 }
