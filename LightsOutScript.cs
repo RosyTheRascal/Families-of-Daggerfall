@@ -364,7 +364,7 @@ namespace LightsOutScriptMod
         // (｡･ω･｡)ﾉ♡ spawn a facade for every non-residential building!
         void CreateFacadesForNonResidentials()
         {
-            var buildings = CollectAndLogBuildingWorldspaceInfo();
+            var buildings = GetAllBuildingWorldspaceInfo();
             int facades = 0;
 
             foreach (var b in buildings)
