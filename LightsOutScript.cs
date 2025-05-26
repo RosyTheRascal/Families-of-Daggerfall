@@ -52,8 +52,6 @@ namespace LightsOutScriptMod
             {
                 CollectAndLogBuildingWorldspaceInfo();
                 ListAllWindowMaterialsAndLogPositions();
-                //MapAndLogWindowsByBuildingKey();
-                CreateFacadesForNonResidentials();
             }
 
         }
@@ -219,58 +217,6 @@ namespace LightsOutScriptMod
             return hasWindowIndex && isDaggerfallShader && isEmissive;
         }
 
-        IEnumerable<BuildingSummary> GetAllBuildingSummaries(BuildingDirectory bd)
-        {
-            var field = typeof(BuildingDirectory).GetField("buildingDict", BindingFlags.NonPublic | BindingFlags.Instance);
-            var dict = field?.GetValue(bd) as Dictionary<int, BuildingSummary>;
-            return dict != null ? (IEnumerable<BuildingSummary>)dict.Values : new List<BuildingSummary>();
-        }
-
-        List<(int buildingKey, Vector3 worldPos, int factionId, string buildingType, BuildingSummary summary)> GetAllBuildingWorldInfo()
-        {
-            var result = new List<(int, Vector3, int, string, BuildingSummary)>();
-            foreach (var location in FindObjectsOfType<DaggerfallLocation>())
-            {
-                var locationTransform = location.transform;
-                foreach (var block in location.GetComponentsInChildren<DaggerfallWorkshop.DaggerfallRMBBlock>())
-                {
-                    string blockName = block.name;
-                    DFBlock dfBlock = default(DFBlock);
-                    bool hasBlock = true;
-                    try
-                    {
-                        dfBlock = DaggerfallUnity.Instance.ContentReader.BlockFileReader.GetBlock(blockName);
-                    }
-                    catch
-                    {
-                        hasBlock = false;
-                    }
-
-                    foreach (var bd in block.GetComponentsInChildren<DaggerfallWorkshop.Game.BuildingDirectory>())
-                    {
-                        var field = typeof(BuildingDirectory).GetField("buildingDict", BindingFlags.NonPublic | BindingFlags.Instance);
-                        var dict = field?.GetValue(bd) as Dictionary<int, BuildingSummary>;
-                        if (dict == null) continue;
-                        foreach (var summary in dict.Values)
-                        {
-                            int layoutX, layoutY, recordIndex;
-                            DaggerfallWorkshop.Game.BuildingDirectory.ReverseBuildingKey(summary.buildingKey, out layoutX, out layoutY, out recordIndex);
-
-                            int trueFaction = summary.FactionId; // fallback
-                            if (hasBlock && recordIndex >= 0 && recordIndex < dfBlock.RmbBlock.SubRecords.Length)
-                            {
-                                trueFaction = dfBlock.RmbBlock.SubRecords[recordIndex].Faction;
-                            }
-
-                            Vector3 worldPos = block.transform.TransformPoint(summary.Position);
-                            result.Add((summary.buildingKey, worldPos, trueFaction, summary.BuildingType.ToString(), summary));
-                        }
-                    }
-                }
-            }
-            return result;
-        }
-
         // =^._.^= ∫  List and log every window material in the scene, nya!
         void ListAllWindowMaterialsAndLogPositions()
         {
@@ -288,141 +234,6 @@ namespace LightsOutScriptMod
                 }
             }
             Debug.Log($"[LightsOut][WindowDump] Total windows found: {count} nya~!");
-        }
-
-        // (｡･ω･｡)ﾉ♡ This will map each window in the scene to its nearest building (via static door), and log the totals, nya!
-        void MapAndLogWindowsByBuildingKey()
-        {
-            // 1. Gather all buildings with their buildingKeys
-            var buildingMap = new Dictionary<int, string>(); // buildingKey -> buildingType (for logging)
-            foreach (var location in FindObjectsOfType<DaggerfallLocation>())
-            {
-                foreach (var bd in location.GetComponentsInChildren<DaggerfallWorkshop.Game.BuildingDirectory>())
-                {
-                    foreach (var summary in GetAllBuildingSummaries(bd))
-                    {
-                        buildingMap[summary.buildingKey] = summary.BuildingType.ToString();
-                    }
-                }
-            }
-
-            // 2. Gather all static doors, grouped by buildingKey
-            var doorPositions = new Dictionary<int, List<Vector3>>(); // buildingKey -> door world positions
-            foreach (var doorsObj in FindObjectsOfType<DaggerfallWorkshop.DaggerfallStaticDoors>())
-            {
-                foreach (var door in doorsObj.Doors)
-                {
-                    if (!doorPositions.ContainsKey(door.buildingKey))
-                        doorPositions[door.buildingKey] = new List<Vector3>();
-                    doorPositions[door.buildingKey].Add(DaggerfallWorkshop.DaggerfallStaticDoors.GetDoorPosition(door));
-                }
-            }
-
-            // 3. Gather all window candidates (world position)
-            var windowList = new List<(Material mat, Vector3 pos)>();
-            foreach (var mr in GameObject.FindObjectsOfType<MeshRenderer>())
-            {
-                Vector3 center = mr.bounds.center;
-                foreach (var mat in mr.materials)
-                {
-                    if (IsProbablyWindow(mat))
-                        windowList.Add((mat, center));
-                }
-            }
-
-            // 4. Assign each window to the nearest door/buildingKey
-            var buildingWindows = new Dictionary<int, List<Vector3>>(); // buildingKey -> window positions
-            float maxAssignDist = 16f; // fudge this if needed, nya~
-            foreach (var (mat, winPos) in windowList)
-            {
-                float minDist = float.MaxValue;
-                int closestKey = -1;
-                foreach (var kvp in doorPositions)
-                {
-                    foreach (var doorPos in kvp.Value)
-                    {
-                        float dist = Vector3.Distance(winPos, doorPos);
-                        if (dist < minDist && dist < maxAssignDist)
-                        {
-                            minDist = dist;
-                            closestKey = kvp.Key;
-                        }
-                    }
-                }
-                if (closestKey != -1)
-                {
-                    if (!buildingWindows.ContainsKey(closestKey))
-                        buildingWindows[closestKey] = new List<Vector3>();
-                    buildingWindows[closestKey].Add(winPos);
-                }
-                else
-                {
-                    Debug.LogWarning($"[LightsOut][WindowDump] Window at {winPos} could not be mapped to a building!");
-                }
-            }
-
-            // 5. Log the window count per building, nya!
-            int totWindows = 0;
-            foreach (var kvp in buildingWindows)
-            {
-                string btype = buildingMap.ContainsKey(kvp.Key) ? buildingMap[kvp.Key] : "???";
-                Debug.Log($"[LightsOut][WindowDump] BuildingKey={kvp.Key} ({btype}) has {kvp.Value.Count} windows.");
-                totWindows += kvp.Value.Count;
-            }
-            Debug.Log($"[LightsOut][WindowDump] Total windows mapped to buildings: {totWindows} nya~!");
-        }
-
-        // (｡･ω･｡)ﾉ♡ spawn facades fow each non-residential building!
-        // (｡･ω･｡)ﾉ♡ spawns a cute facade for each non-residential building (faction > 0) at its world position!
-        // (｡･ω･｡)ﾉ♡ spawn a facade for every non-residential building!
-        void CreateFacadesForNonResidentials()
-        {
-            var buildings = GetAllBuildingWorldInfo();
-            int facades = 0;
-
-            // Debug: log what buildings we're actually seeing
-            Debug.Log("[LightsOutScript] --- Listing all buildings for facade spawn ---");
-            foreach (var b in buildings)
-            {
-                Debug.Log($"[LightsOutScript] Facade candidate: buildingKey={b.buildingKey}, factionId={b.factionId}, type={b.buildingType}, pos={b.worldPos}");
-            }
-
-            int nonZeroFactionCount = buildings.Count(b => b.factionId != 0);
-            Debug.Log($"[LightsOutScript] Total non-0-faction buildings: {nonZeroFactionCount}, nya~!");
-
-            foreach (var b in buildings)
-            {
-                if (b.factionId == 0)
-                    continue;
-
-                GameObject facadeGO = GameObject.CreatePrimitive(PrimitiveType.Cube);
-                facadeGO.name = $"Facade_{b.buildingKey}_{b.buildingType}";
-
-                // Set position (keep y the same, or maybe raise it a bit so it doesn't intersect ground)
-                facadeGO.transform.position = b.worldPos + new Vector3(0, 4f, 0); // raise by 4 units for visibility, adjust as needed
-
-                // Scale the cube to kinda cover a buiwding, you can tweak
-                facadeGO.transform.localScale = new Vector3(8f, 8f, 8f);
-
-                // Remove collider so player can still click doors/windows
-                var collider = facadeGO.GetComponent<Collider>();
-                if (collider) DestroyImmediate(collider);
-
-                // Make it look shadowy/dark
-                var renderer = facadeGO.GetComponent<MeshRenderer>();
-                if (renderer)
-                {
-                    var mat = new Material(Shader.Find("Standard"));
-                    mat.color = new Color(0.1f, 0.1f, 0.1f, 0.85f); // dark and kinda see-thru
-                    mat.SetColor("_EmissionColor", Color.black);
-                    mat.DisableKeyword("_EMISSION");
-                    renderer.material = mat;
-                }
-
-                Debug.Log($"[LightsOutScript] Facade spawned for {b.buildingType} (faction={b.factionId}) at {b.worldPos} (buildingKey={b.buildingKey})");
-                facades++;
-            }
-            Debug.Log($"[LightsOutScript] Facades spawned: {facades}");
         }
     }
 }
