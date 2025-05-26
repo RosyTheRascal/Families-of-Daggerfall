@@ -51,9 +51,7 @@ namespace LightsOutScriptMod
             if (Input.GetKeyDown(KeyCode.Semicolon)) // Pick any debug key you like
             {
                 CollectAndLogBuildingWorldspaceInfo();
-                ListAllWindowMaterialsAndLogPositions();
             }
-
         }
 
         public void CollectAndLogBuildingWorldspaceInfo()
@@ -202,38 +200,6 @@ namespace LightsOutScriptMod
                 Debug.Log($"[LightsOutScript] Player world position: {player.transform.position}");
             else
                 Debug.LogWarning("[LightsOutScript] Could not find player object to log position, nya~");
-        }
-
-        // UwU: New IsProbablyWindow logic, as you described!
-        bool IsProbablyWindow(Material mat)
-        {
-            // Most Daggerfall windows are index=3 and use Daggerfall/Default shader
-            string name = mat.name;
-            bool hasWindowIndex = name.Contains("[Index=3]");
-            bool isDaggerfallShader = mat.shader != null && mat.shader.name == "Daggerfall/Default";
-            // Windows have a non-black emission color
-            Color emission = mat.HasProperty("_EmissionColor") ? mat.GetColor("_EmissionColor") : Color.black;
-            bool isEmissive = emission.maxColorComponent > 0.1f;
-            return hasWindowIndex && isDaggerfallShader && isEmissive;
-        }
-
-        // =^._.^= ∫  List and log every window material in the scene, nya!
-        void ListAllWindowMaterialsAndLogPositions()
-        {
-            int count = 0;
-            foreach (var mr in GameObject.FindObjectsOfType<MeshRenderer>())
-            {
-                Vector3 worldPos = mr.bounds.center;
-                foreach (var mat in mr.materials)
-                {
-                    if (IsProbablyWindow(mat))
-                    {
-                        Debug.Log($"[LightsOut][WindowDump] Found window! Material='{mat.name}' at position={worldPos}");
-                        count++;
-                    }
-                }
-            }
-            Debug.Log($"[LightsOut][WindowDump] Total windows found: {count} nya~!");
         }
     }
 }
