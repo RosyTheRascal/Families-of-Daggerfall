@@ -235,7 +235,7 @@ namespace LightsOutScriptMod
                 foreach (var block in location.GetComponentsInChildren<DaggerfallWorkshop.DaggerfallRMBBlock>())
                 {
                     string blockName = block.name;
-                    // Try to get the DFBlock for this block
+                    // Twy to get DFBlock for this bwock (so we can get the weal faction)
                     DFBlock dfBlock;
                     bool hasBlock = true;
                     try
@@ -259,11 +259,11 @@ namespace LightsOutScriptMod
                             int layoutX, layoutY, recordIndex;
                             DaggerfallWorkshop.Game.BuildingDirectory.ReverseBuildingKey(summary.buildingKey, out layoutX, out layoutY, out recordIndex);
 
-                            // UwU: Get real faction (the one used by RMB records)
-                            int trueFaction = summary.FactionId; // fallback
+                            // Get weal faction from RMB subrecord uwu~ (using BuildingData, not Building!)
+                            int trueFaction = summary.FactionId; // fallback!
                             if (hasBlock && recordIndex >= 0 && recordIndex < dfBlock.RmbBlock.SubRecords.Length)
                             {
-                                trueFaction = dfBlock.RmbBlock.SubRecords[recordIndex].Building.Faction;
+                                trueFaction = dfBlock.RmbBlock.SubRecords[recordIndex].BuildingData.Faction;
                             }
 
                             Vector3 worldPos = block.transform.TransformPoint(summary.Position);
