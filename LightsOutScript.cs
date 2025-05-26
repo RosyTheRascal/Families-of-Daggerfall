@@ -226,7 +226,7 @@ namespace LightsOutScriptMod
             return dict != null ? (IEnumerable<BuildingSummary>)dict.Values : new List<BuildingSummary>();
         }
 
-        List<(int buildingKey, Vector3 worldPos, int factionId, string buildingType, BuildingSummary summary)> GetAllBuildingWorldspaceInfo()
+        List<(int buildingKey, Vector3 worldPos, int factionId, string buildingType, BuildingSummary summary)> GetAllBuildingWorldInfo()
         {
             var result = new List<(int, Vector3, int, string, BuildingSummary)>();
             foreach (var location in FindObjectsOfType<DaggerfallLocation>())
@@ -235,13 +235,18 @@ namespace LightsOutScriptMod
                 foreach (var block in location.GetComponentsInChildren<DaggerfallWorkshop.DaggerfallRMBBlock>())
                 {
                     string blockName = block.name;
-                    // Get the DFBlock data for this block (this is where the TRUE faction comes from!)
-                    DFBlock dfBlock = null;
+                    // Try to get the DFBlock for this block
+                    DFBlock dfBlock;
+                    bool hasBlock = true;
                     try
                     {
                         dfBlock = DaggerfallUnity.Instance.ContentReader.BlockFileReader.GetBlock(blockName);
                     }
-                    catch { }
+                    catch
+                    {
+                        dfBlock = default(DFBlock);
+                        hasBlock = false;
+                    }
 
                     foreach (var bd in block.GetComponentsInChildren<DaggerfallWorkshop.Game.BuildingDirectory>())
                     {
@@ -254,11 +259,11 @@ namespace LightsOutScriptMod
                             int layoutX, layoutY, recordIndex;
                             DaggerfallWorkshop.Game.BuildingDirectory.ReverseBuildingKey(summary.buildingKey, out layoutX, out layoutY, out recordIndex);
 
-                            // Try to get the real faction from RMB subrecord (matches your logger!)
-                            int trueFaction = summary.FactionId;
-                            if (dfBlock != null && recordIndex < dfBlock.RmbBlock.SubRecords.Length)
+                            // UwU: Get real faction (the one used by RMB records)
+                            int trueFaction = summary.FactionId; // fallback
+                            if (hasBlock && recordIndex >= 0 && recordIndex < dfBlock.RmbBlock.SubRecords.Length)
                             {
-                                trueFaction = dfBlock.RmbBlock.SubRecords[recordIndex].BuildingData.Faction;
+                                trueFaction = dfBlock.RmbBlock.SubRecords[recordIndex].Building.Faction;
                             }
 
                             Vector3 worldPos = block.transform.TransformPoint(summary.Position);
@@ -376,7 +381,7 @@ namespace LightsOutScriptMod
         // (｡･ω･｡)ﾉ♡ spawn a facade for every non-residential building!
         void CreateFacadesForNonResidentials()
         {
-            var buildings = GetAllBuildingWorldspaceInfo();
+            var buildings = GetAllBuildingWorldInfo();
             int facades = 0;
 
             // Debug: log what buildings we're actually seeing
