@@ -255,9 +255,6 @@ namespace LightsOutScriptMod
                     }
                 }
             }
-            var allBuildings = GetAllBuildingWorldspaceInfo();
-            int nonZeroFactionCount = allBuildings.Count(b => b.factionId != 0);
-            Debug.Log($"[LightsOutScript] Total non-0-faction buildings: {nonZeroFactionCount}");
             return result;
         }
 
@@ -369,7 +366,8 @@ namespace LightsOutScriptMod
         {
             var buildings = GetAllBuildingWorldspaceInfo();
             int facades = 0;
-
+            int nonZeroFactionCount = allBuildings.Count(b => b.factionId != 0);
+            Debug.Log($"[LightsOutScript] Total non-0-faction buildings: {nonZeroFactionCount}, nya~!");
             foreach (var b in buildings)
             {
                 if (b.factionId == 0)
