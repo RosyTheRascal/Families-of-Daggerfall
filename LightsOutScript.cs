@@ -227,33 +227,36 @@ namespace LightsOutScriptMod
         }
 
         // (o･ω･o) This collects all building info (key, worldPos, factionId, type) as a list!
-        List<(int buildingKey, Vector3 worldPos, int factionId, string buildingType)> GetAllBuildingWorldspaceInfo()
+        // This method finds EVERY building in every loaded location, gets their world position, and their faction and type, and returns a list for you!
+        List<(int buildingKey, Vector3 worldPos, int factionId, string buildingType, BuildingSummary summary)> GetAllBuildingWorldspaceInfo()
         {
-            var result = new List<(int, Vector3, int, string)>();
-            int nonZeroFactionCount = 0;
+
+            var result = new List<(int, Vector3, int, string, BuildingSummary)>();
             foreach (var location in FindObjectsOfType<DaggerfallLocation>())
             {
                 var locationTransform = location.transform;
+                // Go through every RMB block in this location
                 foreach (var block in location.GetComponentsInChildren<DaggerfallWorkshop.DaggerfallRMBBlock>())
                 {
                     string blockName = block.name;
+                    // Get all BuildingDirectory scripts in this block (they keep track of buildings!)
                     foreach (var bd in block.GetComponentsInChildren<DaggerfallWorkshop.Game.BuildingDirectory>())
                     {
-                        foreach (var summary in GetAllBuildingSummaries(bd))
+                        // Extract a list of all buildings from the private field (using Reflection, ow!)
+                        var field = typeof(BuildingDirectory).GetField("buildingDict", BindingFlags.NonPublic | BindingFlags.Instance);
+                        var dict = field?.GetValue(bd) as Dictionary<int, BuildingSummary>;
+                        if (dict == null) continue;
+                        foreach (var summary in dict.Values)
                         {
+                            // Convert the building's local position (in the block) to world position, nya!
                             Vector3 worldPos = block.transform.TransformPoint(summary.Position);
-                            int factionId = summary.FactionId;
-                            string buiwdingType = summary.BuildingType.ToString();
-
-                            result.Add((summary.buildingKey, worldPos, factionId, buiwdingType));
-
-                            Debug.Log($"[LightsOutScript] DaggerfallLocation [Region={location.Summary.RegionName}, Name={location.Summary.LocationName}] Block={blockName} record={summary.buildingKey} Faction={factionId} Type={buiwdingType} WorldPos=({worldPos.x}, {worldPos.y}, {worldPos.z}) (buildingKey={summary.buildingKey})");
-                            if (factionId != 0)
-                                nonZeroFactionCount++;
+                            result.Add((summary.buildingKey, worldPos, summary.FactionId, summary.BuildingType.ToString(), summary));
                         }
                     }
                 }
             }
+            var allBuildings = GetAllBuildingWorldspaceInfo();
+            int nonZeroFactionCount = allBuildings.Count(b => b.factionId != 0);
             Debug.Log($"[LightsOutScript] Total non-0-faction buildings: {nonZeroFactionCount}");
             return result;
         }
