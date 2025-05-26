@@ -235,8 +235,7 @@ namespace LightsOutScriptMod
                 foreach (var block in location.GetComponentsInChildren<DaggerfallWorkshop.DaggerfallRMBBlock>())
                 {
                     string blockName = block.name;
-                    // Twy to get DFBlock for this bwock (so we can get the weal faction)
-                    DFBlock dfBlock;
+                    DFBlock dfBlock = default(DFBlock);
                     bool hasBlock = true;
                     try
                     {
@@ -244,7 +243,6 @@ namespace LightsOutScriptMod
                     }
                     catch
                     {
-                        dfBlock = default(DFBlock);
                         hasBlock = false;
                     }
 
@@ -255,15 +253,24 @@ namespace LightsOutScriptMod
                         if (dict == null) continue;
                         foreach (var summary in dict.Values)
                         {
-                            // Get "record" index from buildingKey
                             int layoutX, layoutY, recordIndex;
                             DaggerfallWorkshop.Game.BuildingDirectory.ReverseBuildingKey(summary.buildingKey, out layoutX, out layoutY, out recordIndex);
 
-                            // Get weal faction from RMB subrecord uwu~ (using BuildingData, not Building!)
-                            int trueFaction = summary.FactionId; // fallback!
+                            int trueFaction = summary.FactionId; // fallback
+                                                                 // Use actual RMB data if possible
                             if (hasBlock && recordIndex >= 0 && recordIndex < dfBlock.RmbBlock.SubRecords.Length)
                             {
-                                trueFaction = dfBlock.RmbBlock.SubRecords[recordIndex].BuildingData.Faction;
+                                // Extra debug to see all available fields!
+                                var subRecord = dfBlock.RmbBlock.SubRecords[recordIndex];
+                                // Try to use .Building.Faction if it exists
+                                try
+                                {
+                                    trueFaction = subRecord.Building.Faction;
+                                }
+                                catch (Exception e)
+                                {
+                                    Debug.LogWarning($"[LightsOutScript][nyan~] Could not access subRecord.Building.Faction! Fields: [{string.Join(", ", subRecord.GetType().GetFields().Select(f => f.Name))}]");
+                                }
                             }
 
                             Vector3 worldPos = block.transform.TransformPoint(summary.Position);
