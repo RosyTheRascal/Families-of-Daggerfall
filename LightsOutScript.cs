@@ -366,7 +366,7 @@ namespace LightsOutScriptMod
         {
             var buildings = GetAllBuildingWorldspaceInfo();
             int facades = 0;
-            int nonZeroFactionCount = allBuildings.Count(b => b.factionId != 0);
+            int nonZeroFactionCount = buildings.Count(b => b.factionId != 0);
             Debug.Log($"[LightsOutScript] Total non-0-faction buildings: {nonZeroFactionCount}, nya~!");
             foreach (var b in buildings)
             {
