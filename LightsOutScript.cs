@@ -226,31 +226,43 @@ namespace LightsOutScriptMod
             return dict != null ? (IEnumerable<BuildingSummary>)dict.Values : new List<BuildingSummary>();
         }
 
-        // (o･ω･o) This collects all building info (key, worldPos, factionId, type) as a list!
-        // This method finds EVERY building in every loaded location, gets their world position, and their faction and type, and returns a list for you!
         List<(int buildingKey, Vector3 worldPos, int factionId, string buildingType, BuildingSummary summary)> GetAllBuildingWorldspaceInfo()
         {
-
             var result = new List<(int, Vector3, int, string, BuildingSummary)>();
             foreach (var location in FindObjectsOfType<DaggerfallLocation>())
             {
                 var locationTransform = location.transform;
-                // Go through every RMB block in this location
                 foreach (var block in location.GetComponentsInChildren<DaggerfallWorkshop.DaggerfallRMBBlock>())
                 {
                     string blockName = block.name;
-                    // Get all BuildingDirectory scripts in this block (they keep track of buildings!)
+                    // Get the DFBlock data for this block (this is where the TRUE faction comes from!)
+                    DFBlock dfBlock = null;
+                    try
+                    {
+                        dfBlock = DaggerfallUnity.Instance.ContentReader.BlockFileReader.GetBlock(blockName);
+                    }
+                    catch { }
+
                     foreach (var bd in block.GetComponentsInChildren<DaggerfallWorkshop.Game.BuildingDirectory>())
                     {
-                        // Extract a list of all buildings from the private field (using Reflection, ow!)
                         var field = typeof(BuildingDirectory).GetField("buildingDict", BindingFlags.NonPublic | BindingFlags.Instance);
                         var dict = field?.GetValue(bd) as Dictionary<int, BuildingSummary>;
                         if (dict == null) continue;
                         foreach (var summary in dict.Values)
                         {
-                            // Convert the building's local position (in the block) to world position, nya!
+                            // Get "record" index from buildingKey
+                            int layoutX, layoutY, recordIndex;
+                            DaggerfallWorkshop.Game.BuildingDirectory.ReverseBuildingKey(summary.buildingKey, out layoutX, out layoutY, out recordIndex);
+
+                            // Try to get the real faction from RMB subrecord (matches your logger!)
+                            int trueFaction = summary.FactionId;
+                            if (dfBlock != null && recordIndex < dfBlock.RmbBlock.SubRecords.Length)
+                            {
+                                trueFaction = dfBlock.RmbBlock.SubRecords[recordIndex].BuildingData.Faction;
+                            }
+
                             Vector3 worldPos = block.transform.TransformPoint(summary.Position);
-                            result.Add((summary.buildingKey, worldPos, summary.FactionId, summary.BuildingType.ToString(), summary));
+                            result.Add((summary.buildingKey, worldPos, trueFaction, summary.BuildingType.ToString(), summary));
                         }
                     }
                 }
@@ -366,8 +378,17 @@ namespace LightsOutScriptMod
         {
             var buildings = GetAllBuildingWorldspaceInfo();
             int facades = 0;
+
+            // Debug: log what buildings we're actually seeing
+            Debug.Log("[LightsOutScript] --- Listing all buildings for facade spawn ---");
+            foreach (var b in buildings)
+            {
+                Debug.Log($"[LightsOutScript] Facade candidate: buildingKey={b.buildingKey}, factionId={b.factionId}, type={b.buildingType}, pos={b.worldPos}");
+            }
+
             int nonZeroFactionCount = buildings.Count(b => b.factionId != 0);
             Debug.Log($"[LightsOutScript] Total non-0-faction buildings: {nonZeroFactionCount}, nya~!");
+
             foreach (var b in buildings)
             {
                 if (b.factionId == 0)
