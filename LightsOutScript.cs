@@ -216,17 +216,14 @@ namespace LightsOutScriptMod
         public void SpawnFacadeAtFactionBuildings()
         {
             var allLocations = GameObject.FindObjectsOfType<DaggerfallLocation>();
-            float cubeSize = 3.0f; // adjust as you wish, nya~
-            Color cubeColor = Color.white;
-
             // types to skip (House1, House2, House3)
-            var houseTypes = new HashSet<DFLocation.BuildingTypes>
+            var houseTypes = new HashSet<DaggerfallWorkshop.Game.BuildingTypes>
             {
-                 DFLocation.BuildingTypes.House1,
-                 DFLocation.BuildingTypes.House2,
-                 DFLocation.BuildingTypes.House3,
-                 DFLocation.BuildingTypes.House4,
-                 DFLocation.BuildingTypes.House5,
+              DaggerfallWorkshop.Game.BuildingTypes.House1,
+              DaggerfallWorkshop.Game.BuildingTypes.House2,
+              DaggerfallWorkshop.Game.BuildingTypes.House3,
+              DaggerfallWorkshop.Game.BuildingTypes.House4,
+              DaggerfallWorkshop.Game.BuildingTypes.House5,
             };
 
             foreach (var location in allLocations)
@@ -305,13 +302,28 @@ namespace LightsOutScriptMod
                         {
                             Vector3 worldPos = rmbBlock.transform.TransformPoint(summary.Position);
 
-                            // spawn a white cube at worldPos, nya!
-                            var cube = GameObject.CreatePrimitive(PrimitiveType.Cube);
-                            cube.transform.position = worldPos;
-                            cube.transform.localScale = new Vector3(cubeSize, cubeSize, cubeSize);
-                            var renderer = cube.GetComponent<Renderer>();
-                            renderer.material.color = cubeColor;
-                            cube.name = $"Dummy_{summary.BuildingType}_{location.name}_{layoutX}_{layoutY}_{recordIndex}";
+                            // (´｡• ω •｡`) Instead of a cube, spawn the real building mesh using ModelId, nya!
+                            // This is the magic: ModelId is summary.ModelId
+                            int modelId = summary.ModelId;
+                            var dfUnity = DaggerfallUnity.Instance;
+                            if (dfUnity != null)
+                            {
+                                // This helper does all the mesh/texture magic for you (uwu)
+                                GameObject buildingGo = DaggerfallWorkshop.Utility.GameObjectHelper.CreateDaggerfallMeshGameObject(modelId, null, true, null, false);
+                                buildingGo.transform.position = worldPos;
+                                buildingGo.transform.rotation = Quaternion.identity;
+                                buildingGo.transform.localScale = Vector3.one;
+                                buildingGo.name = $"Facade_{summary.BuildingType}_{location.name}_{layoutX}_{layoutY}_{recordIndex}";
+
+                                // Optionally, parent to location for tidiness
+                                buildingGo.transform.SetParent(location.transform, true);
+
+                                // If you want to highlight it or colorize it, you could add a component or change material here, nya~
+                            }
+                            else
+                            {
+                                Debug.LogWarning("[LightsOutScript][WARN] DaggerfallUnity.Instance not found, can't spawn building mesh, nya~");
+                            }
                         }
                     }
                 }
