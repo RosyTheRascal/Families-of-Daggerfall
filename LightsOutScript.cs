@@ -417,10 +417,16 @@ namespace LightsOutScriptMod
 
         public void ControlEmissiveWindows()
         {
-            int totalCombinedModels = 0, affectedMaterials = 0, totalFacades = 0, facadeMaterials = 0;
-
             // The official Daggerfall Unity window yellow for night! (see MaterialReader.cs)
             Color vanillaWindowYellow = new Color(1.0f, 0.784f, 0.196f) * 1.25f;
+
+            // Specific textures that contain window materials by archive ID and record index
+            HashSet<(int archive, int record)> validWindowMaterials = new HashSet<(int, int)>
+    {
+        (359, 3), // TEXTURE.359 [Index=3]
+        (171, 3), // Example additional archive; replace with actual window archives
+        (370, 3), // Example additional archive; replace with actual window archives
+    };
 
             // First: Turn off emission on legit CombinedModels under RMB blocks
             var allTransforms = GameObject.FindObjectsOfType<Transform>();
@@ -496,15 +502,21 @@ namespace LightsOutScriptMod
                         if (mats.Length > windowMatIndex && mats[windowMatIndex] != null)
                         {
                             var mat = mats[windowMatIndex];
-                            if (mat.HasProperty("_EmissionColor"))
+
+                            // Check if this material belongs to a valid window texture
+                            var textureData = mat.GetTexture("_MainTex") as Texture2D;
+                            if (textureData != null && validWindowMaterials.Contains((textureData.width, textureData.height))) // Replace width and height with archive-record logic
                             {
-                                // Use the official Daggerfall Unity yellow for window emission!
-                                mat.SetColor("_EmissionColor", vanillaWindowYellow);
-                                mat.EnableKeyword("_EMISSION");
+                                if (mat.HasProperty("_EmissionColor"))
+                                {
+                                    // Use the official Daggerfall Unity yellow for window emission!
+                                    mat.SetColor("_EmissionColor", vanillaWindowYellow);
+                                    mat.EnableKeyword("_EMISSION");
 #if UNITY_EDITOR || UNITY_STANDALONE
-                        mat.globalIlluminationFlags = MaterialGlobalIlluminationFlags.RealtimeEmissive;
+                            mat.globalIlluminationFlags = MaterialGlobalIlluminationFlags.RealtimeEmissive;
 #endif
-                                facadeMaterials++;
+                                    facadeMaterials++;
+                                }
                             }
                         }
 
@@ -513,23 +525,13 @@ namespace LightsOutScriptMod
                         {
                             if (i == windowMatIndex) continue;
                             var mat = mats[i];
-                            if (mat != null && mat.HasProperty("_EmissionColor"))
-                            {
+                            if (mat.HasProperty("_EmissionColor"))
                                 mat.SetColor("_EmissionColor", Color.black);
-                                mat.DisableKeyword("_EMISSION");
-#if UNITY_EDITOR || UNITY_STANDALONE
-                        mat.globalIlluminationFlags = MaterialGlobalIlluminationFlags.EmissiveIsBlack;
-#endif
-                            }
+                            mat.DisableKeyword("_EMISSION");
                         }
-
-                        // assign the new materials array back (just to be sure)
-                        renderer.materials = mats;
                     }
                 }
             }
-
-            Debug.Log($"[LightsOutScript][UwU] Turned OFF {affectedMaterials} emissive materials on {totalCombinedModels} legit CombinedModels, and turned ON {facadeMaterials} YELLOW window materials at index 3 of {totalFacades} facades! ( ´ ▽ ` )ﾉ windows gwow like vanilla, nya~!");
         }
 
     }
