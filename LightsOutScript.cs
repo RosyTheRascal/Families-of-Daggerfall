@@ -217,15 +217,14 @@ namespace LightsOutScriptMod
         {
             var allLocations = GameObject.FindObjectsOfType<DaggerfallLocation>();
 
-            // Use the enum from DaggerfallConnect, not DaggerfallWorkshop.Game!
             var houseTypes = new HashSet<DaggerfallConnect.DFLocation.BuildingTypes>
-            {
+    {
         DaggerfallConnect.DFLocation.BuildingTypes.House1,
         DaggerfallConnect.DFLocation.BuildingTypes.House2,
         DaggerfallConnect.DFLocation.BuildingTypes.House3,
         DaggerfallConnect.DFLocation.BuildingTypes.House4,
         DaggerfallConnect.DFLocation.BuildingTypes.House5,
-            };
+    };
 
             foreach (var location in allLocations)
             {
@@ -295,15 +294,44 @@ namespace LightsOutScriptMod
                         int layoutX, layoutY, recordIndex;
                         DaggerfallWorkshop.Game.BuildingDirectory.ReverseBuildingKey(key, out layoutX, out layoutY, out recordIndex);
 
-                        // Use the BuildingTypes from DaggerfallConnect, and compare directly!
                         if (houseTypes.Contains(summary.BuildingType))
                             continue;
 
                         if (blockGrid.TryGetValue((layoutX, layoutY), out var rmbBlock))
                         {
-                            Vector3 worldPos = rmbBlock.transform.TransformPoint(summary.Position);
+                            DaggerfallStaticDoors staticDoors = rmbBlock.GetComponent<DaggerfallStaticDoors>();
+                            if (staticDoors == null || staticDoors.Doors == null)
+                            {
+                                Debug.LogWarning($"[LightsOutScript][WARN] Block '{rmbBlock.name}' has no StaticDoors, nya?");
+                                continue;
+                            }
 
-                            // --- SAFER modelId retrieval, meow! ---
+                            // Find the StaticDoor for THIS building (by recordIndex)
+                            StaticDoor? myDoor = null;
+                            foreach (var door in staticDoors.Doors)
+                            {
+                                if (door.recordIndex == recordIndex)
+                                {
+                                    myDoor = door;
+                                    break;
+                                }
+                            }
+
+                            if (myDoor == null)
+                            {
+                                Debug.LogWarning($"[LightsOutScript][WARN] No exterior StaticDoor found for building {summary.BuildingType} in block '{rmbBlock.name}' (recordIndex={recordIndex}), nya~");
+                                continue;
+                            }
+
+                            // --- Get buildingMatrix rotation! (this is the REAL per-building rotation uwu) ---
+                            Matrix4x4 buildingMatrix = myDoor.Value.buildingMatrix;
+                            Quaternion buildingRotation = DaggerfallWorkshop.Utility.GameObjectHelper.QuaternionFromMatrix(buildingMatrix);
+
+                            // --- Compute world position of the door (as before, so the door lines up purrfect!) ---
+                            Vector3 doorLocal = myDoor.Value.centre;
+                            Transform blockTransform = rmbBlock.transform;
+                            Vector3 doorWorldPos = blockTransform.rotation * buildingMatrix.MultiplyPoint3x4(doorLocal) + blockTransform.position;
+
                             int modelId = 0;
                             var summaryType = summary.GetType();
 
@@ -328,7 +356,6 @@ namespace LightsOutScriptMod
                                 continue;
                             }
 
-                            // now handle whatever type it is!
                             if (modelIdValue == null)
                             {
                                 Debug.LogWarning($"[LightsOutScript][WARN] {usedFieldName} is null for building type {summary.BuildingType}, skipping, nya~");
@@ -340,20 +367,22 @@ namespace LightsOutScriptMod
                             }
                             catch (Exception ex)
                             {
-                                Debug.LogWarning($"[LightsOutScript][WARN] Could not convert {usedFieldName}={modelIdValue} (type={modelIdValue.GetType()}) to int for building type {summary.BuildingType} in {location.name}: {ex.Message}, nya~");
+                                Debug.LogWarning($"[LightsOutScript][WARN] Could not convert {usedFieldName}={modelIdValue} (type={modelIdValue.GetType()}) to int for building type {summary.BuildingType}: {ex}, nya~");
                                 continue;
                             }
 
-                            Debug.Log($"[LightsOutScript][DBG] About to spawn facade with modelId={modelId} (original type={modelIdValue.GetType()}, from field '{usedFieldName}') at worldPos={worldPos} for building type={summary.BuildingType} in '{location.name}', nya~");
+                            Debug.Log($"[LightsOutScript][DBG] About to spawn facade with modelId={modelId} at doorWorldPos={doorWorldPos} with rotation={buildingRotation.eulerAngles}, nya~");
 
                             GameObject buildingGo = DaggerfallWorkshop.Utility.GameObjectHelper.CreateDaggerfallMeshGameObject((uint)modelId, null, true, null, false);
                             if (buildingGo == null)
                             {
-                                Debug.LogWarning($"[LightsOutScript][WARN] Could not create mesh GameObject for modelId={modelId} at worldPos={worldPos} (building type={summary.BuildingType}) in location '{location.name}', nya~");
+                                Debug.LogWarning($"[LightsOutScript][WARN] Could not create mesh GameObject for modelId={modelId} at worldPos={doorWorldPos} (building type={summary.BuildingType}) in location '{location.name}', nya~");
                                 continue;
                             }
-                            buildingGo.transform.position = worldPos;
-                            buildingGo.transform.rotation = Quaternion.identity;
+
+                            buildingGo.transform.position = doorWorldPos;
+                            // This is the magic: this unique rotation, per-building, will match the RMB combinedmodels!
+                            buildingGo.transform.rotation = blockTransform.rotation * buildingRotation;
                             buildingGo.transform.localScale = Vector3.one;
                             buildingGo.name = $"Facade_{summary.BuildingType}_{location.name}_{layoutX}_{layoutY}_{recordIndex}";
 
