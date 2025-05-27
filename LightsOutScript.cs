@@ -380,10 +380,25 @@ namespace LightsOutScriptMod
                             }
 
                             buildingGo.transform.position = buildingOriginWorldPos;
-                            // this rotation is stiww the magic sauce, matching the in-game building, nya!
                             buildingGo.transform.rotation = rmbBlock.transform.rotation * buildingRotation;
                             buildingGo.transform.localScale = Vector3.one;
                             buildingGo.name = $"Facade_{summary.BuildingType}_{location.name}_{layoutX}_{layoutY}_{recordIndex}";
+
+                            // ===== MAGIC PART: MATCH CLIMATE & SEASON! =====
+                            var mesh = buildingGo.GetComponent<DaggerfallMesh>();
+                            if (mesh != null)
+                            {
+                                // Use the same climate/season as the parent DaggerfallLocation
+                                mesh.SetClimate(
+                                    location.Summary.Climate,    // region climate (e.g. desert, temperate, etc)
+                                    location.CurrentSeason,      // current season (summer/winter)
+                                    location.WindowTextureStyle  // day/night for windows
+                                );
+                            }
+                            else
+                            {
+                                Debug.LogWarning($"[LightsOutScript][WARN] Spawned facade '{buildingGo.name}' has no DaggerfallMesh to set climate, nya~");
+                            }
 
                             buildingGo.transform.SetParent(location.transform, true);
                         }
