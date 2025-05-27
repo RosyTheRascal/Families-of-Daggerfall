@@ -323,14 +323,13 @@ namespace LightsOutScriptMod
                                 continue;
                             }
 
-                            // --- Get buildingMatrix rotation! (this is the REAL per-building rotation uwu) ---
+                            // --- Get buildingMatrix rotation and use for facade! (uwu) ---
                             Matrix4x4 buildingMatrix = myDoor.Value.buildingMatrix;
                             Quaternion buildingRotation = DaggerfallWorkshop.Utility.GameObjectHelper.QuaternionFromMatrix(buildingMatrix);
 
-                            // --- Compute world position of the door (as before, so the door lines up purrfect!) ---
-                            Vector3 doorLocal = myDoor.Value.centre;
-                            Transform blockTransform = rmbBlock.transform;
-                            Vector3 doorWorldPos = blockTransform.rotation * buildingMatrix.MultiplyPoint3x4(doorLocal) + blockTransform.position;
+                            // --- The important fix, nya! ---
+                            // Instead of using the door's world pos, spawn the facade at the building's origin in world space
+                            Vector3 buildingOriginWorldPos = rmbBlock.transform.rotation * buildingMatrix.MultiplyPoint3x4(Vector3.zero) + rmbBlock.transform.position;
 
                             int modelId = 0;
                             var summaryType = summary.GetType();
@@ -367,22 +366,22 @@ namespace LightsOutScriptMod
                             }
                             catch (Exception ex)
                             {
-                                Debug.LogWarning($"[LightsOutScript][WARN] Could not convert {usedFieldName}={modelIdValue} (type={modelIdValue.GetType()}) to int for building type {summary.BuildingType}: {ex}, nya~");
+                                Debug.LogWarning($"[LightsOutScript][WARN] Could not convert {usedFieldName}={modelIdValue} (type={modelIdValue.GetType()}) to int for building type {summary.BuildingType}, skipping, nya~");
                                 continue;
                             }
 
-                            Debug.Log($"[LightsOutScript][DBG] About to spawn facade with modelId={modelId} at doorWorldPos={doorWorldPos} with rotation={buildingRotation.eulerAngles}, nya~");
+                            Debug.Log($"[LightsOutScript][DBG] About to spawn facade with modelId={modelId} at buildingOriginWorldPos={buildingOriginWorldPos} with rotation={buildingRotation.eulerAngles}, nya~");
 
                             GameObject buildingGo = DaggerfallWorkshop.Utility.GameObjectHelper.CreateDaggerfallMeshGameObject((uint)modelId, null, true, null, false);
                             if (buildingGo == null)
                             {
-                                Debug.LogWarning($"[LightsOutScript][WARN] Could not create mesh GameObject for modelId={modelId} at worldPos={doorWorldPos} (building type={summary.BuildingType}) in location '{location.name}', nya~");
+                                Debug.LogWarning($"[LightsOutScript][WARN] Could not create mesh GameObject for modelId={modelId} at worldPos={buildingOriginWorldPos} (building type={summary.BuildingType}) in location '{location.name}', nya~");
                                 continue;
                             }
 
-                            buildingGo.transform.position = doorWorldPos;
-                            // This is the magic: this unique rotation, per-building, will match the RMB combinedmodels!
-                            buildingGo.transform.rotation = blockTransform.rotation * buildingRotation;
+                            buildingGo.transform.position = buildingOriginWorldPos;
+                            // this rotation is stiww the magic sauce, matching the in-game building, nya!
+                            buildingGo.transform.rotation = rmbBlock.transform.rotation * buildingRotation;
                             buildingGo.transform.localScale = Vector3.one;
                             buildingGo.name = $"Facade_{summary.BuildingType}_{location.name}_{layoutX}_{layoutY}_{recordIndex}";
 
