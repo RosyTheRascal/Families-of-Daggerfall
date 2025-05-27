@@ -381,24 +381,31 @@ namespace LightsOutScriptMod
 
                             buildingGo.transform.position = buildingOriginWorldPos;
                             buildingGo.transform.rotation = rmbBlock.transform.rotation * buildingRotation;
-                            buildingGo.transform.localScale = Vector3.one;
+
+                            // === NEW: make it a bit bigger! ===
+                            buildingGo.transform.localScale = Vector3.one * 1.01f;
+
                             buildingGo.name = $"Facade_{summary.BuildingType}_{location.name}_{layoutX}_{layoutY}_{recordIndex}";
 
                             // ===== MAGIC PART: MATCH CLIMATE & SEASON! =====
                             var mesh = buildingGo.GetComponent<DaggerfallMesh>();
                             if (mesh != null)
                             {
-                                // Use the same climate/season as the parent DaggerfallLocation
                                 mesh.SetClimate(
-                                    location.Summary.Climate,    // region climate (e.g. desert, temperate, etc)
-                                    location.CurrentSeason,      // current season (summer/winter)
-                                    location.WindowTextureStyle  // day/night for windows
+                                    location.Summary.Climate,
+                                    location.CurrentSeason,
+                                    location.WindowTextureStyle
                                 );
                             }
                             else
                             {
                                 Debug.LogWarning($"[LightsOutScript][WARN] Spawned facade '{buildingGo.name}' has no DaggerfallMesh to set climate, nya~");
                             }
+
+                            // === NEW: Remove MeshCollider if it exists! ===
+                            var meshCol = buildingGo.GetComponent<MeshCollider>();
+                            if (meshCol != null)
+                                Destroy(meshCol);
 
                             buildingGo.transform.SetParent(location.transform, true);
                         }
