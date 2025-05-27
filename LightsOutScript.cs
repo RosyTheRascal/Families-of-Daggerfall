@@ -52,6 +52,7 @@ namespace LightsOutScriptMod
             {
                 CollectAndLogBuildingWorldspaceInfo();
                 SpawnFacadeAtFactionBuildings();
+                ControlEmissiveWindowTexturesInCombinedModels();
             }
         }
 
@@ -409,6 +410,40 @@ namespace LightsOutScriptMod
 
                             buildingGo.transform.SetParent(location.transform, true);
                         }
+                    }
+                }
+            }
+        }
+
+        public void ControlEmissiveWindowTexturesInCombinedModels()
+        {
+            var allLocations = GameObject.FindObjectsOfType<DaggerfallLocation>();
+            foreach (var location in allLocations)
+            {
+                var blocks = location.GetComponentsInChildren<DaggerfallRMBBlock>(true);
+                foreach (var block in blocks)
+                {
+                    Transform combinedModelsTransform = block.transform.Find("Models/CombinedModels");
+                    if (combinedModelsTransform != null)
+                    {
+                        var meshes = combinedModelsTransform.GetComponentsInChildren<MeshRenderer>();
+                        foreach (var meshRenderer in meshes)
+                        {
+                            foreach (var material in meshRenderer.materials)
+                            {
+                                if (material.HasProperty("_EmissionMap") && material.GetTexture("_EmissionMap") != null)
+                                {
+                                    material.DisableKeyword("_EMISSION");
+                                    material.SetTexture("_EmissionMap", null);
+
+                                    Debug.Log($"[LightsOutScript] Emissive texture deactivated for material '{material.name}' in '{combinedModelsTransform.name}', nya~!");
+                                }
+                            }
+                        }
+                    }
+                    else
+                    {
+                        Debug.LogWarning($"[LightsOutScript][WARN] CombinedModels not found in block '{block.name}', nya~");
                     }
                 }
             }
