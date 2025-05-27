@@ -417,9 +417,12 @@ namespace LightsOutScriptMod
 
         public void DeactivateEmissiveWindows()
         {
-            int totalCombinedModels = 0, affectedMaterials = 0;
+            int totalCombinedModels = 0, affectedMaterials = 0, totalFacades = 0, facadeMaterials = 0;
 
-            // Find all objects in the scene called "CombinedModels"
+            // The official Daggerfall Unity window yellow for night! (see MaterialReader.cs)
+            Color vanillaWindowYellow = new Color(1.0f, 0.784f, 0.196f) * 1.25f;
+
+            // First: Turn off emission on legit CombinedModels under RMB blocks
             var allTransforms = GameObject.FindObjectsOfType<Transform>();
 
             foreach (var t in allTransforms)
@@ -432,16 +435,14 @@ namespace LightsOutScriptMod
                 if (t.parent == null || t.parent.name != "Models")
                     continue;
 
-                // EXTRA: Must have a grandparent that is a DaggerfallRMBBlock
+                // Must have a grandparent that is a DaggerfallRMBBlock
                 var grandparent = t.parent.parent;
                 if (grandparent == null)
                     continue;
 
-                // This is the magic check that facades will NEVER pass!
                 if (grandparent.GetComponent<DaggerfallRMBBlock>() == null)
                     continue;
 
-                // If we made it here, this is a legit RMB block CombinedModels, not a facade!
                 totalCombinedModels++;
 
                 // Get all renderers under this CombinedModels
@@ -477,7 +478,58 @@ namespace LightsOutScriptMod
                 }
             }
 
-            Debug.Log($"[LightsOutScript][UwU] Deactivated emissive windows on {affectedMaterials} materials among {totalCombinedModels} legit CombinedModels! Facades totally untouched, nya~ (ฅ^•ﻌ•^ฅ)");
+            // Second: Find all Facade_* objects and make sure ONLY their index 3 material emission is ON!
+            foreach (var t in allTransforms)
+            {
+                if (t.name.StartsWith("Facade_"))
+                {
+                    totalFacades++;
+                    var renderers = t.GetComponentsInChildren<Renderer>(true);
+
+                    foreach (var renderer in renderers)
+                    {
+                        // Force renderer to use unique instance of each material, so it doesn't share with CombinedModels
+                        Material[] mats = renderer.materials; // this property instantiates them
+
+                        // Only index 3 (the fourth one) should glow!
+                        int windowMatIndex = 3;
+                        if (mats.Length > windowMatIndex && mats[windowMatIndex] != null)
+                        {
+                            var mat = mats[windowMatIndex];
+                            if (mat.HasProperty("_EmissionColor"))
+                            {
+                                // Use the official Daggerfall Unity yellow for window emission!
+                                mat.SetColor("_EmissionColor", vanillaWindowYellow);
+                                mat.EnableKeyword("_EMISSION");
+#if UNITY_EDITOR || UNITY_STANDALONE
+                        mat.globalIlluminationFlags = MaterialGlobalIlluminationFlags.RealtimeEmissive;
+#endif
+                                facadeMaterials++;
+                            }
+                        }
+
+                        // For all other materials, make sure emission is off, just in case!
+                        for (int i = 0; i < mats.Length; i++)
+                        {
+                            if (i == windowMatIndex) continue;
+                            var mat = mats[i];
+                            if (mat != null && mat.HasProperty("_EmissionColor"))
+                            {
+                                mat.SetColor("_EmissionColor", Color.black);
+                                mat.DisableKeyword("_EMISSION");
+#if UNITY_EDITOR || UNITY_STANDALONE
+                        mat.globalIlluminationFlags = MaterialGlobalIlluminationFlags.EmissiveIsBlack;
+#endif
+                            }
+                        }
+
+                        // assign the new materials array back (just to be sure)
+                        renderer.materials = mats;
+                    }
+                }
+            }
+
+            Debug.Log($"[LightsOutScript][UwU] Turned OFF {affectedMaterials} emissive materials on {totalCombinedModels} legit CombinedModels, and turned ON {facadeMaterials} YELLOW window materials at index 3 of {totalFacades} facades! ( ´ ▽ ` )ﾉ windows gwow like vanilla, nya~!");
         }
 
     }
