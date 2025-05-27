@@ -223,6 +223,8 @@ namespace LightsOutScriptMod
         DaggerfallConnect.DFLocation.BuildingTypes.House1,
         DaggerfallConnect.DFLocation.BuildingTypes.House2,
         DaggerfallConnect.DFLocation.BuildingTypes.House3,
+        DaggerfallConnect.DFLocation.BuildingTypes.House4,
+        DaggerfallConnect.DFLocation.BuildingTypes.House5,
     };
 
             foreach (var location in allLocations)
