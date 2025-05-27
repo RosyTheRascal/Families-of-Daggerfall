@@ -50,11 +50,8 @@ namespace LightsOutScriptMod
 
         void Update()
         {
-
-
             // Find all DaggerfallLocations in the scene
             var allLocations = GameObject.FindObjectsOfType<DaggerfallLocation>();
-
             foreach (var location in allLocations)
             {
                 // Check if this location has already been processed
@@ -70,12 +67,16 @@ namespace LightsOutScriptMod
                     Debug.Log($"[LightsOutScript] Processed new location: {location.name}, nya~!");
                 }
             }
-
-            if (Input.GetKeyDown(KeyCode.Semicolon)) // Pick any debug key you like
+            int currentHour = (int)DaggerfallUnity.Instance.WorldTime.Now.Hour; // Get in-game hour as an integer
+            if (currentHour >= 22 || currentHour < 6) // Between 22:00 and 6:00
             {
-                ControlEmissiveWindowTexturesInCombinedModels();
+                ControlEmissiveWindowTexturesInCombinedModels(); // Deactivate emissive textures
+                Debug.Log("[LightsOutScript] Deactivated emissive textures based on schedule, nya~!");
             }
-
+            else
+            {
+                Debug.Log("[LightsOutScript] Emissive textures remain active outside schedule, nya~!");
+            }
             if (Input.GetKeyDown(KeyCode.Backslash)) // Pick any debug key you like
             {
                 ControlEmissiveTexturesOnFacades();
