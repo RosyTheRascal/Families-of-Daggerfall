@@ -46,10 +46,11 @@ namespace LightsOutScriptMod
             mod.IsReady = true;
         }
 
-        private HashSet<string> processedLocations = new HashSet<string>();
+        static HashSet<string> processedLocations = new HashSet<string>();
 
         void Update()
         {
+
 
             // Find all DaggerfallLocations in the scene
             var allLocations = GameObject.FindObjectsOfType<DaggerfallLocation>();
@@ -60,8 +61,8 @@ namespace LightsOutScriptMod
                 if (!processedLocations.Contains(location.name))
                 {
                     // Log building worldspace info and spawn facades for new locations
-                    CollectAndLogBuildingWorldspaceInfo(location);
-                    SpawnFacadeAtFactionBuildings(location);
+                    CollectAndLogBuildingWorldspaceInfo(); // Use the existing parameterless method
+                    SpawnFacadeAtFactionBuildings(); // Use the existing parameterless method
 
                     // Add this location to the processed list
                     processedLocations.Add(location.name);
