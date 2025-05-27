@@ -52,6 +52,7 @@ namespace LightsOutScriptMod
             {
                 CollectAndLogBuildingWorldspaceInfo();
                 SpawnFacadeAtFactionBuildings();
+                DeactivateEmissiveWindows();
             }
         }
 
@@ -413,5 +414,66 @@ namespace LightsOutScriptMod
                 }
             }
         }
+
+        public void DeactivateEmissiveWindows()
+        {
+            int totalCombinedModels = 0, affectedMaterials = 0;
+
+            // Find all objects in the scene called "CombinedModels"
+            var allTransforms = GameObject.FindObjectsOfType<Transform>();
+
+            foreach (var t in allTransforms)
+            {
+                // Check if this is called "CombinedModels"
+                if (t.name != "CombinedModels")
+                    continue;
+
+                // Only do this if parent is called "Models" (so, RMB block mesh, not a facade or something else)
+                if (t.parent == null || t.parent.name != "Models")
+                    continue;
+
+                // Extra double-check: Make sure grandparent is a RMB block (optional! but extra safe)
+                // You can comment this out if you want to be less picky
+                // if (t.parent.parent == null || t.parent.parent.GetComponent<DaggerfallRMBBlock>() == null)
+                //     continue;
+
+                totalCombinedModels++;
+
+                // Get all renderers under this CombinedModels (should be just one, but just in case)
+                var renderers = t.GetComponentsInChildren<Renderer>(true);
+
+                foreach (var renderer in renderers)
+                {
+                    var materials = renderer.sharedMaterials;
+                    for (int i = 0; i < materials.Length; i++)
+                    {
+                        var mat = materials[i];
+                        if (mat == null)
+                            continue;
+
+                        // Only touch emission if it's enabled for this material
+                        if (mat.IsKeywordEnabled("_EMISSION") || mat.HasProperty("_EmissionColor"))
+                        {
+                            // Turn off the emission color (make it black, so the window isn't glowy)
+                            if (mat.HasProperty("_EmissionColor"))
+                                mat.SetColor("_EmissionColor", Color.black);
+
+                            // Make Unity forget about emission
+                            mat.DisableKeyword("_EMISSION");
+
+#if UNITY_EDITOR || UNITY_STANDALONE
+                    if (mat.globalIlluminationFlags != MaterialGlobalIlluminationFlags.EmissiveIsBlack)
+                        mat.globalIlluminationFlags = MaterialGlobalIlluminationFlags.EmissiveIsBlack;
+#endif
+
+                            affectedMaterials++;
+                        }
+                    }
+                }
+            }
+
+            Debug.Log($"[LightsOutScript][UwU] Deactivated emissive windows on {affectedMaterials} materials among {totalCombinedModels} CombinedModels! Facades untouched, nya~ (づ｡◕‿‿◕｡)づ");
+        }
+
     }
 }
