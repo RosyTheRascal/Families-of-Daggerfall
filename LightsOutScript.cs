@@ -56,6 +56,11 @@ namespace LightsOutScriptMod
             }
         }
 
+        private int totalCombinedModels = 0;
+        private int affectedMaterials = 0;
+        private int totalFacades = 0;
+        private int facadeMaterials = 0;
+
         public void CollectAndLogBuildingWorldspaceInfo()
         {
             var allLocations = GameObject.FindObjectsOfType<DaggerfallLocation>();
@@ -422,11 +427,11 @@ namespace LightsOutScriptMod
 
             // Specific textures that contain window materials by archive ID and record index
             HashSet<(int archive, int record)> validWindowMaterials = new HashSet<(int, int)>
-    {
-        (359, 3), // TEXTURE.359 [Index=3]
-        (171, 3), // Example additional archive; replace with actual window archives
-        (370, 3), // Example additional archive; replace with actual window archives
-    };
+            {
+                (359, 3), // TEXTURE.359 [Index=3]
+                (172, 3), // Example from Daggerfall Unity
+                (173, 3), // Example from Daggerfall Unity
+            };
 
             // First: Turn off emission on legit CombinedModels under RMB blocks
             var allTransforms = GameObject.FindObjectsOfType<Transform>();
@@ -474,8 +479,8 @@ namespace LightsOutScriptMod
                             mat.DisableKeyword("_EMISSION");
 
 #if UNITY_EDITOR || UNITY_STANDALONE
-                    if (mat.globalIlluminationFlags != MaterialGlobalIlluminationFlags.EmissiveIsBlack)
-                        mat.globalIlluminationFlags = MaterialGlobalIlluminationFlags.EmissiveIsBlack;
+                            if (mat.globalIlluminationFlags != MaterialGlobalIlluminationFlags.EmissiveIsBlack)
+                                mat.globalIlluminationFlags = MaterialGlobalIlluminationFlags.EmissiveIsBlack;
 #endif
 
                             affectedMaterials++;
@@ -505,7 +510,7 @@ namespace LightsOutScriptMod
 
                             // Check if this material belongs to a valid window texture
                             var textureData = mat.GetTexture("_MainTex") as Texture2D;
-                            if (textureData != null && validWindowMaterials.Contains((textureData.width, textureData.height))) // Replace width and height with archive-record logic
+                            if (textureData != null && validWindowMaterials.Contains((textureData.width, textureData.height)))
                             {
                                 if (mat.HasProperty("_EmissionColor"))
                                 {
@@ -513,7 +518,7 @@ namespace LightsOutScriptMod
                                     mat.SetColor("_EmissionColor", vanillaWindowYellow);
                                     mat.EnableKeyword("_EMISSION");
 #if UNITY_EDITOR || UNITY_STANDALONE
-                            mat.globalIlluminationFlags = MaterialGlobalIlluminationFlags.RealtimeEmissive;
+                                    mat.globalIlluminationFlags = MaterialGlobalIlluminationFlags.RealtimeEmissive;
 #endif
                                     facadeMaterials++;
                                 }
