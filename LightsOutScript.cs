@@ -52,14 +52,8 @@ namespace LightsOutScriptMod
             {
                 CollectAndLogBuildingWorldspaceInfo();
                 SpawnFacadeAtFactionBuildings();
-                ControlEmissiveWindows();
             }
         }
-
-        private int totalCombinedModels = 0;
-        private int affectedMaterials = 0;
-        private int totalFacades = 0;
-        private int facadeMaterials = 0;
 
         public void CollectAndLogBuildingWorldspaceInfo()
         {
@@ -174,53 +168,6 @@ namespace LightsOutScriptMod
                         totalBuildings++;
                     }
                 }
-
-                var combinedModelsTransforms = GameObject.FindObjectsOfType<Transform>();
-                foreach (var t in combinedModelsTransforms)
-                {
-                    if (t.name.StartsWith("CombinedModel_"))
-                    {
-                        var renderers = t.GetComponentsInChildren<Renderer>(true);
-                        foreach (var renderer in renderers)
-                        {
-                            Material[] materials = renderer.sharedMaterials;
-                            foreach (var material in materials)
-                            {
-                                if (material.HasProperty("_EmissionColor"))
-                                {
-                                    material.SetColor("_EmissionColor", Color.black);
-                                    material.DisableKeyword("_EMISSION");
-                                    Debug.Log($"Disabwed emissive matewiaw in CombinedModew: {t.name} nya~!");
-                                }
-                            }
-                        }
-                    }
-                }
-
-                // Contwow emissive matewiaws fow Facades
-                var facadeTransforms = GameObject.FindObjectsOfType<Transform>();
-                foreach (var t in facadeTransforms)
-                {
-                    if (t.name.StartsWith("Facade_"))
-                    {
-                        var renderers = t.GetComponentsInChildren<Renderer>(true);
-                        foreach (var renderer in renderers)
-                        {
-                            Material[] materials = renderer.sharedMaterials;
-                            foreach (var material in materials)
-                            {
-                                if (material.HasProperty("_EmissionColor"))
-                                {
-                                    material.SetColor("_EmissionColor", new Color(1.0f, 0.8f, 0.2f) * 1.25f); // Night window gwow nya~!
-                                    material.EnableKeyword("_EMISSION");
-                                    Debug.Log($"Enabwed emissive matewiaw in Facade: {t.name} nya~!");
-                                }
-                            }
-                        }
-                    }
-                }
-
-                Debug.Log("Finished contwowwing emissive matewiaws nya~!");
             }
 
             Debug.Log($"[LightsOutScript] Total buildings found and logged: {totalBuildings}");
@@ -461,75 +408,6 @@ namespace LightsOutScriptMod
                                 Destroy(meshCol);
 
                             buildingGo.transform.SetParent(location.transform, true);
-                        }
-                    }
-                }
-            }
-        }
-
-        public void ControlEmissiveWindows()
-        {
-            // Define the emissive color for night windows
-            Color nightWindowYellow = new Color(1.0f, 0.784f, 0.196f) * 1.25f;
-
-            // Define valid window textures (archive and record pairs)
-            HashSet<(int archive, int record)> validWindowMaterials = new HashSet<(int, int)>
-            {
-                (365, 3), // TEXTURE.365 Index=3 for Facades
-                (359, 3), // TEXTURE.359 Index=3
-                (172, 3), // Example from Daggerfall Unity
-                (173, 3), // Example from Daggerfall Unity
-            };
-
-            // Find all Facade_* objects to manage their window emissions independently
-            var allTransforms = GameObject.FindObjectsOfType<Transform>();
-
-            foreach (var t in allTransforms)
-            {
-                if (t.name.StartsWith("Facade_"))
-                {
-                    totalFacades++;
-
-                    // Get all renderers under this Facade
-                    var renderers = t.GetComponentsInChildren<Renderer>(true);
-
-                    foreach (var renderer in renderers)
-                    {
-                        // Ensure renderer creates unique instances of each material
-                        Material[] materials = renderer.materials; // Instantiates materials
-
-                        // Control emission for the fourth material (Index=3)
-                        int windowMatIndex = 3;
-                        if (materials.Length > windowMatIndex && materials[windowMatIndex] != null)
-                        {
-                            var mat = materials[windowMatIndex];
-
-                            // Check if the material belongs to a valid window texture
-                            var texture = mat.GetTexture("_MainTex") as Texture2D;
-                            if (texture != null && validWindowMaterials.Contains((texture.width, texture.height)))
-                            {
-                                // Enable emission for night windows
-                                if (mat.HasProperty("_EmissionColor"))
-                                {
-                                    mat.SetColor("_EmissionColor", nightWindowYellow);
-                                    mat.EnableKeyword("_EMISSION");
-
-#if UNITY_EDITOR || UNITY_STANDALONE
-                                    mat.globalIlluminationFlags = MaterialGlobalIlluminationFlags.RealtimeEmissive;
-#endif
-                                    facadeMaterials++;
-                                }
-                            }
-                        }
-
-                        // Disable emission for all other materials
-                        for (int i = 0; i < materials.Length; i++)
-                        {
-                            if (i == windowMatIndex) continue; // Skip valid window material
-                            var mat = materials[i];
-                            if (mat.HasProperty("_EmissionColor"))
-                                mat.SetColor("_EmissionColor", Color.black);
-                            mat.DisableKeyword("_EMISSION");
                         }
                     }
                 }
