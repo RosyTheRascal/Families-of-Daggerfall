@@ -52,7 +52,7 @@ namespace LightsOutScriptMod
             {
                 CollectAndLogBuildingWorldspaceInfo();
                 SpawnFacadeAtFactionBuildings();
-                DeactivateEmissiveWindows();
+                ControlEmissiveWindows();
             }
         }
 
@@ -415,7 +415,7 @@ namespace LightsOutScriptMod
             }
         }
 
-        public void DeactivateEmissiveWindows()
+        public void ControlEmissiveWindows()
         {
             int totalCombinedModels = 0, affectedMaterials = 0, totalFacades = 0, facadeMaterials = 0;
 
