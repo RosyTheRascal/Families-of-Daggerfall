@@ -50,8 +50,11 @@ namespace LightsOutScriptMod
 
         void Update()
         {
+
+
             // Find all DaggerfallLocations in the scene
             var allLocations = GameObject.FindObjectsOfType<DaggerfallLocation>();
+
             foreach (var location in allLocations)
             {
                 // Check if this location has already been processed
@@ -67,17 +70,12 @@ namespace LightsOutScriptMod
                     Debug.Log($"[LightsOutScript] Processed new location: {location.name}, nya~!");
                 }
             }
-            int currentHour = (int)DaggerfallUnity.Instance.WorldTime.Now.Hour; // Get in-game hour as an integer
-            if (currentHour >= 22 || currentHour < 6) // Between 22:00 and 6:00
+
+            if (Input.GetKeyDown(KeyCode.Semicolon)) // Pick any debug key you like
             {
-                ControlEmissiveWindowTexturesInCombinedModels(false); // Deactivate emissive textures
-                Debug.Log("[LightsOutScript] Deactivated emissive textures based on schedule, nya~!");
+                ControlEmissiveWindowTexturesInCombinedModels();
             }
-            else
-            {
-                ControlEmissiveWindowTexturesInCombinedModels(true); // Activate emissive textures
-                Debug.Log("[LightsOutScript] Activated emissive textures based on schedule, nya~!");
-            }
+
             if (Input.GetKeyDown(KeyCode.Backslash)) // Pick any debug key you like
             {
                 ControlEmissiveTexturesOnFacades();
@@ -443,7 +441,7 @@ namespace LightsOutScriptMod
             }
         }
 
-        public void ControlEmissiveWindowTexturesInCombinedModels(bool activate)
+        public void ControlEmissiveWindowTexturesInCombinedModels()
         {
             var allLocations = GameObject.FindObjectsOfType<DaggerfallLocation>();
             foreach (var location in allLocations)
@@ -459,18 +457,12 @@ namespace LightsOutScriptMod
                         {
                             foreach (var material in meshRenderer.materials)
                             {
-                                if (material.HasProperty("_EmissionMap"))
+                                if (material.HasProperty("_EmissionMap") && material.GetTexture("_EmissionMap") != null)
                                 {
-                                    if (activate)
-                                    {
-                                        material.EnableKeyword("_EMISSION");
-                                        Debug.Log($"[LightsOutScript] Emissive texture activated for material '{material.name}' in '{combinedModelsTransform.name}', nya~!");
-                                    }
-                                    else
-                                    {
-                                        material.DisableKeyword("_EMISSION");
-                                        Debug.Log($"[LightsOutScript] Emissive texture deactivated for material '{material.name}' in '{combinedModelsTransform.name}', nya~!");
-                                    }
+                                    material.DisableKeyword("_EMISSION");
+                                    material.SetTexture("_EmissionMap", null);
+
+                                    Debug.Log($"[LightsOutScript] Emissive texture deactivated for material '{material.name}' in '{combinedModelsTransform.name}', nya~!");
                                 }
                             }
                         }
