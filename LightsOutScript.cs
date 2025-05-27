@@ -219,13 +219,13 @@ namespace LightsOutScriptMod
 
             // Use the enum from DaggerfallConnect, not DaggerfallWorkshop.Game!
             var houseTypes = new HashSet<DaggerfallConnect.DFLocation.BuildingTypes>
-    {
+            {
         DaggerfallConnect.DFLocation.BuildingTypes.House1,
         DaggerfallConnect.DFLocation.BuildingTypes.House2,
         DaggerfallConnect.DFLocation.BuildingTypes.House3,
         DaggerfallConnect.DFLocation.BuildingTypes.House4,
         DaggerfallConnect.DFLocation.BuildingTypes.House5,
-    };
+            };
 
             foreach (var location in allLocations)
             {
@@ -303,18 +303,24 @@ namespace LightsOutScriptMod
                         {
                             Vector3 worldPos = rmbBlock.transform.TransformPoint(summary.Position);
 
-                            // Get the modelId (try ModelID, then Model)
+                            // --- SAFER modelId retrieval, meow! ---
                             int modelId = 0;
                             var summaryType = summary.GetType();
+
                             var modelIdField = summaryType.GetField("ModelID");
                             var modelField = summaryType.GetField("Model");
+                            object modelIdValue = null;
+                            string usedFieldName = null;
+
                             if (modelIdField != null)
                             {
-                                modelId = (int)modelIdField.GetValue(summary);
+                                modelIdValue = modelIdField.GetValue(summary);
+                                usedFieldName = "ModelID";
                             }
                             else if (modelField != null)
                             {
-                                modelId = (int)modelField.GetValue(summary);
+                                modelIdValue = modelField.GetValue(summary);
+                                usedFieldName = "Model";
                             }
                             else
                             {
@@ -322,12 +328,28 @@ namespace LightsOutScriptMod
                                 continue;
                             }
 
-                            Debug.Log($"[LightsOutScript][DBG] About to spawn facade with modelId={modelId} at worldPos={worldPos} for building type={summary.BuildingType} in '{location.name}', nya~");
+                            // now handle whatever type it is!
+                            if (modelIdValue == null)
+                            {
+                                Debug.LogWarning($"[LightsOutScript][WARN] {usedFieldName} is null for building type {summary.BuildingType}, skipping, nya~");
+                                continue;
+                            }
+                            try
+                            {
+                                modelId = Convert.ToInt32(modelIdValue);
+                            }
+                            catch (Exception ex)
+                            {
+                                Debug.LogWarning($"[LightsOutScript][WARN] Could not convert {usedFieldName}={modelIdValue} (type={modelIdValue.GetType()}) to int for building type {summary.BuildingType} in {location.name}: {ex.Message}, nya~");
+                                continue;
+                            }
+
+                            Debug.Log($"[LightsOutScript][DBG] About to spawn facade with modelId={modelId} (original type={modelIdValue.GetType()}, from field '{usedFieldName}') at worldPos={worldPos} for building type={summary.BuildingType} in '{location.name}', nya~");
 
                             GameObject buildingGo = DaggerfallWorkshop.Utility.GameObjectHelper.CreateDaggerfallMeshGameObject((uint)modelId, null, true, null, false);
                             if (buildingGo == null)
                             {
-                                Debug.LogWarning($"[LightsOutScript][WARN] Could not create mesh GameObject for modelId={modelId} at worldPos={worldPos} (building type={summary.BuildingType}) in location '{location.name}', nya~!");
+                                Debug.LogWarning($"[LightsOutScript][WARN] Could not create mesh GameObject for modelId={modelId} at worldPos={worldPos} (building type={summary.BuildingType}) in location '{location.name}', nya~");
                                 continue;
                             }
                             buildingGo.transform.position = worldPos;
