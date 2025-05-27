@@ -174,6 +174,53 @@ namespace LightsOutScriptMod
                         totalBuildings++;
                     }
                 }
+
+                var combinedModelsTransforms = GameObject.FindObjectsOfType<Transform>();
+                foreach (var t in combinedModelsTransforms)
+                {
+                    if (t.name.StartsWith("CombinedModel_"))
+                    {
+                        var renderers = t.GetComponentsInChildren<Renderer>(true);
+                        foreach (var renderer in renderers)
+                        {
+                            Material[] materials = renderer.sharedMaterials;
+                            foreach (var material in materials)
+                            {
+                                if (material.HasProperty("_EmissionColor"))
+                                {
+                                    material.SetColor("_EmissionColor", Color.black);
+                                    material.DisableKeyword("_EMISSION");
+                                    Debug.Log($"Disabwed emissive matewiaw in CombinedModew: {t.name} nya~!");
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Contwow emissive matewiaws fow Facades
+                var facadeTransforms = GameObject.FindObjectsOfType<Transform>();
+                foreach (var t in facadeTransforms)
+                {
+                    if (t.name.StartsWith("Facade_"))
+                    {
+                        var renderers = t.GetComponentsInChildren<Renderer>(true);
+                        foreach (var renderer in renderers)
+                        {
+                            Material[] materials = renderer.sharedMaterials;
+                            foreach (var material in materials)
+                            {
+                                if (material.HasProperty("_EmissionColor"))
+                                {
+                                    material.SetColor("_EmissionColor", new Color(1.0f, 0.8f, 0.2f) * 1.25f); // Night window gwow nya~!
+                                    material.EnableKeyword("_EMISSION");
+                                    Debug.Log($"Enabwed emissive matewiaw in Facade: {t.name} nya~!");
+                                }
+                            }
+                        }
+                    }
+                }
+
+                Debug.Log("Finished contwowwing emissive matewiaws nya~!");
             }
 
             Debug.Log($"[LightsOutScript] Total buildings found and logged: {totalBuildings}");
