@@ -303,21 +303,33 @@ namespace LightsOutScriptMod
                         {
                             Vector3 worldPos = rmbBlock.transform.TransformPoint(summary.Position);
 
-                            // Get the modelId (usually ModelID, sometimes Model depending on your version)
-                            // We'll try both, meow! If both fail, you'll need to check your BuildingSummary definition
+                            // Get the modelId (try ModelID, then Model)
                             int modelId = 0;
-                            try
+                            var summaryType = summary.GetType();
+                            var modelIdField = summaryType.GetField("ModelID");
+                            var modelField = summaryType.GetField("Model");
+                            if (modelIdField != null)
                             {
-                                // Try ModelID
-                                modelId = (int)summary.GetType().GetField("ModelID").GetValue(summary);
+                                modelId = (int)modelIdField.GetValue(summary);
                             }
-                            catch
+                            else if (modelField != null)
                             {
-                                // fallback, try Model
-                                modelId = (int)summary.GetType().GetField("Model").GetValue(summary);
+                                modelId = (int)modelField.GetValue(summary);
+                            }
+                            else
+                            {
+                                Debug.LogWarning($"[LightsOutScript][WARN] BuildingSummary type for {summary.BuildingType} has neither ModelID nor Model field, nya~ Skipping!");
+                                continue;
                             }
 
+                            Debug.Log($"[LightsOutScript][DBG] About to spawn facade with modelId={modelId} at worldPos={worldPos} for building type={summary.BuildingType} in '{location.name}', nya~");
+
                             GameObject buildingGo = DaggerfallWorkshop.Utility.GameObjectHelper.CreateDaggerfallMeshGameObject((uint)modelId, null, true, null, false);
+                            if (buildingGo == null)
+                            {
+                                Debug.LogWarning($"[LightsOutScript][WARN] Could not create mesh GameObject for modelId={modelId} at worldPos={worldPos} (building type={summary.BuildingType}) in location '{location.name}', nya~!");
+                                continue;
+                            }
                             buildingGo.transform.position = worldPos;
                             buildingGo.transform.rotation = Quaternion.identity;
                             buildingGo.transform.localScale = Vector3.one;
