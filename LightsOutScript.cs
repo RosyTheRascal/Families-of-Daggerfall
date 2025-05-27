@@ -51,7 +51,7 @@ namespace LightsOutScriptMod
             if (Input.GetKeyDown(KeyCode.Semicolon)) // Pick any debug key you like
             {
                 CollectAndLogBuildingWorldspaceInfo();
-                SpawnCubesAtFactionBuildings();
+                SpawnFacadeAtFactionBuildings();
             }
         }
 
@@ -213,19 +213,21 @@ namespace LightsOutScriptMod
                 Debug.LogWarning("[LightsOutScript] Could not find player object to log position, nya~");
         }
 
-        public void SpawnCubesAtFactionBuildings()
+        public void SpawnFacadeAtFactionBuildings()
         {
             var allLocations = GameObject.FindObjectsOfType<DaggerfallLocation>();
             float cubeSize = 3.0f; // adjust as you wish, nya~
             Color cubeColor = Color.white;
 
             // types to skip (House1, House2, House3)
-            var houseTypes = new HashSet<DaggerfallWorkshop.Game.BuildingTypes>
-    {
-        DaggerfallWorkshop.Game.BuildingTypes.House1,
-        DaggerfallWorkshop.Game.BuildingTypes.House2,
-        DaggerfallWorkshop.Game.BuildingTypes.House3,
-    };
+            var houseTypes = new HashSet<DFLocation.BuildingTypes>
+            {
+                 DFLocation.BuildingTypes.House1,
+                 DFLocation.BuildingTypes.House2,
+                 DFLocation.BuildingTypes.House3,
+                 DFLocation.BuildingTypes.House4,
+                 DFLocation.BuildingTypes.House5,
+            };
 
             foreach (var location in allLocations)
             {
