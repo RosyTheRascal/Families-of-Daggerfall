@@ -424,22 +424,27 @@ namespace LightsOutScriptMod
 
             foreach (var t in allTransforms)
             {
-                // Check if this is called "CombinedModels"
+                // Only touch if this is called "CombinedModels"
                 if (t.name != "CombinedModels")
                     continue;
 
-                // Only do this if parent is called "Models" (so, RMB block mesh, not a facade or something else)
+                // Must have a parent called "Models"
                 if (t.parent == null || t.parent.name != "Models")
                     continue;
 
-                // Extra double-check: Make sure grandparent is a RMB block (optional! but extra safe)
-                // You can comment this out if you want to be less picky
-                // if (t.parent.parent == null || t.parent.parent.GetComponent<DaggerfallRMBBlock>() == null)
-                //     continue;
+                // EXTRA: Must have a grandparent that is a DaggerfallRMBBlock
+                var grandparent = t.parent.parent;
+                if (grandparent == null)
+                    continue;
 
+                // This is the magic check that facades will NEVER pass!
+                if (grandparent.GetComponent<DaggerfallRMBBlock>() == null)
+                    continue;
+
+                // If we made it here, this is a legit RMB block CombinedModels, not a facade!
                 totalCombinedModels++;
 
-                // Get all renderers under this CombinedModels (should be just one, but just in case)
+                // Get all renderers under this CombinedModels
                 var renderers = t.GetComponentsInChildren<Renderer>(true);
 
                 foreach (var renderer in renderers)
@@ -472,7 +477,7 @@ namespace LightsOutScriptMod
                 }
             }
 
-            Debug.Log($"[LightsOutScript][UwU] Deactivated emissive windows on {affectedMaterials} materials among {totalCombinedModels} CombinedModels! Facades untouched, nya~ (づ｡◕‿‿◕｡)づ");
+            Debug.Log($"[LightsOutScript][UwU] Deactivated emissive windows on {affectedMaterials} materials among {totalCombinedModels} legit CombinedModels! Facades totally untouched, nya~ (ฅ^•ﻌ•^ฅ)");
         }
 
     }
