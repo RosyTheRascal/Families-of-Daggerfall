@@ -861,22 +861,23 @@ namespace LightsOutScriptMod
                 }
 
                 foreach (var billboard in billboards)
-
-                    // Check if the biwwboawd is fwom TEXTURE.210 nya~!
-                    if (billboard.summary.Archive == 210)
+                {
+                    // Check if the name contains "TEXTURE.210" nya~!
+                    if (billboard.name.IndexOf("TEXTURE.210", StringComparison.OrdinalIgnoreCase) >= 0)
                     {
-                        // Disabwe the MeshWendewew component nya~!
-                        var meshWendewew = billboard.GetComponent<MeshRenderer>();
-                        if (meshWendewew != null)
+                        // Disable the MeshRenderer component nya~!
+                        var meshRenderer = billboard.GetComponent<MeshRenderer>();
+                        if (meshRenderer != null)
                         {
-                            meshWendewew.enabled = false;
-                            Debug.Log($"[LightsOutScwipt] Disabwed MeshWendewew fow '{billboard.name}' fwom TEXTURE.210, nya~!");
+                            meshRenderer.enabled = false;
+                            Debug.Log($"[LightsOutScript] Disabled MeshRenderer for '{billboard.name}' because it is a Texture.210 billboard, nya~!");
                         }
                         else
                         {
-                            Debug.LogWarning($"[LightsOutScwipt] '{billboard.name}' fwom TEXTURE.210 has nyo MeshWendewew, nya~!");
+                            Debug.LogWarning($"[LightsOutScript] '{billboard.name}' has no MeshRenderer, nya~!");
                         }
                     }
+                }
             }
         }
 
