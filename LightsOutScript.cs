@@ -855,14 +855,21 @@ namespace LightsOutScriptMod
             // Iterate through all DaggerfallBillboards nya~!
             foreach (var billboard in billboards)
             {
-                if (billboard.customArchive == 210) // Check customArchive directly nya~!
+                // Add extra conditions to ensure only light billboards are targeted nya~!
+                if (billboard.customArchive == 210 && IsLightBillboard(billboard)) // Check customArchive and additional criteria nya~!
                 {
-                    Debug.Log($"[LightsOutScript] Deleting DaggerfallBillboard '{billboard.name}' because it is part of TEXTURE.210, nya~!");
+                    Debug.Log($"[LightsOutScript] Deleting DaggerfallBillboard '{billboard.name}' because it is part of TEXTURE.210 and a light billboard, nya~!");
                     Destroy(billboard.gameObject);
                 }
             }
         }
 
+        private bool IsLightBillboard(DaggerfallBillboard billboard)
+        {
+            // Use IndexOf to check if the name contains "Light" nya~!
+            // IndexOf supports case-insensitive compawison nya~!
+            return billboard.name.IndexOf("Light", StringComparison.OrdinalIgnoreCase) >= 0;
+        }
 
         private int GetTextureArchiveIndex(Material material)
         {
