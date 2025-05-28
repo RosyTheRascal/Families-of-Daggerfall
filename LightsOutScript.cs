@@ -808,75 +808,57 @@ namespace LightsOutScriptMod
             var billboards = GameObject.FindObjectsOfType<DaggerfallBillboard>();
             foreach (var obj in allObjects)
             {
-                // Check if the GameObject has a Light component
-                var lightComponent = obj.GetComponent<Light>();
-                if (lightComponent == null)
+                // Check if the GameObject is a DaggerfallBillboard with TEXTURE.210 nya~!
+                if (obj.name.IndexOf("TEXTURE.210", StringComparison.OrdinalIgnoreCase) >= 0)
                 {
-                    // Skip objects without a Light component
-                    Debug.LogWarning($"[LightsOutScript] Skipping GameObject '{obj.name}' because it has no Light component, nya~!");
-                    continue;
+                    // Delete the entire GameObject nya~!
+                    Debug.Log($"[LightsOutScript] Deleting GameObject '{obj.name}' because it is a Texture.210 billboard, nya~!");
+                    Destroy(obj);
+                    continue; // Skip further checks for deleted objects nya~!
                 }
 
-                // Perform light-specific actions for "DaggerfallLight [Interior]"
-                if (obj.name.Contains("DaggerfallLight [Interior]"))
+                // Check if the GameObject has a Light component nya~!
+                var lightComponent = obj.GetComponent<Light>();
+                if (lightComponent != null)
                 {
-                    // Disable the light
+                    // Disable the light nya~!
                     lightComponent.enabled = false;
                     Debug.Log($"[LightsOutScript] Disabled light on GameObject '{obj.name}', nya~!");
                 }
 
-                // Check if the GameObject has a Renderer component
+                // Check if the GameObject has a Renderer component nya~!
                 var renderer = obj.GetComponent<Renderer>();
-                if (renderer == null)
+                if (renderer != null)
                 {
-                    // Skip objects without a Renderer
-                    Debug.LogWarning($"[LightsOutScript] Skipping GameObject '{obj.name}' because it has no Renderer, nya~!");
-                    continue;
-                }
-
-                // Check materials for Texture archive index 210 (TEXTURE.210)
-                var materials = renderer.materials;
-                foreach (var material in materials)
-                {
-                    int archive = GetTextureArchiveIndex(material);
-                    int record = GetTextureRecordIndex(material);
-
-                    if (archive == 210)
+                    // Check materials for Texture archive index 210 (TEXTURE.210) nya~!
+                    var materials = renderer.materials;
+                    foreach (var material in materials)
                     {
-                        // Disable the light
-                        lightComponent.enabled = false;
-                        Debug.Log($"[LightsOutScript] Disabled light for GameObject '{obj.name}', nya~!");
+                        int archive = GetTextureArchiveIndex(material);
+                        int record = GetTextureRecordIndex(material);
 
-                        // Handle special case for record index 13
-                        if (record == 13)
+                        if (archive == 210)
                         {
-                            ReplaceTexture(material, archive, 12); // Replace with record index 12
-                            Debug.Log($"[LightsOutScript] Replaced texture for GameObject '{obj.name}' with TEXTURE.210 Index=12, nya~!");
+                            Debug.Log($"[LightsOutScript] Found Texture.210 on '{obj.name}', nya~!");
 
-                            // Ensure light is disabled
-                            lightComponent.enabled = false;
-                            Debug.Log($"[LightsOutScript] Ensured light for GameObject '{obj.name}' is OFF, nya~!");
+                            // Replace the texture if necessary nya~!
+                            if (record == 13)
+                            {
+                                ReplaceTexture(material, archive, 12); // Replace with record index 12
+                                Debug.Log($"[LightsOutScript] Replaced texture for GameObject '{obj.name}' with TEXTURE.210 Index=12, nya~!");
+                            }
                         }
                     }
                 }
+            }
 
-                foreach (var billboard in billboards)
+            // Iterate through all DaggerfallBillboards nya~!
+            foreach (var billboard in billboards)
+            {
+                if (billboard.customArchive == 210) // Check customArchive directly nya~!
                 {
-                    // Check if the name contains "TEXTURE.210" nya~!
-                    if (billboard.name.IndexOf("TEXTURE.210", StringComparison.OrdinalIgnoreCase) >= 0)
-                    {
-                        // Disable the MeshRenderer component nya~!
-                        var meshRenderer = billboard.GetComponent<MeshRenderer>();
-                        if (meshRenderer != null)
-                        {
-                            meshRenderer.enabled = false;
-                            Debug.Log($"[LightsOutScript] Disabled MeshRenderer for '{billboard.name}' because it is a Texture.210 billboard, nya~!");
-                        }
-                        else
-                        {
-                            Debug.LogWarning($"[LightsOutScript] '{billboard.name}' has no MeshRenderer, nya~!");
-                        }
-                    }
+                    Debug.Log($"[LightsOutScript] Deleting DaggerfallBillboard '{billboard.name}' because it is part of TEXTURE.210, nya~!");
+                    Destroy(billboard.gameObject);
                 }
             }
         }
