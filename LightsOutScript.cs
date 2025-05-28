@@ -75,45 +75,86 @@ namespace LightsOutScriptMod
 
         private static void OnTransitionToInterior(DaggerfallWorkshop.Game.PlayerEnterExit.TransitionEventArgs args)
         {
-            // Activate emissive textures for CombinedModels in the hierarchy
-            Debug.Log("[LightsOutScript] Transitioning to interior, activating emissive textures...");
+            Debug.Log("[LightsOutScript] Transitioning to interior, checking CombinedModels for emissive textures... nya~");
 
-            Transform interiorTransform = args.DaggerfallInterior.transform;
-            var blocks = interiorTransform.GetComponentsInChildren<DaggerfallRMBBlock>(true);
-
-            foreach (var block in blocks)
+            Transform exteriorTransform = args.DaggerfallInterior.transform.parent;
+            if (exteriorTransform != null)
             {
-                Transform combinedModelsTransform = block.transform.Find("Models/CombinedModels");
-                if (combinedModelsTransform != null)
+                Transform streamingTarget = exteriorTransform.Find("StreamingTarget");
+                Transform location = FindDaggerfallLocation(streamingTarget);
+
+                if (location != null)
                 {
-                    var meshes = combinedModelsTransform.GetComponentsInChildren<MeshRenderer>();
-                    foreach (var meshRenderer in meshes)
+                    var blocks = location.GetComponentsInChildren<Transform>(true);
+
+                    foreach (Transform block in blocks)
                     {
-                        foreach (var material in meshRenderer.materials)
+                        if (block.name.StartsWith("DaggerfallBlock"))
                         {
-                            // Ensure emissive properties are restored
-                            if (material.HasProperty("_EmissionMap") && material.GetTexture("_EmissionMap") != null)
+                            Transform combinedModelsTransform = block.Find("Models/CombinedModels");
+                            if (combinedModelsTransform != null)
                             {
-                                material.EnableKeyword("_EMISSION");
-                                Debug.Log($"[LightsOutScript] Emissive texture activated for material '{material.name}' in '{combinedModelsTransform.name}', nya~!");
+                                var meshes = combinedModelsTransform.GetComponentsInChildren<MeshRenderer>();
+                                foreach (var meshRenderer in meshes)
+                                {
+                                    foreach (var material in meshRenderer.materials)
+                                    {
+                                        ActivateEmissiveTexture(material);
+                                    }
+                                }
                             }
                             else
                             {
-                                Debug.LogWarning($"[LightsOutScript][WARN] Material '{material.name}' does not have an emissive map, nya~!");
+                                Debug.LogWarning($"[LightsOutScript][WARN] CombinedModels not found in block '{block.name}', nya~");
                             }
-
-                            // Reset transparency settings (if altered by Transparent Windows mod)
-                            material.SetFloat("_Mode", 0);  // Set to opaque
-                            material.DisableKeyword("_ALPHABLEND_ON");
-                            material.DisableKeyword("_ALPHATEST_ON");
-                            material.DisableKeyword("_ALPHAPREMULTIPLY_ON");
                         }
                     }
                 }
                 else
                 {
-                    Debug.LogWarning($"[LightsOutScript][WARN] CombinedModels not found in block '{block.name}', nya~");
+                    Debug.LogWarning("[LightsOutScript][WARN] DaggerfallLocation not found with expected naming convention, nya~");
                 }
+            }
+        }
+
+        private static Transform FindDaggerfallLocation(Transform streamingTarget)
+        {
+            if (streamingTarget == null)
+                return null;
+
+            foreach (Transform child in streamingTarget)
+            {
+                if (child.name.StartsWith("DaggerfallLocation [Region="))
+                {
+                    Debug.Log($"[LightsOutScript] Found DaggerfallLocation: {child.name}, nya~!");
+                    return child;
+                }
+            }
+
+            return null;
+        }
+
+        private static void ActivateEmissiveTexture(Material material)
+        {
+            // Ensure emissive properties are set
+            if (material.HasProperty("_EmissionMap") && material.GetTexture("_EmissionMap") != null)
+            {
+                material.EnableKeyword("_EMISSION");
+                material.SetColor("_EmissionColor", Color.white * 1.0f); // Bright white glow
+                Debug.Log($"[LightsOutScript] Emissive texture activated for material '{material.name}', nya~!");
+            }
+            else
+            {
+                Debug.LogWarning($"[LightsOutScript][WARN] Material '{material.name}' does not have an emissive map, nya~!");
+            }
+
+            // Compatibility for Transparent Windows mod
+            if (material.shader.name.Contains("Custom/TerrainClipShader"))
+            {
+                Debug.Log($"[LightsOutScript] Found Transparent Windows shader in material '{material.name}', attempting compatibility adjustments, nya~!");
+                material.SetOverrideTag("RenderType", "Transparent");
+                material.SetFloat("_Mode", 2); // Set to fade mode
+                material.EnableKeyword("_ALPHABLEND_ON");
             }
         }
 
