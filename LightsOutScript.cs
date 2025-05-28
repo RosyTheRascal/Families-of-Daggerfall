@@ -34,7 +34,8 @@ namespace LightsOutScriptMod
     public class LightsOutScript : MonoBehaviour
     {
         private static Mod mod;
-        private bool emissiveTexturesActive;
+        private bool emissiveCombinedModelsActive;
+        private bool emissiveFacadesActive;
         private bool initialized = false;
         private const int GameSceneIndex = 1;
         [Invoke(StateManager.StateTypes.Start, 0)]
@@ -53,44 +54,31 @@ namespace LightsOutScriptMod
 
         void Awake()
         {
-            // Detect whethew emissive textures awe active on woad
-            emissiveTexturesActive = CheckEmissiveTextureState();
+            // Detect initial states for both combined models and facades
+            emissiveCombinedModelsActive = CheckEmissiveTextureStateCombinedModels();
+            emissiveFacadesActive = CheckEmissiveTextureStateFacades();
 
-            // Fowce a Debug.Log to appeaw on initiaw state detection nya~!
-            if (emissiveTexturesActive)
-            {
-                Debug.Log($"[LightsOutScript] Initiaw emissiveTexturesActive state detected: ACTIVE, nya~!");
-            }
-            else
-            {
-                Debug.Log($"[LightsOutScript] Initiaw emissiveTexturesActive state detected: INACTIVE, nya~!");
-            }
+            // Log initial states for debugging!
+            Debug.Log($"[LightsOutScript] Initial emissiveCombinedModelsActive state: {(emissiveCombinedModelsActive ? "ACTIVE" : "INACTIVE")}, nya~!");
+            Debug.Log($"[LightsOutScript] Initial emissiveFacadesActive state: {(emissiveFacadesActive ? "ACTIVE" : "INACTIVE")}, nya~!");
         }
 
         void Update()
         {
             if (!initialized)
             {
-                // Check if the game scene is loaded AND an active "Exterior" GameObject exists
                 if (SceneManager.GetActiveScene().buildIndex == GameSceneIndex && GameObject.Find("Exterior")?.activeInHierarchy == true)
                 {
-                    emissiveTexturesActive = CheckEmissiveTextureState();
+                    emissiveCombinedModelsActive = CheckEmissiveTextureStateCombinedModels();
+                    emissiveFacadesActive = CheckEmissiveTextureStateFacades();
                     initialized = true;
 
-                    // Log the initial state nya~!
-                    if (emissiveTexturesActive)
-                    {
-                        Debug.Log($"[LightsOutScript] Initial emissiveTexturesActive state detected: ACTIVE, nya~!");
-                    }
-                    else
-                    {
-                        Debug.Log($"[LightsOutScript] Initial emissiveTexturesActive state detected: INACTIVE, nya~!");
-                    }
+                    Debug.Log($"[LightsOutScript] Combined Models and Facades initialized, nya~!");
                 }
                 else
                 {
-                    Debug.Log($"[LightsOutScript] Waiting for the game scene to load and 'Exterior' GameObject to be active, nya~!");
-                    return; // Skip further logic until the game scene is loaded AND "Exterior" is active
+                    Debug.Log($"[LightsOutScript] Waiting for game scene to load and 'Exterior' to be active, nya~!");
+                    return;
                 }
             }
 
@@ -103,28 +91,29 @@ namespace LightsOutScriptMod
                 StartCoroutine(ProcessNewLocations(newLocations));
             }
 
-            if (Input.GetKeyDown(KeyCode.Quote)) // Toggles emissive window textures
+            if (Input.GetKeyDown(KeyCode.Quote)) // Toggles emissive window textures for combined models
             {
-                emissiveTexturesActive = !emissiveTexturesActive; // Toggle the state
-                ControlEmissiveWindowTexturesInCombinedModels(emissiveTexturesActive);
+                emissiveCombinedModelsActive = !emissiveCombinedModelsActive;
+                ControlEmissiveWindowTexturesInCombinedModels(emissiveCombinedModelsActive);
             }
 
-            if (Input.GetKeyDown(KeyCode.Semicolon)) // Toggles emissive window textures
+            if (Input.GetKeyDown(KeyCode.Semicolon)) // Toggles emissive window textures for facades
             {
-                emissiveTexturesActive = !emissiveTexturesActive; // Toggle the state
-                ControlEmissiveWindowTexturesInFacades(emissiveTexturesActive);
+                emissiveFacadesActive = !emissiveFacadesActive;
+                ControlEmissiveWindowTexturesInFacades(emissiveFacadesActive);
             }
         }
 
-        private bool CheckEmissiveTextureState()
+        private bool CheckEmissiveTextureStateCombinedModels()
         {
+            // Logic specifically for combined models
             var allLocations = GameObject.FindObjectsOfType<DaggerfallLocation>();
             foreach (var location in allLocations)
             {
                 var blocks = location.GetComponentsInChildren<DaggerfallRMBBlock>(true);
                 foreach (var block in blocks)
                 {
-                    Transform combinedModelsTransform = block.transform.Find("Models/CombinedModels");
+                    var combinedModelsTransform = block.transform.Find("Models/CombinedModels");
                     if (combinedModelsTransform != null)
                     {
                         var meshes = combinedModelsTransform.GetComponentsInChildren<MeshRenderer>();
@@ -134,7 +123,7 @@ namespace LightsOutScriptMod
                             {
                                 if (material.HasProperty("_EmissionMap") && material.IsKeywordEnabled("_EMISSION"))
                                 {
-                                    Debug.Log($"[LightsOutScript] Emissive textures detected as ACTIVE on load in material '{material.name}', nya~!");
+                                    Debug.Log($"[LightsOutScript] Combined Models emissive detected ACTIVE, nya~!");
                                     return true;
                                 }
                             }
@@ -143,7 +132,36 @@ namespace LightsOutScriptMod
                 }
             }
 
-            Debug.Log($"[LightsOutScript] Emissive textures detected as INACTIVE on load, nya~!");
+            Debug.Log($"[LightsOutScript] Combined Models emissive detected INACTIVE, nya~!");
+            return false;
+        }
+
+        private bool CheckEmissiveTextureStateFacades()
+        {
+            // Logic specifically for facades
+            var allLocations = GameObject.FindObjectsOfType<DaggerfallLocation>();
+            foreach (var location in allLocations)
+            {
+                var facadeTransforms = location.GetComponentsInChildren<Transform>()
+                                               .Where(t => t.name.StartsWith("Facade_", StringComparison.OrdinalIgnoreCase));
+                foreach (var facadeTransform in facadeTransforms)
+                {
+                    var meshes = facadeTransform.GetComponentsInChildren<MeshRenderer>();
+                    foreach (var meshRenderer in meshes)
+                    {
+                        foreach (var material in meshRenderer.materials)
+                        {
+                            if (material.HasProperty("_EmissionMap") && material.IsKeywordEnabled("_EMISSION"))
+                            {
+                                Debug.Log($"[LightsOutScript] Facades emissive detected ACTIVE, nya~!");
+                                return true;
+                            }
+                        }
+                    }
+                }
+            }
+
+            Debug.Log($"[LightsOutScript] Facades emissive detected INACTIVE, nya~!");
             return false;
         }
 
@@ -506,7 +524,7 @@ namespace LightsOutScriptMod
                 var blocks = location.GetComponentsInChildren<DaggerfallRMBBlock>(true);
                 foreach (var block in blocks)
                 {
-                    Transform combinedModelsTransform = block.transform.Find("Models/CombinedModels");
+                    var combinedModelsTransform = block.transform.Find("Models/CombinedModels");
                     if (combinedModelsTransform != null)
                     {
                         var meshes = combinedModelsTransform.GetComponentsInChildren<MeshRenderer>();
@@ -519,12 +537,12 @@ namespace LightsOutScriptMod
                                     if (enableEmissive)
                                     {
                                         material.EnableKeyword("_EMISSION");
-                                        Debug.Log($"[LightsOutScript] Emissive texture activated for material '{material.name}' in '{combinedModelsTransform.name}', nya~!");
+                                        Debug.Log($"[LightsOutScript] Activated emissive for Combined Models material '{material.name}', nya~!");
                                     }
                                     else
                                     {
                                         material.DisableKeyword("_EMISSION");
-                                        Debug.Log($"[LightsOutScript] Emissive texture deactivated for material '{material.name}' in '{combinedModelsTransform.name}', nya~!");
+                                        Debug.Log($"[LightsOutScript] Deactivated emissive for Combined Models material '{material.name}', nya~!");
                                     }
                                 }
                             }
@@ -532,7 +550,7 @@ namespace LightsOutScriptMod
                     }
                     else
                     {
-                        Debug.LogWarning($"[LightsOutScript][WARN] CombinedModels not found in block '{block.name}', nya~!");
+                        Debug.LogWarning($"[LightsOutScript] CombinedModels not found in block '{block.name}', nya~!");
                     }
                 }
             }
@@ -545,7 +563,6 @@ namespace LightsOutScriptMod
             {
                 var facadeTransforms = location.GetComponentsInChildren<Transform>()
                                                .Where(t => t.name.StartsWith("Facade_", StringComparison.OrdinalIgnoreCase));
-
                 foreach (var facadeTransform in facadeTransforms)
                 {
                     var meshes = facadeTransform.GetComponentsInChildren<MeshRenderer>();
@@ -553,19 +570,17 @@ namespace LightsOutScriptMod
                     {
                         foreach (var material in meshRenderer.materials)
                         {
-                            // Ensure material is initialized correctly for emissive state
                             if (material.HasProperty("_EmissionMap"))
                             {
-                                bool isCurrentlyEmissive = material.IsKeywordEnabled("_EMISSION");
-                                if (enableEmissive && !isCurrentlyEmissive)
+                                if (enableEmissive)
                                 {
                                     material.EnableKeyword("_EMISSION");
-                                    Debug.Log($"[LightsOutScript] Emissive texture activated for material '{material.name}' in '{facadeTransform.name}', nya~!");
+                                    Debug.Log($"[LightsOutScript] Activated emissive for Facades material '{material.name}', nya~!");
                                 }
-                                else if (!enableEmissive && isCurrentlyEmissive)
+                                else
                                 {
                                     material.DisableKeyword("_EMISSION");
-                                    Debug.Log($"[LightsOutScript] Emissive texture deactivated for material '{material.name}' in '{facadeTransform.name}', nya~!");
+                                    Debug.Log($"[LightsOutScript] Deactivated emissive for Facades material '{material.name}', nya~!");
                                 }
                             }
                         }
