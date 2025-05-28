@@ -109,24 +109,47 @@ namespace LightsOutScriptMod
 
                 foreach (var facadeTransform in facadeTransforms)
                 {
+                    // Determine if emissive should be enabled based on BuildingType and time
                     DFLocation.BuildingTypes buildingType = GetBuildingTypeFromFacadeName(facadeTransform.name);
-                    bool shouldEnableFacadeEmission = ShouldEnableEmissiveForBuildingType(buildingType);
+                    bool shouldEnableEmissive = ShouldEnableEmissiveForBuildingType(buildingType);
 
-                    // Track previous state for each facade to avoid redundant updates nya~!
+                    // Add facade to the processedBuildings if not already tracked nya~!
                     if (!processedBuildings.Contains(facadeTransform.name))
                     {
-                        // Add to processedBuildings to initialize tracking nya~!
                         processedBuildings.Add(facadeTransform.name);
-                        emissiveFacadesActive = shouldEnableFacadeEmission;
-                        ControlEmissiveWindowTexturesInFacades(emissiveFacadesActive);
-                        Debug.Log($"[LightsOutScript] Initialized Facades emissive state for BuildingType '{buildingType}' to {(emissiveFacadesActive ? "ACTIVE" : "INACTIVE")}, nya~!");
+                        Debug.Log($"[LightsOutScript] Tracking new facade '{facadeTransform.name}', nya~!");
                     }
-                    else if (emissiveFacadesActive != shouldEnableFacadeEmission)
+
+                    // Skip redundant updates if emissive state has not changed nya~!
+                    bool currentEmissiveState = facadeTransform.GetComponentsInChildren<MeshRenderer>()
+                                                               .Any(meshRenderer => meshRenderer.materials.Any(material =>
+                                                                   material.HasProperty("_EmissionMap") &&
+                                                                   material.IsKeywordEnabled("_EMISSION")));
+                    if (currentEmissiveState == shouldEnableEmissive)
                     {
-                        // Only update if emissive state changes nya~!
-                        emissiveFacadesActive = shouldEnableFacadeEmission;
-                        ControlEmissiveWindowTexturesInFacades(emissiveFacadesActive);
-                        Debug.Log($"[LightsOutScript] Facades emissive state updated for BuildingType '{buildingType}' to {(emissiveFacadesActive ? "ACTIVE" : "INACTIVE")} based on current time, nya~!");
+                        continue; // Skip redundant updates nya~!
+                    }
+
+                    // Apply emissive state updates nya~!
+                    var meshes = facadeTransform.GetComponentsInChildren<MeshRenderer>();
+                    foreach (var meshRenderer in meshes)
+                    {
+                        foreach (var material in meshRenderer.materials)
+                        {
+                            if (material.HasProperty("_EmissionMap"))
+                            {
+                                if (shouldEnableEmissive)
+                                {
+                                    material.EnableKeyword("_EMISSION");
+                                    Debug.Log($"[LightsOutScript] Activated emissive for Facades material '{material.name}' (BuildingType={buildingType}), nya~!");
+                                }
+                                else
+                                {
+                                    material.DisableKeyword("_EMISSION");
+                                    Debug.Log($"[LightsOutScript] Deactivated emissive for Facades material '{material.name}' (BuildingType={buildingType}), nya~!");
+                                }
+                            }
+                        }
                     }
                 }
             }
