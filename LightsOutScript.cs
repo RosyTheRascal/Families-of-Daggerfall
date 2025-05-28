@@ -72,7 +72,6 @@ namespace LightsOutScriptMod
                     emissiveCombinedModelsActive = CheckEmissiveTextureStateCombinedModels();
                     emissiveFacadesActive = CheckEmissiveTextureStateFacades();
                     initialized = true;
-
                     Debug.Log($"[LightsOutScript] Combined Models and Facades initialized, nya~!");
                 }
                 else
@@ -138,11 +137,10 @@ namespace LightsOutScriptMod
 
         private bool CheckEmissiveTextureStateFacades()
         {
-            // Ensure the scene and Exterior are loaded before proceeding
+
             if (SceneManager.GetActiveScene().buildIndex != GameSceneIndex || GameObject.Find("Exterior")?.activeInHierarchy != true)
             {
                 Debug.LogWarning($"[LightsOutScript] Scene or Exterior not ready, deferring Facades emissive check, nya~!");
-                StartCoroutine(WaitForFacadesPlacement()); // Initiate coroutine to wait till facades are ready
                 return emissiveFacadesActive; // Return the current state while waiting
             }
 
@@ -174,6 +172,8 @@ namespace LightsOutScriptMod
             emissiveFacadesActive = false; // Update the state
             return false;
         }
+
+        private bool deferred = false;
 
         public void CollectAndLogBuildingWorldspaceInfo()
         {
@@ -524,6 +524,7 @@ namespace LightsOutScriptMod
                     }
                 }
             }
+            CheckEmissiveTextureStateFacades();
         }
 
         public void ControlEmissiveWindowTexturesInCombinedModels(bool enableEmissive)
@@ -613,16 +614,6 @@ namespace LightsOutScriptMod
                 // Add this location to the processed list
                 processedLocations.Add(location);
             }
-        }
-
-        private IEnumerator WaitForFacadesPlacement()
-        {
-            Debug.Log("[LightsOutScript] Waiting for facades to finish placement, nya~!");
-            yield return null; // Wait for one frame
-            yield return null; // Wait for another frame
-
-            Debug.Log("[LightsOutScript] Checking facades emissive state after waiting, nya~!");
-            CheckEmissiveTextureStateFacades(); // Re-check the emissive state
         }
     }
 }
