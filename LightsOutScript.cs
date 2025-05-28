@@ -46,39 +46,17 @@ namespace LightsOutScriptMod
             mod.IsReady = true;
         }
 
-        static HashSet<string> processedLocations = new HashSet<string>();
-
         void Update()
         {
-
-
-            // Find all DaggerfallLocations in the scene
-            var allLocations = GameObject.FindObjectsOfType<DaggerfallLocation>();
-
-            foreach (var location in allLocations)
-            {
-                // Check if this location has already been processed
-                if (!processedLocations.Contains(location.name))
-                {
-                    // Log building worldspace info and spawn facades for new locations
-                    CollectAndLogBuildingWorldspaceInfo(); // Use the existing parameterless method
-                    SpawnFacadeAtFactionBuildings(); // Use the existing parameterless method
-
-                    // Add this location to the processed list
-                    processedLocations.Add(location.name);
-
-                    Debug.Log($"[LightsOutScript] Processed new location: {location.name}, nya~!");
-                }
-            }
-
             if (Input.GetKeyDown(KeyCode.Semicolon)) // Pick any debug key you like
             {
-                ControlEmissiveWindowTexturesInCombinedModels();
+                CollectAndLogBuildingWorldspaceInfo();
+                SpawnFacadeAtFactionBuildings();
             }
 
-            if (Input.GetKeyDown(KeyCode.Backslash)) // Pick any debug key you like
+            if (Input.GetKeyDown(KeyCode.Quote)) // Pick any debug key you like
             {
-                ControlEmissiveTexturesOnFacades();
+                ControlEmissiveWindowTexturesInCombinedModels();
             }
         }
 
@@ -470,31 +448,6 @@ namespace LightsOutScriptMod
                     else
                     {
                         Debug.LogWarning($"[LightsOutScript][WARN] CombinedModels not found in block '{block.name}', nya~");
-                    }
-                }
-            }
-        }
-
-        public void ControlEmissiveTexturesOnFacades()
-        {
-            var facadeObjects = GameObject.FindObjectsOfType<GameObject>(); // Find all game objects in the scene
-            foreach (var obj in facadeObjects)
-            {
-                if (obj.name.StartsWith("Facade_")) // Identify facade objects based on their name prefix
-                {
-                    var meshRenderers = obj.GetComponentsInChildren<MeshRenderer>();
-                    foreach (var meshRenderer in meshRenderers)
-                    {
-                        foreach (var material in meshRenderer.materials)
-                        {
-                            if (material.HasProperty("_EmissionMap") && material.GetTexture("_EmissionMap") != null)
-                            {
-                                material.DisableKeyword("_EMISSION");
-                                material.SetTexture("_EmissionMap", null);
-
-                                Debug.Log($"[LightsOutScript] Emissive texture deactivated for material '{material.name}' on facade object '{obj.name}', nya~!");
-                            }
-                        }
                     }
                 }
             }
