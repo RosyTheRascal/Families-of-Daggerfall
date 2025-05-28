@@ -53,6 +53,35 @@ namespace LightsOutScriptMod
         {
             // Detect whethew emissive textures awe active on woad
             emissiveTexturesActive = CheckEmissiveTextureState();
+
+            // Fowce a Debug.Log to appeaw on initiaw state detection nya~!
+            if (emissiveTexturesActive)
+            {
+                Debug.Log($"[LightsOutScript] Initiaw emissiveTexturesActive state detected: ACTIVE, nya~!");
+            }
+            else
+            {
+                Debug.Log($"[LightsOutScript] Initiaw emissiveTexturesActive state detected: INACTIVE, nya~!");
+            }
+        }
+
+        void Update()
+        {
+
+            // Detect newly loaded DaggerfallLocations
+            var allLocations = GameObject.FindObjectsOfType<DaggerfallLocation>();
+            var newLocations = allLocations.Where(location => !processedLocations.Contains(location)).ToList();
+
+            if (newLocations.Count > 0)
+            {
+                StartCoroutine(ProcessNewLocations(newLocations));
+            }
+
+            if (Input.GetKeyDown(KeyCode.Quote)) // Toggles emissive window textures
+            {
+                emissiveTexturesActive = !emissiveTexturesActive; // Toggle the state
+                ControlEmissiveWindowTexturesInCombinedModels(emissiveTexturesActive);
+            }
         }
 
         private bool CheckEmissiveTextureState()
@@ -73,7 +102,7 @@ namespace LightsOutScriptMod
                             {
                                 if (material.HasProperty("_EmissionMap") && material.IsKeywordEnabled("_EMISSION"))
                                 {
-                                    Debug.Log($"[LightsOutScript] Emissive textures detected as ACTIVE on woad, nya~!");
+                                    Debug.Log($"[LightsOutScript] Emissive textures detected as ACTIVE on woad in matewiaw '{material.name}', nya~!");
                                     return true; // If any matewiaw has emissions active, wetuwn twue nya~
                                 }
                             }
@@ -84,25 +113,6 @@ namespace LightsOutScriptMod
 
             Debug.Log($"[LightsOutScript] Emissive textures detected as INACTIVE on woad, nya~!");
             return false; // If no matewiaws have emissions active, wetuwn fawse nya~
-        }
-
-        void Update()
-        {
-
-            // Detect newly loaded DaggerfallLocations
-            var allLocations = GameObject.FindObjectsOfType<DaggerfallLocation>();
-            var newLocations = allLocations.Where(location => !processedLocations.Contains(location)).ToList();
-
-            if (newLocations.Count > 0)
-            {
-                StartCoroutine(ProcessNewLocations(newLocations));
-            }
-
-            if (Input.GetKeyDown(KeyCode.Quote)) // Toggles emissive window textures
-            {
-                emissiveTexturesActive = !emissiveTexturesActive; // Toggle the state
-                ControlEmissiveWindowTexturesInCombinedModels(emissiveTexturesActive);
-            }
         }
 
         public void CollectAndLogBuildingWorldspaceInfo()
