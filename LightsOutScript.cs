@@ -44,6 +44,7 @@ namespace LightsOutScriptMod
             go.AddComponent<LightsOutScript>();
 
             mod.IsReady = true;
+            DaggerfallWorkshop.Game.PlayerEnterExit.OnTransitionInterior += OnTransitionToInterior;
         }
 
         void Update()
@@ -57,6 +58,62 @@ namespace LightsOutScriptMod
             if (Input.GetKeyDown(KeyCode.Quote)) // Pick any debug key you like
             {
                 ControlEmissiveWindowTexturesInCombinedModels();
+            }
+        }
+
+        public void OnTransitionToInterior()
+        {
+            Debug.Log("[LightsOutScript] Transitioning to interior...");
+            ControlEmissiveWindowTexturesInCombinedModels();
+        }
+
+        private void OnDisable()
+        {
+            // Unsubscribe from the OnTransitionInterior event
+            DaggerfallWorkshop.Game.PlayerEnterExit.OnTransitionInterior -= OnTransitionToInterior;
+        }
+
+        private static void OnTransitionToInterior(DaggerfallWorkshop.Game.PlayerEnterExit.TransitionEventArgs args)
+        {
+            // Activate emissive textures for CombinedModels in the hierarchy
+            Debug.Log("[LightsOutScript] Transitioning to interior, activating emissive textures...");
+
+            Transform interiorTransform = args.DaggerfallInterior.transform;
+            var blocks = interiorTransform.GetComponentsInChildren<DaggerfallRMBBlock>(true);
+
+            foreach (var block in blocks)
+            {
+                Transform combinedModelsTransform = block.transform.Find("Models/CombinedModels");
+                if (combinedModelsTransform != null)
+                {
+                    var meshes = combinedModelsTransform.GetComponentsInChildren<MeshRenderer>();
+                    foreach (var meshRenderer in meshes)
+                    {
+                        foreach (var material in meshRenderer.materials)
+                        {
+                            // Ensure emissive properties are restored
+                            if (material.HasProperty("_EmissionMap") && material.GetTexture("_EmissionMap") != null)
+                            {
+                                material.EnableKeyword("_EMISSION");
+                                Debug.Log($"[LightsOutScript] Emissive texture activated for material '{material.name}' in '{combinedModelsTransform.name}', nya~!");
+                            }
+                            else
+                            {
+                                Debug.LogWarning($"[LightsOutScript][WARN] Material '{material.name}' does not have an emissive map, nya~!");
+                            }
+
+                            // Reset transparency settings (if altered by Transparent Windows mod)
+                            material.SetFloat("_Mode", 0);  // Set to opaque
+                            material.DisableKeyword("_ALPHABLEND_ON");
+                            material.DisableKeyword("_ALPHATEST_ON");
+                            material.DisableKeyword("_ALPHAPREMULTIPLY_ON");
+                        }
+                    }
+                }
+                else
+                {
+                    Debug.LogWarning($"[LightsOutScript][WARN] CombinedModels not found in block '{block.name}', nya~");
+                }
             }
         }
 
@@ -437,10 +494,12 @@ namespace LightsOutScriptMod
                             {
                                 if (material.HasProperty("_EmissionMap") && material.GetTexture("_EmissionMap") != null)
                                 {
-                                    material.DisableKeyword("_EMISSION");
-                                    material.SetTexture("_EmissionMap", null);
-
-                                    Debug.Log($"[LightsOutScript] Emissive texture deactivated for material '{material.name}' in '{combinedModelsTransform.name}', nya~!");
+                                    material.EnableKeyword("_EMISSION");
+                                    Debug.Log($"[LightsOutScript] Emissive texture activated for material '{material.name}' in '{combinedModelsTransform.name}', nya~!");
+                                }
+                                else
+                                {
+                                    Debug.LogWarning($"[LightsOutScript][WARN] Material '{material.name}' does not have an emissive map, nya~!");
                                 }
                             }
                         }
