@@ -56,7 +56,6 @@ namespace LightsOutScriptMod
         {
             // Detect initial states for both combined models and facades
             emissiveCombinedModelsActive = CheckEmissiveTextureStateCombinedModels();
-            emissiveFacadesActive = CheckEmissiveTextureStateFacades();
 
             // Log initial states for debugging!
             Debug.Log($"[LightsOutScript] Initial emissiveCombinedModelsActive state: {(emissiveCombinedModelsActive ? "ACTIVE" : "INACTIVE")}, nya~!");
