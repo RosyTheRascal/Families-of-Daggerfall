@@ -44,7 +44,6 @@ namespace LightsOutScriptMod
             go.AddComponent<LightsOutScript>();
 
             mod.IsReady = true;
-            DaggerfallWorkshop.Game.PlayerEnterExit.OnTransitionInterior += OnTransitionToInterior;
         }
 
         void Update()
@@ -58,130 +57,6 @@ namespace LightsOutScriptMod
             if (Input.GetKeyDown(KeyCode.Quote)) // Pick any debug key you like
             {
                 ControlEmissiveWindowTexturesInCombinedModels();
-            }
-        }
-
-        public void OnTransitionToInterior()
-        {
-            Debug.Log("[LightsOutScript] Transitioning to interior...");
-            ControlEmissiveWindowTexturesInCombinedModels();
-        }
-
-        private void OnDisable()
-        {
-            // Unsubscribe from the OnTransitionInterior event
-            DaggerfallWorkshop.Game.PlayerEnterExit.OnTransitionInterior -= OnTransitionToInterior;
-        }
-
-        private static void OnTransitionToInterior(DaggerfallWorkshop.Game.PlayerEnterExit.TransitionEventArgs args)
-        {
-            Debug.Log("[LightsOutScript] Transitioning to interior, checking CombinedModels for emissive textures... nya~");
-
-            Transform exteriorTransform = args.DaggerfallInterior.transform.parent;
-            if (exteriorTransform != null)
-            {
-                Transform streamingTarget = GetStreamingTarget(exteriorTransform);
-                if (streamingTarget == null)
-                {
-                    Debug.LogError("[LightsOutScript][ERROR] StreamingTarget not found under Exterior transform, nya!");
-                    return;
-                }
-
-                Transform location = IdentifyDaggerfallLocation(streamingTarget);
-
-                if (location != null)
-                {
-                    ApplyEmissiveTextures(location);
-                }
-                else
-                {
-                    Debug.LogWarning("[LightsOutScript][WARN] DaggerfallLocation [Region=X, Name=Y] not found, nya~");
-                }
-            }
-        }
-
-        private static Transform GetStreamingTarget(Transform exteriorTransform)
-        {
-            // Check directly under the Exterior hierarchy
-            Transform streamingTarget = exteriorTransform.Find("StreamingTarget");
-
-            // If not found, attempt to retrieve via StreamingWorld
-            if (streamingTarget == null && GameManager.Instance.StreamingWorld != null)
-            {
-                streamingTarget = GameManager.Instance.StreamingWorld.StreamingTarget;
-            }
-
-            if (streamingTarget != null)
-            {
-                Debug.Log("[LightsOutScript] StreamingTarget accessed successfully, nya~!");
-            }
-
-            return streamingTarget;
-        }
-
-        private static Transform IdentifyDaggerfallLocation(Transform streamingTarget)
-        {
-            foreach (Transform child in streamingTarget)
-            {
-                if (child.name.Contains("DaggerfallLocation [Region=") && child.name.Contains(", Name="))
-                {
-                    Debug.Log($"[LightsOutScript] Found location: {child.name}, nya~!");
-                    return child;
-                }
-            }
-
-            return null;
-        }
-
-        private static void ApplyEmissiveTextures(Transform location)
-        {
-            var blocks = location.GetComponentsInChildren<Transform>(true);
-
-            foreach (Transform block in blocks)
-            {
-                if (block.name.StartsWith("DaggerfallBlock"))
-                {
-                    Transform combinedModelsTransform = block.Find("Models/CombinedModels");
-                    if (combinedModelsTransform != null)
-                    {
-                        var meshes = combinedModelsTransform.GetComponentsInChildren<MeshRenderer>();
-                        foreach (var meshRenderer in meshes)
-                        {
-                            foreach (var material in meshRenderer.materials)
-                            {
-                                ActivateEmissiveTexture(material);
-                            }
-                        }
-                    }
-                    else
-                    {
-                        Debug.LogWarning($"[LightsOutScript][WARN] CombinedModels not found in block '{block.name}', nya~");
-                    }
-                }
-            }
-        }
-
-        private static void ActivateEmissiveTexture(Material material)
-        {
-            // Ensure emissive properties are set
-            if (material.HasProperty("_EmissionMap") && material.GetTexture("_EmissionMap") != null)
-            {
-                material.EnableKeyword("_EMISSION");
-                material.SetColor("_EmissionColor", Color.white * 1.0f); // Bright white glow
-                Debug.Log($"[LightsOutScript] Emissive texture activated for material '{material.name}', nya~!");
-            }
-            else
-            {
-                Debug.LogWarning($"[LightsOutScript][WARN] Material '{material.name}' does not have an emissive map, nya~!");
-            }
-
-            // Compatibility for Transparent Windows mod
-            if (material.shader.name.Contains("Custom/TerrainClipShader"))
-            {
-                Debug.Log($"[LightsOutScript] Found Transparent Windows shader in material '{material.name}', attempting compatibility adjustments, nya~!");
-                material.SetOverrideTag("RenderType", "Transparent");
-                material.SetFloat("_Mode", 2); // Set to fade mode
-                material.EnableKeyword("_ALPHABLEND_ON");
             }
         }
 
@@ -562,12 +437,10 @@ namespace LightsOutScriptMod
                             {
                                 if (material.HasProperty("_EmissionMap") && material.GetTexture("_EmissionMap") != null)
                                 {
-                                    material.EnableKeyword("_EMISSION");
-                                    Debug.Log($"[LightsOutScript] Emissive texture activated for material '{material.name}' in '{combinedModelsTransform.name}', nya~!");
-                                }
-                                else
-                                {
-                                    Debug.LogWarning($"[LightsOutScript][WARN] Material '{material.name}' does not have an emissive map, nya~!");
+                                    material.DisableKeyword("_EMISSION");
+                                    material.SetTexture("_EmissionMap", null);
+
+                                    Debug.Log($"[LightsOutScript] Emissive texture deactivated for material '{material.name}' in '{combinedModelsTransform.name}', nya~!");
                                 }
                             }
                         }
