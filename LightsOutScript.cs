@@ -68,6 +68,7 @@ namespace LightsOutScriptMod
             {
                 if (SceneManager.GetActiveScene().buildIndex == GameSceneIndex && GameObject.Find("Exterior")?.activeInHierarchy == true)
                 {
+                    // Now check both states since Exterior is loaded
                     emissiveCombinedModelsActive = CheckEmissiveTextureStateCombinedModels();
                     emissiveFacadesActive = CheckEmissiveTextureStateFacades();
                     initialized = true;
@@ -137,7 +138,15 @@ namespace LightsOutScriptMod
 
         private bool CheckEmissiveTextureStateFacades()
         {
-            // Logic specifically for facades
+            // If the scene isn't weady ow "Extewiow" isn't active, wait nyow nya~!
+            if (SceneManager.GetActiveScene().buildIndex != GameSceneIndex || GameObject.Find("Exterior")?.activeInHierarchy != true)
+            {
+                Debug.LogWarning($"[LightsOutScript] Scene ow Extewiow nyot weady, defewwing Facades emissive check, nya~!");
+                StartCoroutine(WaitAndCheckEmissiveTextureStateFacades()); // Staht the co-woutine nya~!
+                return emissiveFacadesActive; // Retuwn the cuwwent state nya~
+            }
+
+            // If evewything is weady, pewfowm the check immediatwy nya~!
             var allLocations = GameObject.FindObjectsOfType<DaggerfallLocation>();
             foreach (var location in allLocations)
             {
@@ -152,7 +161,8 @@ namespace LightsOutScriptMod
                         {
                             if (material.HasProperty("_EmissionMap") && material.IsKeywordEnabled("_EMISSION"))
                             {
-                                Debug.Log($"[LightsOutScript] Facades emissive detected ACTIVE, nya~!");
+                                Debug.Log($"[LightsOutScript] Facades emissive detected ACTIVE immediatwy, nya~!");
+                                emissiveFacadesActive = true; // Update the state nya~
                                 return true;
                             }
                         }
@@ -160,7 +170,8 @@ namespace LightsOutScriptMod
                 }
             }
 
-            Debug.Log($"[LightsOutScript] Facades emissive detected INACTIVE, nya~!");
+            Debug.Log($"[LightsOutScript] Facades emissive detected INACTIVE immediatwy, nya~!");
+            emissiveFacadesActive = false; // Update the state nya~
             return false;
         }
 
@@ -602,6 +613,40 @@ namespace LightsOutScriptMod
                 // Add this location to the processed list
                 processedLocations.Add(location);
             }
+        }
+
+        private IEnumerator WaitAndCheckEmissiveTextureStateFacades()
+        {
+            // Wait a couple of frames to ensure all objects are properly initialized
+            yield return null;
+            yield return null;
+
+            // Logic specifically for facades
+            var allLocations = GameObject.FindObjectsOfType<DaggerfallLocation>();
+            foreach (var location in allLocations)
+            {
+                var facadeTransforms = location.GetComponentsInChildren<Transform>()
+                                               .Where(t => t.name.StartsWith("Facade_", StringComparison.OrdinalIgnoreCase));
+                foreach (var facadeTransform in facadeTransforms)
+                {
+                    var meshes = facadeTransform.GetComponentsInChildren<MeshRenderer>();
+                    foreach (var meshRenderer in meshes)
+                    {
+                        foreach (var material in meshRenderer.materials)
+                        {
+                            if (material.HasProperty("_EmissionMap") && material.IsKeywordEnabled("_EMISSION"))
+                            {
+                                Debug.Log($"[LightsOutScript] Facades emissive detected ACTIVE after waiting, nya~!");
+                                emissiveFacadesActive = true; // Update the facade state
+                                yield break; // Exit early since we've found an active emissive facade
+                            }
+                        }
+                    }
+                }
+            }
+
+            Debug.Log($"[LightsOutScript] Facades emissive detected INACTIVE after waiting, nya~!");
+            emissiveFacadesActive = false; // Update the facade state
         }
     }
 }
