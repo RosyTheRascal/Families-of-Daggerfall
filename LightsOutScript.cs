@@ -54,10 +54,10 @@ namespace LightsOutScriptMod
 
         void Awake()
         {
-            // Detect initial states for both combined models and facades
-            emissiveCombinedModelsActive = CheckEmissiveTextureStateCombinedModels();
 
-            // Log initial states for debugging!
+            emissiveCombinedModelsActive = CheckEmissiveTextureStateCombinedModels();
+            PlayerEnterExit.OnTransitionExterior += OnExteriorTransitionDetected;
+
             Debug.Log($"[LightsOutScript] Initial emissiveCombinedModelsActive state: {(emissiveCombinedModelsActive ? "ACTIVE" : "INACTIVE")}, nya~!");
             Debug.Log($"[LightsOutScript] Initial emissiveFacadesActive state: {(emissiveFacadesActive ? "ACTIVE" : "INACTIVE")}, nya~!");
         }
@@ -96,26 +96,65 @@ namespace LightsOutScriptMod
                 ControlEmissiveWindowTexturesInCombinedModels(emissiveCombinedModelsActive);
             }
 
-            int currentHour = DaggerfallUnity.Instance.WorldTime.Now.Hour;
-
-            // Check for automatic activation/deactivation based on time
-            if (currentHour == 22 && emissiveCombinedModelsActive) // 22:00 -> Deactivate emissive textures
-            {
-                emissiveCombinedModelsActive = false;
-                ControlEmissiveWindowTexturesInCombinedModels(emissiveCombinedModelsActive);
-                Debug.Log("[LightsOutScript] Emissive textures deactivated automatically at 22:00, nya~!");
-            }
-            else if (currentHour == 6 && !emissiveCombinedModelsActive) // 6:00 -> Reactivate emissive textures
-            {
-                emissiveCombinedModelsActive = true;
-                ControlEmissiveWindowTexturesInCombinedModels(emissiveCombinedModelsActive);
-                Debug.Log("[LightsOutScript] Emissive textures reactivated automatically at 6:00, nya~!");
-            }
-
             if (Input.GetKeyDown(KeyCode.Semicolon)) // Toggles emissive window textures for facades
             {
                 emissiveFacadesActive = !emissiveFacadesActive;
                 ControlEmissiveWindowTexturesInFacades(emissiveFacadesActive);
+            }
+
+            // Check time-based emissive activation/deactivation
+            int currentHour = DaggerfallUnity.Instance.WorldTime.Now.Hour;
+
+            if (currentHour >= 22 || currentHour < 6) // Between 22:00 and 6:00 -> Deactivate emissives
+            {
+                if (emissiveCombinedModelsActive)
+                {
+                    emissiveCombinedModelsActive = false;
+                    ControlEmissiveWindowTexturesInCombinedModels(emissiveCombinedModelsActive);
+                    Debug.Log("[LightsOutScript] Emissive textures automatically deactivated due to time, nya~!");
+                }
+            }
+            else if (currentHour >= 6 && currentHour < 8) // Between 6:00 and 8:00 -> Reactivate emissives
+            {
+                if (!emissiveCombinedModelsActive)
+                {
+                    emissiveCombinedModelsActive = true;
+                    ControlEmissiveWindowTexturesInCombinedModels(emissiveCombinedModelsActive);
+                    Debug.Log("[LightsOutScript] Emissive textures automatically reactivated due to time, nya~!");
+                }
+            }
+
+            // Handle save loading
+            SaveLoadManager.OnLoad += delegate
+            {
+                Debug.Log("[LightsOutScript] Save loaded, rechecking emissive states, nya~!");
+                ApplyTimeBasedEmissiveChanges();
+            };
+        }
+
+        private void ApplyTimeBasedEmissiveChanges()
+        {
+            int currentHour = DaggerfallUnity.Instance.WorldTime.Now.Hour;
+
+            if (currentHour >= 22 || currentHour < 6)
+            {
+                emissiveCombinedModelsActive = false;
+                ControlEmissiveWindowTexturesInCombinedModels(emissiveCombinedModelsActive);
+
+                emissiveFacadesActive = false;
+                ControlEmissiveWindowTexturesInFacades(emissiveFacadesActive);
+
+                Debug.Log("[LightsOutScript] Applied time-based emissive deactivation, nya~!");
+            }
+            else if (currentHour >= 6 && currentHour < 8)
+            {
+                emissiveCombinedModelsActive = true;
+                ControlEmissiveWindowTexturesInCombinedModels(emissiveCombinedModelsActive);
+
+                emissiveFacadesActive = true;
+                ControlEmissiveWindowTexturesInFacades(emissiveFacadesActive);
+
+                Debug.Log("[LightsOutScript] Applied time-based emissive activation, nya~!");
             }
         }
 
@@ -187,6 +226,12 @@ namespace LightsOutScriptMod
             Debug.Log($"[LightsOutScript] Facades emissive detected INACTIVE, nya~!");
             emissiveFacadesActive = false; // Update the state
             return false;
+        }
+
+        private void OnExteriorTransitionDetected(PlayerEnterExit.TransitionEventArgs args)
+        {
+            Debug.Log("[LightsOutScript] Exterior transition detected, nya~!");
+            ApplyTimeBasedEmissiveChanges();
         }
 
         private bool deferred = false;
@@ -410,6 +455,8 @@ namespace LightsOutScriptMod
         DaggerfallConnect.DFLocation.BuildingTypes.House3,
         DaggerfallConnect.DFLocation.BuildingTypes.House4,
         DaggerfallConnect.DFLocation.BuildingTypes.House5,
+        DaggerfallConnect.DFLocation.BuildingTypes.House6,
+        DaggerfallConnect.DFLocation.BuildingTypes.Ship,
     };
 
             foreach (var bd in location.GetComponentsInChildren<DaggerfallWorkshop.Game.BuildingDirectory>())
