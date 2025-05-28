@@ -640,7 +640,7 @@ namespace LightsOutScriptMod
                 foreach (var facadeTransform in facadeTransforms)
                 {
                     // Determine if emissive should be enabled based on BuildingType and time
-                    BuildingType buildingType = GetBuildingTypeFromFacadeName(facadeTransform.name);
+                    DFLocation.BuildingTypes buildingType = GetBuildingTypeFromFacadeName(facadeTransform.name);
                     bool shouldEnableEmissive = ShouldEnableEmissiveForBuildingType(buildingType);
 
                     var meshes = facadeTransform.GetComponentsInChildren<MeshRenderer>();
@@ -667,38 +667,38 @@ namespace LightsOutScriptMod
             }
         }
 
-        private bool ShouldEnableEmissiveForBuildingType(BuildingType buildingType)
+        private bool ShouldEnableEmissiveForBuildingType(DFLocation.BuildingTypes buildingType)
         {
             int currentHour = DaggerfallUnity.Instance.WorldTime.Now.Hour;
 
             switch (buildingType)
             {
-                case BuildingType.Alchemist:
+                case DFLocation.BuildingTypes.Alchemist:
                     return currentHour < 22 && currentHour >= 7;
-                case BuildingType.Armorer:
+                case DFLocation.BuildingTypes.Armorer:
                     return currentHour < 19 && currentHour >= 9;
-                case BuildingType.Bank:
+                case DFLocation.BuildingTypes.Bank:
                     return currentHour < 15 && currentHour >= 8;
-                case BuildingType.Bookseller:
+                case DFLocation.BuildingTypes.Bookseller:
                     return currentHour < 21 && currentHour >= 9;
-                case BuildingType.ClothingStore:
+                case DFLocation.BuildingTypes.ClothingStore:
                     return currentHour < 19 && currentHour >= 10;
-                case BuildingType.GemStore:
+                case DFLocation.BuildingTypes.GemStore:
                     return currentHour < 18 && currentHour >= 9;
-                case BuildingType.GeneralStore:
+                case DFLocation.BuildingTypes.GeneralStore:
                     return currentHour < 23 && currentHour >= 6;
-                case BuildingType.Library:
+                case DFLocation.BuildingTypes.Library:
                     return currentHour < 23 && currentHour >= 9;
-                case BuildingType.PawnShop:
+                case DFLocation.BuildingTypes.PawnShop:
                     return currentHour < 20 && currentHour >= 9;
-                case BuildingType.WeaponSmith:
+                case DFLocation.BuildingTypes.WeaponSmith:
                     return currentHour < 19 && currentHour >= 9;
-                case BuildingType.GuildHall:
+                case DFLocation.BuildingTypes.GuildHall:
                     return currentHour < 23 && currentHour >= 11;
-                case BuildingType.Temple:
-                case BuildingType.Tavern:
+                case DFLocation.BuildingTypes.Temple:
+                case DFLocation.BuildingTypes.Tavern:
                     return true; // Never deactivate nya~!
-                case BuildingType.HouseForSale:
+                case DFLocation.BuildingTypes.HouseForSale:
                     return false; // Always deactivate nya~!
                 default:
                     Debug.LogWarning($"[LightsOutScript][WARN] Unknown BuildingType '{buildingType}', defaulting to deactivate emissive, nya~!");
@@ -706,24 +706,24 @@ namespace LightsOutScriptMod
             }
         }
 
-        private BuildingType GetBuildingTypeFromFacadeName(string facadeName)
+        private DFLocation.BuildingTypes GetBuildingTypeFromFacadeName(string facadeName)
         {
             string[] parts = facadeName.Split('_');
             if (parts.Length < 2)
             {
                 Debug.LogWarning($"[LightsOutScript][WARN] Invalid facade name format '{facadeName}', nya~!");
-                return BuildingType.None;
+                return DFLocation.BuildingTypes.None;
             }
 
             string buildingTypeName = parts[1];
-            if (Enum.TryParse(buildingTypeName, out BuildingType buildingType))
+            if (Enum.TryParse(buildingTypeName, out DFLocation.BuildingTypes buildingType))
             {
                 return buildingType;
             }
             else
             {
                 Debug.LogWarning($"[LightsOutScript][WARN] Could not parse BuildingType from facade name '{facadeName}', nya~!");
-                return BuildingType.None;
+                return DFLocation.BuildingTypes.None;
             }
         }
 
