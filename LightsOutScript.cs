@@ -102,6 +102,35 @@ namespace LightsOutScriptMod
                 ControlEmissiveWindowTexturesInFacades(emissiveFacadesActive);
             }
 
+            foreach (var location in allLocations)
+            {
+                var facadeTransforms = location.GetComponentsInChildren<Transform>()
+                                               .Where(t => t.name.StartsWith("Facade_", StringComparison.OrdinalIgnoreCase));
+
+                foreach (var facadeTransform in facadeTransforms)
+                {
+                    DFLocation.BuildingTypes buildingType = GetBuildingTypeFromFacadeName(facadeTransform.name);
+                    bool shouldEnableFacadeEmission = ShouldEnableEmissiveForBuildingType(buildingType);
+
+                    // Track previous state for each facade to avoid redundant updates nya~!
+                    if (!processedBuildings.Contains(facadeTransform.name))
+                    {
+                        // Add to processedBuildings to initialize tracking nya~!
+                        processedBuildings.Add(facadeTransform.name);
+                        emissiveFacadesActive = shouldEnableFacadeEmission;
+                        ControlEmissiveWindowTexturesInFacades(emissiveFacadesActive);
+                        Debug.Log($"[LightsOutScript] Initialized Facades emissive state for BuildingType '{buildingType}' to {(emissiveFacadesActive ? "ACTIVE" : "INACTIVE")}, nya~!");
+                    }
+                    else if (emissiveFacadesActive != shouldEnableFacadeEmission)
+                    {
+                        // Only update if emissive state changes nya~!
+                        emissiveFacadesActive = shouldEnableFacadeEmission;
+                        ControlEmissiveWindowTexturesInFacades(emissiveFacadesActive);
+                        Debug.Log($"[LightsOutScript] Facades emissive state updated for BuildingType '{buildingType}' to {(emissiveFacadesActive ? "ACTIVE" : "INACTIVE")} based on current time, nya~!");
+                    }
+                }
+            }
+
             // Check time-based emissive activation/deactivation
             int currentHour = DaggerfallUnity.Instance.WorldTime.Now.Hour;
 
