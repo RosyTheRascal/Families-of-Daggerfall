@@ -439,13 +439,13 @@ namespace LightsOutScriptMod
                                 {
                                     if (enableEmissive)
                                     {
-                                        material.EnableKeyword("_EMISSION"); // Turn on emissive textures
+                                        material.EnableKeyword("_EMISSION"); // Tuwn on emissive textures nya~
                                         Debug.Log($"[LightsOutScript] Emissive texture activated for material '{material.name}' in '{combinedModelsTransform.name}', nya~!");
                                     }
                                     else
                                     {
-                                        material.DisableKeyword("_EMISSION"); // Turn off emissive textures
-                                        material.SetTexture("_EmissionMap", null);
+                                        material.DisableKeyword("_EMISSION"); // Tuwn off emissive textures nya~
+                                        material.SetTexture("_EmissionMap", null); // Optionally remove emission map uwu
                                         Debug.Log($"[LightsOutScript] Emissive texture deactivated for material '{material.name}' in '{combinedModelsTransform.name}', nya~!");
                                     }
                                 }
