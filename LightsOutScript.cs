@@ -34,7 +34,7 @@ namespace LightsOutScriptMod
     public class LightsOutScript : MonoBehaviour
     {
         private static Mod mod;
-
+        private bool emissiveTexturesActive = false;
         [Invoke(StateManager.StateTypes.Start, 0)]
         public static void Init(InitParams initParams)
         {
@@ -61,9 +61,10 @@ namespace LightsOutScriptMod
                 StartCoroutine(ProcessNewLocations(newLocations));
             }
 
-            if (Input.GetKeyDown(KeyCode.Quote)) // Pick any debug key you like
+            if (Input.GetKeyDown(KeyCode.Quote)) // Toggles emissive window textures
             {
-                ControlEmissiveWindowTexturesInCombinedModels();
+                emissiveTexturesActive = !emissiveTexturesActive; // Toggle the state
+                ControlEmissiveWindowTexturesInCombinedModels(emissiveTexturesActive);
             }
         }
 
@@ -418,7 +419,7 @@ namespace LightsOutScriptMod
             }
         }
 
-        public void ControlEmissiveWindowTexturesInCombinedModels()
+        public void ControlEmissiveWindowTexturesInCombinedModels(bool enableEmissive)
         {
             var allLocations = GameObject.FindObjectsOfType<DaggerfallLocation>();
             foreach (var location in allLocations)
@@ -436,10 +437,17 @@ namespace LightsOutScriptMod
                             {
                                 if (material.HasProperty("_EmissionMap") && material.GetTexture("_EmissionMap") != null)
                                 {
-                                    material.DisableKeyword("_EMISSION");
-                                    material.SetTexture("_EmissionMap", null);
-
-                                    Debug.Log($"[LightsOutScript] Emissive texture deactivated for material '{material.name}' in '{combinedModelsTransform.name}', nya~!");
+                                    if (enableEmissive)
+                                    {
+                                        material.EnableKeyword("_EMISSION"); // Turn on emissive textures
+                                        Debug.Log($"[LightsOutScript] Emissive texture activated for material '{material.name}' in '{combinedModelsTransform.name}', nya~!");
+                                    }
+                                    else
+                                    {
+                                        material.DisableKeyword("_EMISSION"); // Turn off emissive textures
+                                        material.SetTexture("_EmissionMap", null);
+                                        Debug.Log($"[LightsOutScript] Emissive texture deactivated for material '{material.name}' in '{combinedModelsTransform.name}', nya~!");
+                                    }
                                 }
                             }
                         }
