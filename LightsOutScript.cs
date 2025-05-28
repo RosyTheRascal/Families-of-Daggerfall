@@ -80,58 +80,85 @@ namespace LightsOutScriptMod
             Transform exteriorTransform = args.DaggerfallInterior.transform.parent;
             if (exteriorTransform != null)
             {
-                Transform streamingTarget = exteriorTransform.Find("StreamingTarget");
-                Transform location = FindDaggerfallLocation(streamingTarget);
+                Transform streamingTarget = GetStreamingTarget(exteriorTransform);
+                if (streamingTarget == null)
+                {
+                    Debug.LogError("[LightsOutScript][ERROR] StreamingTarget not found under Exterior transform, nya!");
+                    return;
+                }
+
+                Transform location = IdentifyDaggerfallLocation(streamingTarget);
 
                 if (location != null)
                 {
-                    var blocks = location.GetComponentsInChildren<Transform>(true);
-
-                    foreach (Transform block in blocks)
-                    {
-                        if (block.name.StartsWith("DaggerfallBlock"))
-                        {
-                            Transform combinedModelsTransform = block.Find("Models/CombinedModels");
-                            if (combinedModelsTransform != null)
-                            {
-                                var meshes = combinedModelsTransform.GetComponentsInChildren<MeshRenderer>();
-                                foreach (var meshRenderer in meshes)
-                                {
-                                    foreach (var material in meshRenderer.materials)
-                                    {
-                                        ActivateEmissiveTexture(material);
-                                    }
-                                }
-                            }
-                            else
-                            {
-                                Debug.LogWarning($"[LightsOutScript][WARN] CombinedModels not found in block '{block.name}', nya~");
-                            }
-                        }
-                    }
+                    ApplyEmissiveTextures(location);
                 }
                 else
                 {
-                    Debug.LogWarning("[LightsOutScript][WARN] DaggerfallLocation not found with expected naming convention, nya~");
+                    Debug.LogWarning("[LightsOutScript][WARN] DaggerfallLocation [Region=X, Name=Y] not found, nya~");
                 }
             }
         }
 
-        private static Transform FindDaggerfallLocation(Transform streamingTarget)
+        private static Transform GetStreamingTarget(Transform exteriorTransform)
         {
-            if (streamingTarget == null)
-                return null;
+            // Check directly under the Exterior hierarchy
+            Transform streamingTarget = exteriorTransform.Find("StreamingTarget");
 
+            // If not found, attempt to retrieve via StreamingWorld
+            if (streamingTarget == null && GameManager.Instance.StreamingWorld != null)
+            {
+                streamingTarget = GameManager.Instance.StreamingWorld.StreamingTarget;
+            }
+
+            if (streamingTarget != null)
+            {
+                Debug.Log("[LightsOutScript] StreamingTarget accessed successfully, nya~!");
+            }
+
+            return streamingTarget;
+        }
+
+        private static Transform IdentifyDaggerfallLocation(Transform streamingTarget)
+        {
             foreach (Transform child in streamingTarget)
             {
-                if (child.name.StartsWith("DaggerfallLocation [Region="))
+                if (child.name.Contains("DaggerfallLocation [Region=") && child.name.Contains(", Name="))
                 {
-                    Debug.Log($"[LightsOutScript] Found DaggerfallLocation: {child.name}, nya~!");
+                    Debug.Log($"[LightsOutScript] Found location: {child.name}, nya~!");
                     return child;
                 }
             }
 
             return null;
+        }
+
+        private static void ApplyEmissiveTextures(Transform location)
+        {
+            var blocks = location.GetComponentsInChildren<Transform>(true);
+
+            foreach (Transform block in blocks)
+            {
+                if (block.name.StartsWith("DaggerfallBlock"))
+                {
+                    Transform combinedModelsTransform = block.Find("Models/CombinedModels");
+                    if (combinedModelsTransform != null)
+                    {
+                        var meshes = combinedModelsTransform.GetComponentsInChildren<MeshRenderer>();
+                        foreach (var meshRenderer in meshes)
+                        {
+                            foreach (var material in meshRenderer.materials)
+                            {
+                                ActivateEmissiveTexture(material);
+                            }
+                        }
+                    }
+                    else
+                    {
+                        Debug.LogWarning($"[LightsOutScript][WARN] CombinedModels not found in block '{block.name}', nya~");
+                    }
+                }
+            }
         }
 
         private static void ActivateEmissiveTexture(Material material)
