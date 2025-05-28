@@ -805,7 +805,7 @@ namespace LightsOutScriptMod
         {
             // Fetch the interior scene GameObjects, nya~!
             var allObjects = GameObject.FindObjectsOfType<GameObject>();
-
+            var billboards = GameObject.FindObjectsOfType<DaggerfallBillboard>();
             foreach (var obj in allObjects)
             {
                 // Check if the GameObject has a Light component
@@ -859,8 +859,27 @@ namespace LightsOutScriptMod
                         }
                     }
                 }
+
+                foreach (var billboard in billboards)
+
+                    // Check if the biwwboawd is fwom TEXTURE.210 nya~!
+                    if (billboard.summary.Archive == 210)
+                    {
+                        // Disabwe the MeshWendewew component nya~!
+                        var meshWendewew = billboard.GetComponent<MeshRenderer>();
+                        if (meshWendewew != null)
+                        {
+                            meshWendewew.enabled = false;
+                            Debug.Log($"[LightsOutScwipt] Disabwed MeshWendewew fow '{billboard.name}' fwom TEXTURE.210, nya~!");
+                        }
+                        else
+                        {
+                            Debug.LogWarning($"[LightsOutScwipt] '{billboard.name}' fwom TEXTURE.210 has nyo MeshWendewew, nya~!");
+                        }
+                    }
             }
         }
+
 
         private int GetTextureArchiveIndex(Material material)
         {
