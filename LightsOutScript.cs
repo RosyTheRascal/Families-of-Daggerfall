@@ -34,7 +34,7 @@ namespace LightsOutScriptMod
     public class LightsOutScript : MonoBehaviour
     {
         private static Mod mod;
-        private bool emissiveTexturesActive = false;
+        private bool emissiveTexturesActive;
         [Invoke(StateManager.StateTypes.Start, 0)]
         public static void Init(InitParams initParams)
         {
@@ -48,6 +48,43 @@ namespace LightsOutScriptMod
 
         private HashSet<DaggerfallLocation> processedLocations = new HashSet<DaggerfallLocation>();
         private HashSet<string> processedBuildings = new HashSet<string>(); // Tracks buildings processed by facade spawning
+
+        void Start()
+        {
+            // Detect whethew emissive textures awe active on woad
+            emissiveTexturesActive = CheckEmissiveTextureState();
+        }
+
+        private bool CheckEmissiveTextureState()
+        {
+            var allLocations = GameObject.FindObjectsOfType<DaggerfallLocation>();
+            foreach (var location in allLocations)
+            {
+                var blocks = location.GetComponentsInChildren<DaggerfallRMBBlock>(true);
+                foreach (var block in blocks)
+                {
+                    Transform combinedModelsTransform = block.transform.Find("Models/CombinedModels");
+                    if (combinedModelsTransform != null)
+                    {
+                        var meshes = combinedModelsTransform.GetComponentsInChildren<MeshRenderer>();
+                        foreach (var meshRenderer in meshes)
+                        {
+                            foreach (var material in meshRenderer.materials)
+                            {
+                                if (material.HasProperty("_EmissionMap") && material.IsKeywordEnabled("_EMISSION"))
+                                {
+                                    Debug.Log($"[LightsOutScript] Emissive textures detected as ACTIVE on woad, nya~!");
+                                    return true; // If any matewiaw has emissions active, wetuwn twue nya~
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            Debug.Log($"[LightsOutScript] Emissive textures detected as INACTIVE on woad, nya~!");
+            return false; // If no matewiaws have emissions active, wetuwn fawse nya~
+        }
 
         void Update()
         {
@@ -435,18 +472,17 @@ namespace LightsOutScriptMod
                         {
                             foreach (var material in meshRenderer.materials)
                             {
-                                if (material.HasProperty("_EmissionMap") && material.GetTexture("_EmissionMap") != null)
+                                if (material.HasProperty("_EmissionMap"))
                                 {
                                     if (enableEmissive)
                                     {
                                         material.EnableKeyword("_EMISSION"); // Tuwn on emissive textures nya~
-                                        Debug.Log($"[LightsOutScript] Emissive texture activated for material '{material.name}' in '{combinedModelsTransform.name}', nya~!");
+                                        Debug.Log($"[LightsOutScript] Emissive texture activated fow matewiaw '{material.name}' in '{combinedModelsTransform.name}', nya~!");
                                     }
                                     else
                                     {
                                         material.DisableKeyword("_EMISSION"); // Tuwn off emissive textures nya~
-                                        material.SetTexture("_EmissionMap", null); // Optionally remove emission map uwu
-                                        Debug.Log($"[LightsOutScript] Emissive texture deactivated for material '{material.name}' in '{combinedModelsTransform.name}', nya~!");
+                                        Debug.Log($"[LightsOutScript] Emissive texture deactivated fow matewiaw '{material.name}' in '{combinedModelsTransform.name}', nya~!");
                                     }
                                 }
                             }
