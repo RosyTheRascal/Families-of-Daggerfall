@@ -54,7 +54,7 @@ namespace LightsOutScriptMod
 
         void Awake()
         {
-
+            DaggerfallWorkshop.Game.PlayerEnterExit.OnTransitionInterior += OnTransitionInterior;
             emissiveCombinedModelsActive = CheckEmissiveTextureStateCombinedModels();
             PlayerEnterExit.OnTransitionExterior += OnExteriorTransitionDetected;
 
@@ -795,6 +795,12 @@ namespace LightsOutScriptMod
             }
         }
 
+        private void OnTransitionInterior(DaggerfallWorkshop.Game.PlayerEnterExit.TransitionEventArgs args)
+        {
+            Debug.Log($"[LightsOutScript] Transitioned to Interior: {args.DaggerfallInterior.name}, nya~!");
+            TurnOutTheLights(); // Call your method to disable lights
+        }
+
         public void TurnOutTheLights()
         {
             // Fetch the interior scene GameObjects
@@ -802,37 +808,43 @@ namespace LightsOutScriptMod
 
             foreach (var obj in allObjects)
             {
-                // Check for Texture archive index 210 (TEXTURE.210)
-                var materials = obj.GetComponent<Renderer>()?.materials;
-                if (materials != null)
+                // Check if the GameObject has a Renderer component
+                var renderer = obj.GetComponent<Renderer>();
+                if (renderer == null)
                 {
-                    foreach (var material in materials)
-                    {
-                        int archive = GetTextureArchiveIndex(material);
-                        int record = GetTextureRecordIndex(material);
+                    // Skip objects without a Renderer
+                    Debug.LogWarning($"[LightsOutScript] Skipping GameObject '{obj.name}' because it has no Renderer, nya~!");
+                    continue;
+                }
 
-                        if (archive == 210)
+                // Check for Texture archive index 210 (TEXTURE.210)
+                var materials = renderer.materials;
+                foreach (var material in materials)
+                {
+                    int archive = GetTextureArchiveIndex(material);
+                    int record = GetTextureRecordIndex(material);
+
+                    if (archive == 210)
+                    {
+                        // Disable the light
+                        var lightComponent = obj.GetComponent<Light>();
+                        if (lightComponent != null)
                         {
-                            // Disable the light
-                            var lightComponent = obj.GetComponent<Light>();
+                            lightComponent.enabled = false;
+                            Debug.Log($"[LightsOutScript] Disabled light for GameObject '{obj.name}', nya~!");
+                        }
+
+                        // Handle special case for record index 13
+                        if (record == 13)
+                        {
+                            ReplaceTexture(material, archive, 12); // Replace with record index 12
+                            Debug.Log($"[LightsOutScript] Replaced texture for GameObject '{obj.name}' with TEXTURE.210 Index=12, nya~!");
+
+                            // Ensure light is disabled
                             if (lightComponent != null)
                             {
                                 lightComponent.enabled = false;
-                                Debug.Log($"[LightsOutScript] Disabled light for GameObject '{obj.name}', nya~!");
-                            }
-
-                            // Handle special case for record index 13
-                            if (record == 13)
-                            {
-                                ReplaceTexture(material, archive, 12); // Replace with record index 12
-                                Debug.Log($"[LightsOutScript] Replaced texture for GameObject '{obj.name}' with TEXTURE.210 Index=12, nya~!");
-
-                                // Ensure light is disabled
-                                if (lightComponent != null)
-                                {
-                                    lightComponent.enabled = false;
-                                    Debug.Log($"[LightsOutScript] Ensured light for GameObject '{obj.name}' is OFF, nya~!");
-                                }
+                                Debug.Log($"[LightsOutScript] Ensured light for GameObject '{obj.name}' is OFF, nya~!");
                             }
                         }
                     }
