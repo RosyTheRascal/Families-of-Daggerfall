@@ -794,5 +794,88 @@ namespace LightsOutScriptMod
                 processedLocations.Add(location);
             }
         }
+
+        public void TurnOutTheLights()
+        {
+            // Fetch the interior scene GameObjects
+            var allObjects = GameObject.FindObjectsOfType<GameObject>();
+
+            foreach (var obj in allObjects)
+            {
+                // Check for Texture archive index 210 (TEXTURE.210)
+                var materials = obj.GetComponent<Renderer>()?.materials;
+                if (materials != null)
+                {
+                    foreach (var material in materials)
+                    {
+                        int archive = GetTextureArchiveIndex(material);
+                        int record = GetTextureRecordIndex(material);
+
+                        if (archive == 210)
+                        {
+                            // Disable the light
+                            var lightComponent = obj.GetComponent<Light>();
+                            if (lightComponent != null)
+                            {
+                                lightComponent.enabled = false;
+                                Debug.Log($"[LightsOutScript] Disabled light for GameObject '{obj.name}', nya~!");
+                            }
+
+                            // Handle special case for record index 13
+                            if (record == 13)
+                            {
+                                ReplaceTexture(material, archive, 12); // Replace with record index 12
+                                Debug.Log($"[LightsOutScript] Replaced texture for GameObject '{obj.name}' with TEXTURE.210 Index=12, nya~!");
+
+                                // Ensure light is disabled
+                                if (lightComponent != null)
+                                {
+                                    lightComponent.enabled = false;
+                                    Debug.Log($"[LightsOutScript] Ensured light for GameObject '{obj.name}' is OFF, nya~!");
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        private int GetTextureArchiveIndex(Material material)
+        {
+            // Extract archive index from the material name (e.g., "TEXTURE.210 Index=13")
+            if (material.name.StartsWith("TEXTURE.", System.StringComparison.OrdinalIgnoreCase))
+            {
+                string[] parts = material.name.Split(new[] { ' ', '.', '=' }, System.StringSplitOptions.RemoveEmptyEntries);
+                if (parts.Length > 1 && int.TryParse(parts[1], out int archive))
+                {
+                    return archive;
+                }
+            }
+            return -1; // Invalid archive index
+        }
+
+        // Helper method to get texture record index, nya~!
+        private int GetTextureRecordIndex(Material material)
+        {
+            // Extract record index from the material name (e.g., "TEXTURE.210 Index=13")
+            if (material.name.Contains("Index="))
+            {
+                string[] parts = material.name.Split(new[] { ' ', '.', '=' }, System.StringSplitOptions.RemoveEmptyEntries);
+                int indexPart = parts.ToList().FindIndex(part => part.Equals("Index", System.StringComparison.OrdinalIgnoreCase));
+                if (indexPart >= 0 && indexPart + 1 < parts.Length && int.TryParse(parts[indexPart + 1], out int record))
+                {
+                    return record;
+                }
+            }
+            return -1; // Invalid record index
+        }
+
+        // Helper method to replace texture, nya~!
+        private void ReplaceTexture(Material material, int archive, int record)
+        {
+            string newMaterialName = $"TEXTURE.{archive} Index={record}";
+            material.name = newMaterialName;
+            Debug.Log($"[LightsOutScript] Texture replaced to '{newMaterialName}', nya~!");
+        }
     }
 }
