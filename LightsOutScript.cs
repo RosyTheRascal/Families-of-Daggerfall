@@ -35,6 +35,8 @@ namespace LightsOutScriptMod
     {
         private static Mod mod;
         private bool emissiveTexturesActive;
+        private bool initialized = false;
+        private const int GameSceneIndex = 1;
         [Invoke(StateManager.StateTypes.Start, 0)]
         public static void Init(InitParams initParams)
         {
@@ -49,7 +51,7 @@ namespace LightsOutScriptMod
         private HashSet<DaggerfallLocation> processedLocations = new HashSet<DaggerfallLocation>();
         private HashSet<string> processedBuildings = new HashSet<string>(); // Tracks buildings processed by facade spawning
 
-        void Start()
+        void Awake()
         {
             // Detect whethew emissive textures awe active on woad
             emissiveTexturesActive = CheckEmissiveTextureState();
@@ -67,6 +69,30 @@ namespace LightsOutScriptMod
 
         void Update()
         {
+            if (!initialized)
+            {
+                // Check if the game scene is loaded AND an active "Exterior" GameObject exists
+                if (SceneManager.GetActiveScene().buildIndex == GameSceneIndex && GameObject.Find("Exterior")?.activeInHierarchy == true)
+                {
+                    emissiveTexturesActive = CheckEmissiveTextureState();
+                    initialized = true;
+
+                    // Log the initial state nya~!
+                    if (emissiveTexturesActive)
+                    {
+                        Debug.Log($"[LightsOutScript] Initial emissiveTexturesActive state detected: ACTIVE, nya~!");
+                    }
+                    else
+                    {
+                        Debug.Log($"[LightsOutScript] Initial emissiveTexturesActive state detected: INACTIVE, nya~!");
+                    }
+                }
+                else
+                {
+                    Debug.Log($"[LightsOutScript] Waiting for the game scene to load and 'Exterior' GameObject to be active, nya~!");
+                    return; // Skip further logic until the game scene is loaded AND "Exterior" is active
+                }
+            }
 
             // Detect newly loaded DaggerfallLocations
             var allLocations = GameObject.FindObjectsOfType<DaggerfallLocation>();
@@ -102,8 +128,8 @@ namespace LightsOutScriptMod
                             {
                                 if (material.HasProperty("_EmissionMap") && material.IsKeywordEnabled("_EMISSION"))
                                 {
-                                    Debug.Log($"[LightsOutScript] Emissive textures detected as ACTIVE on woad in matewiaw '{material.name}', nya~!");
-                                    return true; // If any matewiaw has emissions active, wetuwn twue nya~
+                                    Debug.Log($"[LightsOutScript] Emissive textures detected as ACTIVE on load in material '{material.name}', nya~!");
+                                    return true;
                                 }
                             }
                         }
@@ -111,8 +137,8 @@ namespace LightsOutScriptMod
                 }
             }
 
-            Debug.Log($"[LightsOutScript] Emissive textures detected as INACTIVE on woad, nya~!");
-            return false; // If no matewiaws have emissions active, wetuwn fawse nya~
+            Debug.Log($"[LightsOutScript] Emissive textures detected as INACTIVE on load, nya~!");
+            return false;
         }
 
         public void CollectAndLogBuildingWorldspaceInfo()
@@ -486,13 +512,13 @@ namespace LightsOutScriptMod
                                 {
                                     if (enableEmissive)
                                     {
-                                        material.EnableKeyword("_EMISSION"); // Tuwn on emissive textures nya~
-                                        Debug.Log($"[LightsOutScript] Emissive texture activated fow matewiaw '{material.name}' in '{combinedModelsTransform.name}', nya~!");
+                                        material.EnableKeyword("_EMISSION");
+                                        Debug.Log($"[LightsOutScript] Emissive texture activated for material '{material.name}' in '{combinedModelsTransform.name}', nya~!");
                                     }
                                     else
                                     {
-                                        material.DisableKeyword("_EMISSION"); // Tuwn off emissive textures nya~
-                                        Debug.Log($"[LightsOutScript] Emissive texture deactivated fow matewiaw '{material.name}' in '{combinedModelsTransform.name}', nya~!");
+                                        material.DisableKeyword("_EMISSION");
+                                        Debug.Log($"[LightsOutScript] Emissive texture deactivated for material '{material.name}' in '{combinedModelsTransform.name}', nya~!");
                                     }
                                 }
                             }
@@ -500,7 +526,7 @@ namespace LightsOutScriptMod
                     }
                     else
                     {
-                        Debug.LogWarning($"[LightsOutScript][WARN] CombinedModels not found in block '{block.name}', nya~");
+                        Debug.LogWarning($"[LightsOutScript][WARN] CombinedModels not found in block '{block.name}', nya~!");
                     }
                 }
             }
