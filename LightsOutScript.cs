@@ -46,12 +46,19 @@ namespace LightsOutScriptMod
             mod.IsReady = true;
         }
 
+        private HashSet<DaggerfallLocation> processedLocations = new HashSet<DaggerfallLocation>();
+        private HashSet<string> processedBuildings = new HashSet<string>(); // Tracks buildings processed by facade spawning
+
         void Update()
         {
-            if (Input.GetKeyDown(KeyCode.Semicolon)) // Pick any debug key you like
+
+            // Detect newly loaded DaggerfallLocations
+            var allLocations = GameObject.FindObjectsOfType<DaggerfallLocation>();
+            var newLocations = allLocations.Where(location => !processedLocations.Contains(location)).ToList();
+
+            if (newLocations.Count > 0)
             {
-                CollectAndLogBuildingWorldspaceInfo();
-                SpawnFacadeAtFactionBuildings();
+                StartCoroutine(ProcessNewLocations(newLocations));
             }
 
             if (Input.GetKeyDown(KeyCode.Quote)) // Pick any debug key you like
@@ -218,10 +225,60 @@ namespace LightsOutScriptMod
                 Debug.LogWarning("[LightsOutScript] Could not find player object to log position, nya~");
         }
 
-        public void SpawnFacadeAtFactionBuildings()
+        public void SpawnFacadeAtFactionBuildings(DaggerfallLocation location)
         {
-            var allLocations = GameObject.FindObjectsOfType<DaggerfallLocation>();
+            var blocks = location.GetComponentsInChildren<DaggerfallRMBBlock>(true);
+            int width = location.Summary.BlockWidth;
+            int height = location.Summary.BlockHeight;
 
+            var blockGrid = new Dictionary<(int x, int y), DaggerfallRMBBlock>();
+            if (blocks.Length == width * height)
+            {
+                var sortedBlocks = blocks.OrderBy(b => b.transform.position.z).ThenBy(b => b.transform.position.x).ToArray();
+                for (int y = 0; y < height; y++)
+                {
+                    for (int x = 0; x < width; x++)
+                    {
+                        int idx = y * width + x;
+                        blockGrid[(x, y)] = sortedBlocks[idx];
+                    }
+                }
+            }
+            else if (width == 1 && height == 1 && blocks.Length == 1)
+            {
+                blockGrid[(0, 0)] = blocks[0];
+            }
+            else
+            {
+                float rmbSize = 4096f;
+                float fuzz = 4.0f;
+                Vector3 cityOrigin = location.transform.position;
+                foreach (var block in blocks)
+                {
+                    Vector3 wp = block.transform.position;
+                    bool found = false;
+                    for (int y = 0; y < height; y++)
+                    {
+                        for (int x = 0; x < width; x++)
+                        {
+                            Vector3 expected = cityOrigin + new Vector3(x * rmbSize, 0, y * rmbSize);
+                            float dx = wp.x - expected.x;
+                            float dz = wp.z - expected.z;
+                            float dist = Mathf.Sqrt(dx * dx + dz * dz);
+                            if (dist < fuzz)
+                            {
+                                if (!blockGrid.ContainsKey((x, y)))
+                                    blockGrid[(x, y)] = block;
+                                found = true;
+                                break;
+                            }
+                        }
+                        if (found) break;
+                    }
+                }
+            }
+
+            // Define house types to exclude
             var houseTypes = new HashSet<DaggerfallConnect.DFLocation.BuildingTypes>
     {
         DaggerfallConnect.DFLocation.BuildingTypes.House1,
@@ -231,189 +288,131 @@ namespace LightsOutScriptMod
         DaggerfallConnect.DFLocation.BuildingTypes.House5,
     };
 
-            foreach (var location in allLocations)
+            foreach (var bd in location.GetComponentsInChildren<DaggerfallWorkshop.Game.BuildingDirectory>())
             {
-                var blocks = location.GetComponentsInChildren<DaggerfallRMBBlock>(true);
-                int width = location.Summary.BlockWidth;
-                int height = location.Summary.BlockHeight;
+                var field = typeof(DaggerfallWorkshop.Game.BuildingDirectory).GetField("buildingDict", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+                var dict = field?.GetValue(bd) as Dictionary<int, BuildingSummary>;
+                if (dict == null)
+                    continue;
 
-                var blockGrid = new Dictionary<(int x, int y), DaggerfallRMBBlock>();
-                if (blocks.Length == width * height)
+                foreach (var kvp in dict)
                 {
-                    var sortedBlocks = blocks.OrderBy(b => b.transform.position.z).ThenBy(b => b.transform.position.x).ToArray();
-                    for (int y = 0; y < height; y++)
-                    {
-                        for (int x = 0; x < width; x++)
-                        {
-                            int idx = y * width + x;
-                            blockGrid[(x, y)] = sortedBlocks[idx];
-                        }
-                    }
-                }
-                else if (width == 1 && height == 1 && blocks.Length == 1)
-                {
-                    blockGrid[(0, 0)] = blocks[0];
-                }
-                else
-                {
-                    float rmbSize = 4096f;
-                    float fuzz = 4.0f;
-                    Vector3 cityOrigin = location.transform.position;
-                    foreach (var block in blocks)
-                    {
-                        Vector3 wp = block.transform.position;
-                        bool found = false;
-                        for (int y = 0; y < height; y++)
-                        {
-                            for (int x = 0; x < width; x++)
-                            {
-                                Vector3 expected = cityOrigin + new Vector3(x * rmbSize, 0, y * rmbSize);
-                                float dx = wp.x - expected.x;
-                                float dz = wp.z - expected.z;
-                                float dist = Mathf.Sqrt(dx * dx + dz * dz);
-                                if (dist < fuzz)
-                                {
-                                    if (!blockGrid.ContainsKey((x, y)))
-                                        blockGrid[(x, y)] = block;
-                                    found = true;
-                                    break;
-                                }
-                            }
-                            if (found) break;
-                        }
-                    }
-                }
+                    int key = kvp.Key;
+                    BuildingSummary summary = kvp.Value;
 
-                foreach (var bd in location.GetComponentsInChildren<DaggerfallWorkshop.Game.BuildingDirectory>())
-                {
-                    var field = typeof(DaggerfallWorkshop.Game.BuildingDirectory).GetField("buildingDict", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-                    var dict = field?.GetValue(bd) as Dictionary<int, BuildingSummary>;
-                    if (dict == null)
+                    // Skip buildings that are house types
+                    if (houseTypes.Contains(summary.BuildingType))
                         continue;
 
-                    foreach (var kvp in dict)
+                    int layoutX, layoutY, recordIndex;
+                    DaggerfallWorkshop.Game.BuildingDirectory.ReverseBuildingKey(key, out layoutX, out layoutY, out recordIndex);
+
+                    string buildingId = $"{location.name}_{layoutX}_{layoutY}_{recordIndex}";
+
+                    if (processedBuildings.Contains(buildingId))
+                        continue;
+
+                    if (blockGrid.TryGetValue((layoutX, layoutY), out var rmbBlock))
                     {
-                        int key = kvp.Key;
-                        BuildingSummary summary = kvp.Value;
-
-                        int layoutX, layoutY, recordIndex;
-                        DaggerfallWorkshop.Game.BuildingDirectory.ReverseBuildingKey(key, out layoutX, out layoutY, out recordIndex);
-
-                        if (houseTypes.Contains(summary.BuildingType))
-                            continue;
-
-                        if (blockGrid.TryGetValue((layoutX, layoutY), out var rmbBlock))
+                        DaggerfallStaticDoors staticDoors = rmbBlock.GetComponent<DaggerfallStaticDoors>();
+                        if (staticDoors == null || staticDoors.Doors == null)
                         {
-                            DaggerfallStaticDoors staticDoors = rmbBlock.GetComponent<DaggerfallStaticDoors>();
-                            if (staticDoors == null || staticDoors.Doors == null)
-                            {
-                                Debug.LogWarning($"[LightsOutScript][WARN] Block '{rmbBlock.name}' has no StaticDoors, nya?");
-                                continue;
-                            }
-
-                            // Find the StaticDoor for THIS building (by recordIndex)
-                            StaticDoor? myDoor = null;
-                            foreach (var door in staticDoors.Doors)
-                            {
-                                if (door.recordIndex == recordIndex)
-                                {
-                                    myDoor = door;
-                                    break;
-                                }
-                            }
-
-                            if (myDoor == null)
-                            {
-                                Debug.LogWarning($"[LightsOutScript][WARN] No exterior StaticDoor found for building {summary.BuildingType} in block '{rmbBlock.name}' (recordIndex={recordIndex}), nya~");
-                                continue;
-                            }
-
-                            // --- Get buildingMatrix rotation and use for facade! (uwu) ---
-                            Matrix4x4 buildingMatrix = myDoor.Value.buildingMatrix;
-                            Quaternion buildingRotation = DaggerfallWorkshop.Utility.GameObjectHelper.QuaternionFromMatrix(buildingMatrix);
-
-                            // --- The important fix, nya! ---
-                            // Instead of using the door's world pos, spawn the facade at the building's origin in world space
-                            Vector3 buildingOriginWorldPos = rmbBlock.transform.rotation * buildingMatrix.MultiplyPoint3x4(Vector3.zero) + rmbBlock.transform.position;
-
-                            int modelId = 0;
-                            var summaryType = summary.GetType();
-
-                            var modelIdField = summaryType.GetField("ModelID");
-                            var modelField = summaryType.GetField("Model");
-                            object modelIdValue = null;
-                            string usedFieldName = null;
-
-                            if (modelIdField != null)
-                            {
-                                modelIdValue = modelIdField.GetValue(summary);
-                                usedFieldName = "ModelID";
-                            }
-                            else if (modelField != null)
-                            {
-                                modelIdValue = modelField.GetValue(summary);
-                                usedFieldName = "Model";
-                            }
-                            else
-                            {
-                                Debug.LogWarning($"[LightsOutScript][WARN] BuildingSummary type for {summary.BuildingType} has neither ModelID nor Model field, nya~ Skipping!");
-                                continue;
-                            }
-
-                            if (modelIdValue == null)
-                            {
-                                Debug.LogWarning($"[LightsOutScript][WARN] {usedFieldName} is null for building type {summary.BuildingType}, skipping, nya~");
-                                continue;
-                            }
-                            try
-                            {
-                                modelId = Convert.ToInt32(modelIdValue);
-                            }
-                            catch (Exception ex)
-                            {
-                                Debug.LogWarning($"[LightsOutScript][WARN] Could not convert {usedFieldName}={modelIdValue} (type={modelIdValue.GetType()}) to int for building type {summary.BuildingType}, skipping, nya~");
-                                continue;
-                            }
-
-                            Debug.Log($"[LightsOutScript][DBG] About to spawn facade with modelId={modelId} at buildingOriginWorldPos={buildingOriginWorldPos} with rotation={buildingRotation.eulerAngles}, nya~");
-
-                            GameObject buildingGo = DaggerfallWorkshop.Utility.GameObjectHelper.CreateDaggerfallMeshGameObject((uint)modelId, null, true, null, false);
-                            if (buildingGo == null)
-                            {
-                                Debug.LogWarning($"[LightsOutScript][WARN] Could not create mesh GameObject for modelId={modelId} at worldPos={buildingOriginWorldPos} (building type={summary.BuildingType}) in location '{location.name}', nya~");
-                                continue;
-                            }
-
-                            buildingGo.transform.position = buildingOriginWorldPos;
-                            buildingGo.transform.rotation = rmbBlock.transform.rotation * buildingRotation;
-
-                            // === NEW: make it a bit bigger! ===
-                            buildingGo.transform.localScale = Vector3.one * 1.01f;
-
-                            buildingGo.name = $"Facade_{summary.BuildingType}_{location.name}_{layoutX}_{layoutY}_{recordIndex}";
-
-                            // ===== MAGIC PART: MATCH CLIMATE & SEASON! =====
-                            var mesh = buildingGo.GetComponent<DaggerfallMesh>();
-                            if (mesh != null)
-                            {
-                                mesh.SetClimate(
-                                    location.Summary.Climate,
-                                    location.CurrentSeason,
-                                    location.WindowTextureStyle
-                                );
-                            }
-                            else
-                            {
-                                Debug.LogWarning($"[LightsOutScript][WARN] Spawned facade '{buildingGo.name}' has no DaggerfallMesh to set climate, nya~");
-                            }
-
-                            // === NEW: Remove MeshCollider if it exists! ===
-                            var meshCol = buildingGo.GetComponent<MeshCollider>();
-                            if (meshCol != null)
-                                Destroy(meshCol);
-
-                            buildingGo.transform.SetParent(location.transform, true);
+                            Debug.LogWarning($"[LightsOutScript][WARN] Block '{rmbBlock.name}' has no StaticDoors, nya?");
+                            continue;
                         }
+
+                        StaticDoor? myDoor = null;
+                        foreach (var door in staticDoors.Doors)
+                        {
+                            if (door.recordIndex == recordIndex)
+                            {
+                                myDoor = door;
+                                break;
+                            }
+                        }
+
+                        if (myDoor == null)
+                        {
+                            Debug.LogWarning($"[LightsOutScript][WARN] No exterior StaticDoor found for building {summary.BuildingType} in block '{rmbBlock.name}' (recordIndex={recordIndex}), nya~");
+                            continue;
+                        }
+
+                        Matrix4x4 buildingMatrix = myDoor.Value.buildingMatrix;
+                        Quaternion buildingRotation = DaggerfallWorkshop.Utility.GameObjectHelper.QuaternionFromMatrix(buildingMatrix);
+
+                        Vector3 buildingOriginWorldPos = rmbBlock.transform.rotation * buildingMatrix.MultiplyPoint3x4(Vector3.zero) + rmbBlock.transform.position;
+
+                        int modelId = 0;
+                        var summaryType = summary.GetType();
+
+                        var modelIdField = summaryType.GetField("ModelID");
+                        var modelField = summaryType.GetField("Model");
+                        object modelIdValue = null;
+                        string usedFieldName = null;
+
+                        if (modelIdField != null)
+                        {
+                            modelIdValue = modelIdField.GetValue(summary);
+                            usedFieldName = "ModelID";
+                        }
+                        else if (modelField != null)
+                        {
+                            modelIdValue = modelField.GetValue(summary);
+                            usedFieldName = "Model";
+                        }
+                        else
+                        {
+                            Debug.LogWarning($"[LightsOutScript][WARN] BuildingSummary type for {summary.BuildingType} has neither ModelID nor Model field, nya~ Skipping!");
+                            continue;
+                        }
+
+                        if (modelIdValue == null)
+                        {
+                            Debug.LogWarning($"[LightsOutScript][WARN] {usedFieldName} is null for building type {summary.BuildingType}, skipping, nya~");
+                            continue;
+                        }
+                        try
+                        {
+                            modelId = Convert.ToInt32(modelIdValue);
+                        }
+                        catch (Exception ex)
+                        {
+                            Debug.LogWarning($"[LightsOutScript][WARN] Could not convert {usedFieldName}={modelIdValue} (type={modelIdValue.GetType()}) to int for building type {summary.BuildingType} nya~ Error: {ex.Message}");
+                            continue;
+                        }
+
+                        Debug.Log($"[LightsOutScript][DBG] About to spawn facade with modelId={modelId} at buildingOriginWorldPos={buildingOriginWorldPos} with rotation={buildingRotation.eulerAngles}");
+
+                        GameObject buildingGo = DaggerfallWorkshop.Utility.GameObjectHelper.CreateDaggerfallMeshGameObject((uint)modelId, null, true, null, false);
+                        if (buildingGo == null)
+                        {
+                            Debug.LogWarning($"[LightsOutScript][WARN] Could not create mesh GameObject for modelId={modelId} at worldPos={buildingOriginWorldPos} (building type={summary.BuildingType}), nya~");
+                            continue;
+                        }
+
+                        buildingGo.transform.position = buildingOriginWorldPos;
+                        buildingGo.transform.rotation = rmbBlock.transform.rotation * buildingRotation;
+                        buildingGo.transform.localScale = Vector3.one * 1.01f;
+                        buildingGo.name = $"Facade_{summary.BuildingType}_{location.name}_{layoutX}_{layoutY}_{recordIndex}";
+
+                        var mesh = buildingGo.GetComponent<DaggerfallMesh>();
+                        if (mesh != null)
+                        {
+                            mesh.SetClimate(location.Summary.Climate, location.CurrentSeason, location.WindowTextureStyle);
+                        }
+                        else
+                        {
+                            Debug.LogWarning($"[LightsOutScript][WARN] Spawned facade '{buildingGo.name}' has no DaggerfallMesh to set climate, nya~");
+                        }
+
+                        var meshCol = buildingGo.GetComponent<MeshCollider>();
+                        if (meshCol != null)
+                            Destroy(meshCol);
+
+                        buildingGo.transform.SetParent(location.transform, true);
+
+                        // Mark this building as processed
+                        processedBuildings.Add(buildingId);
                     }
                 }
             }
@@ -450,6 +449,22 @@ namespace LightsOutScriptMod
                         Debug.LogWarning($"[LightsOutScript][WARN] CombinedModels not found in block '{block.name}', nya~");
                     }
                 }
+            }
+        }
+
+        private IEnumerator ProcessNewLocations(List<DaggerfallLocation> newLocations)
+        {
+            // Wait a couple of frames to ensure all info is loaded
+            yield return null;
+            yield return null;
+
+            foreach (var location in newLocations)
+            {
+                // Process each location for new facades
+                SpawnFacadeAtFactionBuildings(location);
+
+                // Add this location to the processed list
+                processedLocations.Add(location);
             }
         }
     }
