@@ -108,6 +108,12 @@ namespace LightsOutScriptMod
                 emissiveTexturesActive = !emissiveTexturesActive; // Toggle the state
                 ControlEmissiveWindowTexturesInCombinedModels(emissiveTexturesActive);
             }
+
+            if (Input.GetKeyDown(KeyCode.Semicolon)) // Toggles emissive window textures
+            {
+                emissiveTexturesActive = !emissiveTexturesActive; // Toggle the state
+                ControlEmissiveWindowTexturesInFacades(emissiveTexturesActive);
+            }
         }
 
         private bool CheckEmissiveTextureState()
@@ -527,6 +533,42 @@ namespace LightsOutScriptMod
                     else
                     {
                         Debug.LogWarning($"[LightsOutScript][WARN] CombinedModels not found in block '{block.name}', nya~!");
+                    }
+                }
+            }
+        }
+
+        public void ControlEmissiveWindowTexturesInFacades(bool enableEmissive)
+        {
+            var allLocations = GameObject.FindObjectsOfType<DaggerfallLocation>();
+            foreach (var location in allLocations)
+            {
+                var facadeTransforms = location.GetComponentsInChildren<Transform>()
+                                               .Where(t => t.name.StartsWith("Facade_", StringComparison.OrdinalIgnoreCase));
+
+                foreach (var facadeTransform in facadeTransforms)
+                {
+                    var meshes = facadeTransform.GetComponentsInChildren<MeshRenderer>();
+                    foreach (var meshRenderer in meshes)
+                    {
+                        foreach (var material in meshRenderer.materials)
+                        {
+                            // Ensure material is initialized correctly for emissive state
+                            if (material.HasProperty("_EmissionMap"))
+                            {
+                                bool isCurrentlyEmissive = material.IsKeywordEnabled("_EMISSION");
+                                if (enableEmissive && !isCurrentlyEmissive)
+                                {
+                                    material.EnableKeyword("_EMISSION");
+                                    Debug.Log($"[LightsOutScript] Emissive texture activated for material '{material.name}' in '{facadeTransform.name}', nya~!");
+                                }
+                                else if (!enableEmissive && isCurrentlyEmissive)
+                                {
+                                    material.DisableKeyword("_EMISSION");
+                                    Debug.Log($"[LightsOutScript] Emissive texture deactivated for material '{material.name}' in '{facadeTransform.name}', nya~!");
+                                }
+                            }
+                        }
                     }
                 }
             }
