@@ -166,7 +166,7 @@ namespace LightsOutScriptMod
                     Debug.Log("[LightsOutScript] Emissive textures automatically deactivated due to time, nya~!");
                 }
             }
-            else if (currentHour >= 6 && currentHour < 22) // Between 6:00 and 8:00 -> Reactivate emissives
+            else if (currentHour >= 6 && currentHour < 8) // Between 6:00 and 8:00 -> Reactivate emissives
             {
                 if (!emissiveCombinedModelsActive)
                 {
@@ -819,7 +819,7 @@ namespace LightsOutScriptMod
 
             yield return new WaitForSeconds(1.0f); // Pause for 1.5 seconds nya~!
 
-            // Set the unique flag nya~!
+             // Set the unique flag nya~!
             Debug.Log("[LightsOutScript] Unique flag set to true, nya~!"); // Log the flag change nya~!
 
             TurnOutTheLights(); // Call the TurnOutTheLights method nya~!
