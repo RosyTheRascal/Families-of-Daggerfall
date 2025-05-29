@@ -868,7 +868,24 @@ namespace LightsOutScriptMod
                 if (billboard.customArchive == 210 && IsLightBillboard(billboard)) // Check customArchive and additional criteria nya~!
                 {
                     Debug.Log($"[LightsOutScript] Deleting DaggerfallBillboard '{billboard.name}' because it is part of TEXTURE.210 and a light billboard, nya~!");
+
+                    // Store the position and rotation before deleting nya~!
+                    Vector3 originalPosition = billboard.transform.position;
+                    Quaternion originalRotation = billboard.transform.rotation;
+
+                    // Delete the original billboard nya~!
                     Destroy(billboard.gameObject);
+
+                    // Create a new billboard with TEXTURE.210 Index=12 nya~!
+                    GameObject newBillboard = new GameObject("DaggerfallBillboard [TEXTURE.210, Index=12]");
+                    newBillboard.transform.position = originalPosition; // Set to original position nya~!
+                    newBillboard.transform.rotation = originalRotation; // Set to original rotation nya~!
+
+                    // Add the DaggerfallBillboard component nya~!
+                    var newBillboardComponent = newBillboard.AddComponent<DaggerfallBillboard>();
+                    newBillboardComponent.SetMaterial(210, 12); // Set archive to 210 and index to 12 nya~!
+
+                    Debug.Log($"[LightsOutScript] Created new DaggerfallBillboard at position {originalPosition} with TEXTURE.210 Index=12, nya~!");
                 }
             }
         }
