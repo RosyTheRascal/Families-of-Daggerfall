@@ -812,6 +812,86 @@ namespace LightsOutScriptMod
 
         public void TurnOutTheLights()
         {
+            int currentHour = DaggerfallUnity.Instance.WorldTime.Now.Hour;
+
+            // Get the PlayerEnterExit instance nya~!
+            PlayerEnterExit playerEnterExit = GameManager.Instance.PlayerEnterExit;
+
+            // If we can't find the PlayerEnterExit, skip the method nya~!
+            if (playerEnterExit == null)
+            {
+                Debug.LogWarning("[LightsOutScript] PlayerEnterExit instance not found, skipping TurnOutTheLights(), nya~!");
+                return;
+            }
+
+            DFLocation.BuildingTypes buildingType = playerEnterExit.BuildingType;
+
+            // Check if we are in an exterior scene nya~
+            if (SceneManager.GetActiveScene().buildIndex == GameSceneIndex && GameObject.Find("Exterior")?.activeInHierarchy == true)
+            {
+                Debug.Log("[LightsOutScript] TurnOutTheLights() skipped because the player is in an exterior, nya~!");
+                return;
+            }
+
+            // Skip specific building types nya~
+            if (buildingType == DFLocation.BuildingTypes.Tavern || buildingType == DFLocation.BuildingTypes.Temple)
+            {
+                Debug.Log($"[LightsOutScript] TurnOutTheLights() skipped because the player is in a {buildingType}, nya~!");
+                return;
+            }
+
+            // Add time-based conditions for other building types nya~
+            switch (buildingType)
+            {
+                case DFLocation.BuildingTypes.Alchemist:
+                    if (currentHour >= 7 && currentHour < 22) return; // Only fire between 22:00 and 7:00
+                    break;
+                case DFLocation.BuildingTypes.Armorer:
+                    if (currentHour >= 9 && currentHour < 19) return; // Only fire between 19:00 and 9:00
+                    break;
+                case DFLocation.BuildingTypes.Bank:
+                    if (currentHour >= 8 && currentHour < 15) return; // Only fire between 15:00 and 8:00
+                    break;
+                case DFLocation.BuildingTypes.Bookseller:
+                    if (currentHour >= 9 && currentHour < 21) return; // Only fire between 21:00 and 9:00
+                    break;
+                case DFLocation.BuildingTypes.ClothingStore:
+                    if (currentHour >= 10 && currentHour < 19) return; // Only fire between 19:00 and 10:00
+                    break;
+                case DFLocation.BuildingTypes.GemStore:
+                    if (currentHour >= 9 && currentHour < 18) return; // Only fire between 18:00 and 9:00
+                    break;
+                case DFLocation.BuildingTypes.GeneralStore:
+                    if (currentHour >= 6 && currentHour < 23) return; // Only fire between 23:00 and 6:00
+                    break;
+                case DFLocation.BuildingTypes.Library:
+                    if (currentHour >= 9 && currentHour < 23) return; // Only fire between 23:00 and 9:00
+                    break;
+                case DFLocation.BuildingTypes.PawnShop:
+                    if (currentHour >= 9 && currentHour < 20) return; // Only fire between 20:00 and 9:00
+                    break;
+                case DFLocation.BuildingTypes.WeaponSmith:
+                    if (currentHour >= 9 && currentHour < 19) return; // Only fire between 19:00 and 9:00
+                    break;
+                case DFLocation.BuildingTypes.GuildHall:
+                    if (currentHour >= 11 && currentHour < 23) return; // Only fire between 23:00 and 11:00
+                    break;
+                case DFLocation.BuildingTypes.HouseForSale:
+                    // Always fire nya~!
+                    break;
+                case DFLocation.BuildingTypes.House1:
+                case DFLocation.BuildingTypes.House2:
+                case DFLocation.BuildingTypes.House3:
+                case DFLocation.BuildingTypes.House4:
+                case DFLocation.BuildingTypes.House5:
+                case DFLocation.BuildingTypes.House6:
+                    if (currentHour >= 6 && currentHour < 22) return; // Only fire between 22:00 and 6:00
+                    break;
+                default:
+                    Debug.Log($"[LightsOutScript] TurnOutTheLights() skipped because the building type '{buildingType}' is not handled, nya~!");
+                    return;
+            }
+
             // Fetch the interior scene GameObjects, nya~!
             var allObjects = GameObject.FindObjectsOfType<GameObject>();
             var billboards = GameObject.FindObjectsOfType<DaggerfallBillboard>();
