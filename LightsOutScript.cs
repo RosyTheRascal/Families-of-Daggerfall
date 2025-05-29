@@ -181,7 +181,7 @@ namespace LightsOutScriptMod
             {
                 Debug.Log("[LightsOutScript] Save loaded, rechecking emissive states, nya~!");
                 ApplyTimeBasedEmissiveChanges();
-                TurnOutTheLights();
+                StartCoroutine(TriggerLightsOutCoroutine());
             };
         }
 
@@ -800,7 +800,7 @@ namespace LightsOutScriptMod
         private void OnTransitionInterior(DaggerfallWorkshop.Game.PlayerEnterExit.TransitionEventArgs args)
         {
             Debug.Log($"[LightsOutScript] Transitioned to Interior: {args.DaggerfallInterior.name}, nya~!");
-            TurnOutTheLights(); // Call your method to disable lights
+            StartCoroutine(TriggerLightsOutCoroutine());
         }
 
         private void OnTransitionExterior(DaggerfallWorkshop.Game.PlayerEnterExit.TransitionEventArgs args)
@@ -810,43 +810,25 @@ namespace LightsOutScriptMod
             ApplyTimeBasedEmissiveChanges();
         }
 
-        private bool uniqueFlag = false; // Define the unique flag nya~!
+
 
         // This is your coroutine nya~!
         private IEnumerator TriggerLightsOutCoroutine()
         {
             Debug.Log("[LightsOutScript] Coroutine started, nya~! Waiting for 1.5 seconds..."); // Debug log for tracking nya~!
-            if (uniqueFlag = true)
-            {
-                Debug.Log("[LightsOutScript] Poopy");
-                yield break;
-            }    
-            yield return new WaitForSeconds(1.5f); // Pause for 1.5 seconds nya~!
+
+            yield return new WaitForSeconds(1.0f); // Pause for 1.5 seconds nya~!
 
              // Set the unique flag nya~!
             Debug.Log("[LightsOutScript] Unique flag set to true, nya~!"); // Log the flag change nya~!
-            uniqueFlag = true;
+
             TurnOutTheLights(); // Call the TurnOutTheLights method nya~!
             Debug.Log("[LightsOutScript] TurnOutTheLights method called, nya~!"); // Log the method execution nya~!
         }
 
         public void TurnOutTheLights()
         {
-            
             int currentHour = DaggerfallUnity.Instance.WorldTime.Now.Hour;
-            if (uniqueFlag = false)
-            {
-                Debug.Log("TurnOutTheLights Deferred");
-                StartCoroutine(TriggerLightsOutCoroutine());
-                return;
-            }
-
-            if (uniqueFlag = true)
-            {
-                Debug.Log("Momgay");
-                return;
-            }
-
             // Get the PlayerEnterExit instance nya~!
             PlayerEnterExit playerEnterExit = GameManager.Instance.PlayerEnterExit;
 
@@ -860,7 +842,7 @@ namespace LightsOutScriptMod
             DFLocation.BuildingTypes buildingType = playerEnterExit.BuildingType;
 
             // Check if we are in an exterior scene nya~
-            if (SceneManager.GetActiveScene().buildIndex == GameSceneIndex && GameObject.Find("Exterior")?.activeInHierarchy == true)
+            if (GameObject.Find("Exterior")?.activeInHierarchy == true && GameObject.Find("Interior")?.activeInHierarchy == false)
             {
                 Debug.Log("[LightsOutScript] TurnOutTheLights() skipped because the player is in an exterior, nya~!");
                 return;
