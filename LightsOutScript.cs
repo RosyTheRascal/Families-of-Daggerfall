@@ -810,9 +810,42 @@ namespace LightsOutScriptMod
             ApplyTimeBasedEmissiveChanges();
         }
 
+        private bool uniqueFlag = false; // Define the unique flag nya~!
+
+        // This is your coroutine nya~!
+        private IEnumerator TriggerLightsOutCoroutine()
+        {
+            Debug.Log("[LightsOutScript] Coroutine started, nya~! Waiting for 1.5 seconds..."); // Debug log for tracking nya~!
+            if (uniqueFlag = true)
+            {
+                Debug.Log("[LightsOutScript] Poopy");
+                yield break;
+            }    
+            yield return new WaitForSeconds(1.5f); // Pause for 1.5 seconds nya~!
+
+             // Set the unique flag nya~!
+            Debug.Log("[LightsOutScript] Unique flag set to true, nya~!"); // Log the flag change nya~!
+            uniqueFlag = true;
+            TurnOutTheLights(); // Call the TurnOutTheLights method nya~!
+            Debug.Log("[LightsOutScript] TurnOutTheLights method called, nya~!"); // Log the method execution nya~!
+        }
+
         public void TurnOutTheLights()
         {
+            
             int currentHour = DaggerfallUnity.Instance.WorldTime.Now.Hour;
+            if (uniqueFlag = false)
+            {
+                Debug.Log("TurnOutTheLights Deferred");
+                StartCoroutine(TriggerLightsOutCoroutine());
+                return;
+            }
+
+            if (uniqueFlag = true)
+            {
+                Debug.Log("Momgay");
+                return;
+            }
 
             // Get the PlayerEnterExit instance nya~!
             PlayerEnterExit playerEnterExit = GameManager.Instance.PlayerEnterExit;
@@ -954,6 +987,17 @@ namespace LightsOutScriptMod
                         meshRenderer.enabled = false; // Disabwe the mesh wendewew fow wight biwwboawds, nya~!
                         Debug.Log($"[LightsOutScript] Disabwed DaggerfallBillboard '{billboard.name}' because it is part of TEXTURE.210 and a light billboard, nya~!");
                     }
+                }
+            }
+
+            var customNPCs = GameObject.FindObjectsOfType<CustomStaticNPCMod.CustomStaticNPC>();
+            foreach (var customNPC in customNPCs)
+            {
+                var meshRenderer = customNPC.GetComponent<MeshRenderer>();
+                if (meshRenderer != null)
+                {
+                    meshRenderer.enabled = false; // Disable the mesh renderer nya~!
+                    Debug.Log($"[LightsOutScript] Disabled MeshRenderer for CustomStaticNPC '{customNPC.name}', nya~!");
                 }
             }
         }
