@@ -824,7 +824,8 @@ namespace LightsOutScriptMod
 
                     // Check if the matewiaw contains the wecowd index 13 nya~!
                     var renderer = obj.GetComponent<Renderer>();
-                    if (renderer != null)
+                    var billboard = obj.GetComponent<DaggerfallBillboard>();
+                    if (renderer != null && billboard != null)
                     {
                         var meshRenderer = obj.GetComponent<MeshRenderer>();
                         var materials = renderer.materials;
@@ -839,10 +840,10 @@ namespace LightsOutScriptMod
 
                                 meshRenderer.enabled = false; // Disabwe the mesh wendewew, nya~!
 
-                                // Replace the texture if necessary nya~!
+                                // Replace the texture using DaggerfallBillboard nya~!
                                 if (record == 13)
                                 {
-                                    ReplaceTexture(material, archive, 12); // Replace with wecowd index 12, nya~!
+                                    billboard.SetMaterial(archive, 12); // Use SetMaterial to wepwace the texture, nya~!
                                     meshRenderer.enabled = true; // We-enabwe the mesh wendewew aftew wepwacing, nya~!
                                     Debug.Log($"[LightsOutScript] Replaced texture for GameObject '{obj.name}' with TEXTURE.210 Index=12, nya~!");
                                 }
