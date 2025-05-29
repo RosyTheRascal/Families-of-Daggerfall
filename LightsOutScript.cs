@@ -287,20 +287,27 @@ namespace LightsOutScriptMod
 
         private void OnExteriorTransitionDetected(PlayerEnterExit.TransitionEventArgs args)
         {
-            Debug.Log("[LightsOutScript] Exterior transition detected, nya~!");
+            Debug.Log("[LightsOutScript] Exterior transition detected!");
 
-            // Cease the music-stopping coroutine if it's running, nya~!
+            // Cease the music-stopping coroutine if it's running
             if (stopMusicCoroutine != null)
             {
                 StopCoroutine(stopMusicCoroutine);
-                stopMusicCoroutine = null; // Reset the reference, nya~!
-                Debug.Log("[LightsOutScript] Music-stopping coroutine ceased, nya~!");
+                stopMusicCoroutine = null; // Reset the reference
+                Debug.Log("[LightsOutScript] Music-stopping coroutine ceased!");
             }
 
+            // Stop and remove the cricket sound effect completely
             if (cricketAudio != null)
             {
-                cricketAudio.Stop();
-                Debug.Log("[LightsOutScript] Cricket sound effect stopped!");
+                cricketAudio.Stop(); // Stop playback
+                Destroy(cricketAudio); // Remove the AudioSource component
+                cricketAudio = null; // Reset the reference
+                Debug.Log("[LightsOutScript] Cricket sound effect stopped and AudioSource destroyed!");
+            }
+            else
+            {
+                Debug.LogError("[LightsOutScript] CricketAudio is null!");
             }
 
             ApplyTimeBasedEmissiveChanges();
