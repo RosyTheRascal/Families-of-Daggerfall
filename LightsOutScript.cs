@@ -181,6 +181,7 @@ namespace LightsOutScriptMod
             {
                 Debug.Log("[LightsOutScript] Save loaded, rechecking emissive states, nya~!");
                 ApplyTimeBasedEmissiveChanges();
+                TurnOutTheLights();
             };
         }
 
@@ -640,6 +641,7 @@ namespace LightsOutScriptMod
                 }
             }
             CheckEmissiveTextureStateFacades();
+            ApplyTimeBasedEmissiveChanges();
         }
 
         public void ControlEmissiveWindowTexturesInCombinedModels(bool enableEmissive)
@@ -799,6 +801,13 @@ namespace LightsOutScriptMod
         {
             Debug.Log($"[LightsOutScript] Transitioned to Interior: {args.DaggerfallInterior.name}, nya~!");
             TurnOutTheLights(); // Call your method to disable lights
+        }
+
+        private void OnTransitionExterior(DaggerfallWorkshop.Game.PlayerEnterExit.TransitionEventArgs args)
+        {
+            CheckEmissiveTextureStateFacades();
+            CheckEmissiveTextureStateCombinedModels();
+            ApplyTimeBasedEmissiveChanges();
         }
 
         public void TurnOutTheLights()
