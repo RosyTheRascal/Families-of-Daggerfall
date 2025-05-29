@@ -300,14 +300,29 @@ namespace LightsOutScriptMod
             // Stop and remove the cricket sound effect completely
             if (cricketAudio != null)
             {
-                cricketAudio.Stop(); // Stop playback
+                if (cricketAudio.isPlaying)
+                {
+                    cricketAudio.Stop(); // Stop playback
+                    Debug.Log("[LightsOutScript] Cricket sound stopped!");
+                }
                 Destroy(cricketAudio); // Remove the AudioSource component
-                cricketAudio = null; // Reset the reference
-                Debug.Log("[LightsOutScript] Cricket sound effect stopped and AudioSource destroyed!");
+                Debug.Log("[LightsOutScript] Cricket AudioSource destroyed!");
             }
             else
             {
-                Debug.LogError("[LightsOutScript] CricketAudio is null!");
+                Debug.LogWarning("[LightsOutScript] CricketAudio is already null!");
+
+                // Check for lingering AudioSources with AmbientCrickets clip
+                var lingeringSources = FindObjectsOfType<AudioSource>();
+                foreach (var source in lingeringSources)
+                {
+                    if (source.clip != null && source.clip.name.Contains("AmbientCrickets"))
+                    {
+                        source.Stop();
+                        Destroy(source);
+                        Debug.Log("[LightsOutScript] Lingering cricket AudioSource found and destroyed!");
+                    }
+                }
             }
 
             ApplyTimeBasedEmissiveChanges();
@@ -852,7 +867,7 @@ namespace LightsOutScriptMod
             Debug.Log("[LightsOutScript] TurnOutTheLights method called, nya~!"); // Log the method execution nya~!
         }
 
-        public void TurnOutTheLights()
+        private void TurnOutTheLights()
         {
             int currentHour = DaggerfallUnity.Instance.WorldTime.Now.Hour;
             // Get the PlayerEnterExit instance nya~!
@@ -1087,6 +1102,30 @@ namespace LightsOutScriptMod
                 cricketAudio.Play();
                 Debug.Log("[LightsOutScript] Playing cricket sound effect on loop, nya~!");
             }
+            if (cricketAudio != null)
+            {
+                if (cricketAudio.isPlaying)
+                {
+                    cricketAudio.Stop();
+                    Debug.Log("[LightsOutScript] Cricket sound stopped!");
+                }
+                Destroy(cricketAudio);
+                cricketAudio = null;
+                Debug.Log("[LightsOutScript] Cricket AudioSource destroyed!");
+            }
+
+
+            var lingeringSources = FindObjectsOfType<AudioSource>();
+            foreach (var source in lingeringSources)
+            {
+                if (source.clip != null && source.clip.name.Contains("AmbientCrickets"))
+                {
+                    source.Stop();
+                    Destroy(source);
+                    Debug.Log("[LightsOutScript] Lingering cricket AudioSource found and destroyed!");
+                }
+            }
+
 
             var customNPCs = GameObject.FindObjectsOfType<CustomStaticNPCMod.CustomStaticNPC>();
             foreach (var customNPC in customNPCs)
