@@ -57,7 +57,7 @@ namespace LightsOutScriptMod
             DaggerfallWorkshop.Game.PlayerEnterExit.OnTransitionInterior += OnTransitionInterior;
             emissiveCombinedModelsActive = CheckEmissiveTextureStateCombinedModels();
             PlayerEnterExit.OnTransitionExterior += OnExteriorTransitionDetected;
-            DaggerfallUnity.Instance.WorldTime.OnNewHour += HandleNewHourEvent;
+            WorldTime.OnNewHour += HandleNewHourEvent;
             Debug.Log($"[LightsOutScript] Initial emissiveCombinedModelsActive state: {(emissiveCombinedModelsActive ? "ACTIVE" : "INACTIVE")}, nya~!");
             Debug.Log($"[LightsOutScript] Initial emissiveFacadesActive state: {(emissiveFacadesActive ? "ACTIVE" : "INACTIVE")}, nya~!");
         }
@@ -186,19 +186,43 @@ namespace LightsOutScriptMod
         }
 
         public bool LightsOut = false;
+        private DaggerfallLocation[] allLocations;
 
         private void HandleNewHourEvent()
         {
-            ProcessLocationsForMaterialUpdates(); // Call the method on every hour update
+            allLocations = GameObject.FindObjectsOfType<DaggerfallLocation>(); // Populate allLocations
+            StartCoroutine(DeferMaterialProcessing());
+            Debug.Log($"Hour event raised!");
+        }
+
+        private IEnumerator DeferMaterialProcessing()
+        {
+            var newLocations = allLocations.Where(location => !processedLocations.Contains(location)).ToList();
+
+            // Wait a couple of frames to ensure all info is loaded
+            yield return null;
+            yield return null;
+            yield return null;
+            Debug.Log($"Defer coroutine called");
+            foreach (var location in newLocations)
+            {
+                // Process each location for new facades
+                ProcessLocationsForMaterialUpdates();
+                Debug.Log($"[LightsOutScript] Calling material update");
+                // Add this location to the processed list
+                processedLocations.Add(location);
+            }
         }
 
         public void ProcessLocationsForMaterialUpdates()
         {
-            if (LightsOut =false)
+            if (LightsOut = false)
             {
+                Debug.Log($"LightsOut = false");
                 return;
             }
 
+            Debug.Log($"[LightsOutScript] Material Update called");
             var allLocations = GameObject.FindObjectsOfType<DaggerfallLocation>();
             foreach (var location in allLocations)
             {
@@ -388,7 +412,7 @@ namespace LightsOutScriptMod
                 Debug.Log("[LightsOutScript] Destroyed cricket AudioSource.");
             }
             cricketSources.Clear(); //
-
+            LightsOut = false;
             ApplyTimeBasedEmissiveChanges();
         }
 
@@ -1202,6 +1226,9 @@ namespace LightsOutScriptMod
                     Debug.Log($"[LightsOutScript] Disabled MeshRenderer for CustomStaticNPC '{customNPC.name}', nya~!");
                 }
             }
+            int livingNPCCount = CustomNPCBridgeMod.CustomNPCBridge.Instance.GetLivingNPCCountInInterior();
+            CustomStaticNPCMod.CustomStaticNPC.NothingHereAidan();
+            LightsOut = true;
         }
 
         IEnumerator StopMusicCoroutine(DaggerfallSongPlayer songPlayer)
