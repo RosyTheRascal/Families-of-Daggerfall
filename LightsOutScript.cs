@@ -1007,7 +1007,57 @@ namespace LightsOutScriptMod
 
         private int GetTextureRecordIndex(Material material)
         {
-            //DO THIS FUCKER
+            Debug.Log($"[LightsOutScript][DBG] Attempting to retrieve texture record index using GameObject's name, nya~!");
+
+            // Step 1: Find the GameObject owning the material
+            GameObject parentObject = FindParentObject(material);
+            if (parentObject == null)
+            {
+                Debug.LogError($"[LightsOutScript][ERR] GameObject owning the material not found, nya~!");
+                return -1; // Invalid record index
+            }
+
+            // Step 2: Check if GameObject's name contains "Index="
+            string objectName = parentObject.name;
+            if (!objectName.Contains("Index="))
+            {
+                Debug.LogError($"[LightsOutScript][WARN] 'Index=' not found in GameObject's name: {objectName}, nya~!");
+                return -1; // Invalid record index
+            }
+
+            // Step 3: Extract the number between "=" and "]"
+            try
+            {
+                Debug.Log($"[LightsOutScript][DBG] Found 'Index=' in GameObject's name: {objectName}, nya~!");
+                int startIndex = objectName.IndexOf("Index=") + "Index=".Length;
+                int endIndex = objectName.IndexOf(']', startIndex);
+                string indexString = objectName.Substring(startIndex, endIndex - startIndex);
+                if (int.TryParse(indexString, out int record))
+                {
+                    Debug.Log($"[LightsOutScript][DBG] Successfully extracted record index {record} from GameObject's name: {objectName}, nya~!");
+                    return record;
+                }
+            }
+            catch (Exception e)
+            {
+                Debug.LogError($"[LightsOutScript][ERR] Failed to parse 'Index=' from GameObject's name: {e.Message}, nya~!");
+            }
+
+            Debug.LogError($"[LightsOutScript][WARN] Unable to retrieve a valid record index from GameObject's name: {objectName}, nya~!");
+            return -1; // Graceful failure
+        }
+
+        // Helper method to find the parent GameObject of a Material
+        private GameObject FindParentObject(Material material)
+        {
+            foreach (Renderer renderer in GameObject.FindObjectsOfType<Renderer>())
+            {
+                if (renderer.sharedMaterial == material || renderer.material == material)
+                {
+                    return renderer.gameObject;
+                }
+            }
+            return null; // No parent object found
         }
 
         // Helper method to replace texture, nya~!
