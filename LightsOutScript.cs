@@ -190,21 +190,21 @@ namespace LightsOutScriptMod
 
         private void HandleNewHourEvent()
         {
-            if (LightsOut = false)
+            if (LightsOut == false)
             {
                 return;
             }
 
             allLocations = GameObject.FindObjectsOfType<DaggerfallLocation>(); // Populate allLocations
             ApplyTimeBasedEmissiveChanges();
-            StartCoroutine(ResetShadersCoroutine(3.0f));
+            StartCoroutine(ResetShadersCoroutine(1.0f));
             Debug.Log($"Hour event raised!");
         }
 
         private IEnumerator ResetShadersCoroutine(float waitTime)
         {
             Debug.Log($"[LightsOutScript] Coroutine started, nya~! Waiting for {waitTime} seconds..."); // Debug log for tracking nya~!
-            if (LightsOut = false)
+            if (LightsOut == false)
             {
                 yield break;
             }
@@ -911,7 +911,7 @@ namespace LightsOutScriptMod
         {
             Debug.Log("[LightsOutScript] Coroutine started, nya~! Waiting for 1.5 seconds..."); // Debug log for tracking nya~!
 
-            yield return new WaitForSeconds(1.0f); // Pause for 1.5 seconds nya~!
+            yield return new WaitForSeconds(.8f); // Pause for 1.5 seconds nya~!
 
              // Set the unique flag nya~!
             Debug.Log("[LightsOutScript] Unique flag set to true, nya~!"); // Log the flag change nya~!
