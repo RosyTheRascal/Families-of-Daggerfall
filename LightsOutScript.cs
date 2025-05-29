@@ -912,6 +912,12 @@ namespace LightsOutScriptMod
             var billboards = GameObject.FindObjectsOfType<DaggerfallBillboard>();
             foreach (var obj in allObjects) // Defining `obj` hewe fwom `allObjects`, nya~!
             {
+                // Ensure the object is under the "Interior" parent nya~!
+                if (obj.transform.root.name != "Interior")
+                {
+                    continue; // Skip objects not under "Interior", nya~!
+                }
+
                 // Check if the GameObject is a DaggerfallBillboard with TEXTURE.210 nya~!
                 if (obj.name.IndexOf("TEXTURE.210", StringComparison.OrdinalIgnoreCase) >= 0)
                 {
