@@ -815,77 +815,80 @@ namespace LightsOutScriptMod
             // Fetch the interior scene GameObjects, nya~!
             var allObjects = GameObject.FindObjectsOfType<GameObject>();
             var billboards = GameObject.FindObjectsOfType<DaggerfallBillboard>();
+
             foreach (var obj in allObjects)
             {
-                // Check if the GameObject is a DaggerfallBillboard with TEXTURE.210 nya~!
+                // Check if the GameObject name matches TEXTURE.210 nya~!
                 if (obj.name.IndexOf("TEXTURE.210", StringComparison.OrdinalIgnoreCase) >= 0)
                 {
-                    // Delete the entire GameObject nya~!
-                    Debug.Log($"[LightsOutScript] Deleting GameObject '{obj.name}' because it is a Texture.210 billboard, nya~!");
-                    Destroy(obj);
-                    continue; // Skip further checks for deleted objects nya~!
+                    Debug.Log($"[LightsOutScript] Disabling GameObject '{obj.name}' because it is a Texture.210 billboard, nya~!");
+                    obj.SetActive(false); // Disables the entire GameObject nya~!
+                    continue; // Skip further checks for disabled objects nya~!
                 }
 
                 // Check if the GameObject has a Light component nya~!
                 var lightComponent = obj.GetComponent<Light>();
                 if (lightComponent != null)
                 {
-                    // Disable the light nya~!
-                    lightComponent.enabled = false;
+                    lightComponent.enabled = false; // Disables only the Light component nya~!
                     Debug.Log($"[LightsOutScript] Disabled light on GameObject '{obj.name}', nya~!");
                 }
 
-                // Check if the GameObject has a Renderer component nya~!
-                var renderer = obj.GetComponent<Renderer>();
+                // Check for Renderer and TEXTURE.210 materials nya~!
+                var renderer = obj.GetComponent<MeshRenderer>();
                 if (renderer != null)
                 {
-                    // Check materials for Texture archive index 210 (TEXTURE.210) nya~!
                     var materials = renderer.materials;
                     foreach (var material in materials)
                     {
                         int archive = GetTextureArchiveIndex(material);
                         int record = GetTextureRecordIndex(material);
 
-                        if (archive == 210)
+                        if (archive == 210 && record == 13)
                         {
-                            Debug.Log($"[LightsOutScript] Found Texture.210 on '{obj.name}', nya~!");
-
-                            // Replace the texture if necessary nya~!
-                            if (record == 13)
-                            {
-                                ReplaceTexture(material, archive, 12); // Replace with record index 12
-                                Debug.Log($"[LightsOutScript] Replaced texture for GameObject '{obj.name}' with TEXTURE.210 Index=12, nya~!");
-                            }
+                            Debug.Log($"[LightsOutScript] Found Texture.210 record=13 on '{obj.name}', nya~!");
+                            ReplaceTexture(material, archive, 12); // Replace with record 12 nya~!
+                            Debug.Log($"[LightsOutScript] Replaced texture for GameObject '{obj.name}' with TEXTURE.210 Index=12, nya~!");
                         }
                     }
                 }
             }
 
-            // Iterate through all DaggerfallBillboards nya~!
             foreach (var billboard in billboards)
             {
-                // Add extra conditions to ensure only light billboards are targeted nya~!
-                if (billboard.customArchive == 210 && IsLightBillboard(billboard)) // Check customArchive and additional criteria nya~!
+                // Check if the billboard matches TEXTURE.210 Index=13 nya~!
+                if (billboard.customArchive == 210 && IsLightBillboard(billboard))
                 {
-                    Debug.Log($"[LightsOutScript] Deleting DaggerfallBillboard '{billboard.name}' because it is part of TEXTURE.210 and a light billboard, nya~!");
+                    Debug.Log($"[LightsOutScript] Found DaggerfallBillboard '{billboard.name}' with TEXTURE.210 Index=13, nya~!");
 
-                    // Store the position and rotation before deleting nya~!
+                    // Stowe the position, wotation, and textuwe data befowe disabwing nya~!
                     Vector3 originalPosition = billboard.transform.position;
                     Quaternion originalRotation = billboard.transform.rotation;
+                    int archive = billboard.customArchive;
+                    int record = 12; // Set the new index nya~!
 
-                    // Delete the original billboard nya~!
-                    Destroy(billboard.gameObject);
+                    // Disabwe the owiginaw biwwboawd nya~!
+                    billboard.gameObject.SetActive(false);
+                    Debug.Log($"[LightsOutScript] Disabwed owiginaw DaggerfallBillboard '{billboard.name}', nya~!");
 
-                    // Create a new billboard with TEXTURE.210 Index=12 nya~!
+                    // Cweate a new biwwboawd with TEXTURE.210 Index=12 nya~!
                     GameObject newBillboard = new GameObject("DaggerfallBillboard [TEXTURE.210, Index=12]");
-                    newBillboard.transform.position = originalPosition; // Set to original position nya~!
-                    newBillboard.transform.rotation = originalRotation; // Set to original rotation nya~!
+                    newBillboard.transform.position = originalPosition; // Set to owiginaw position nya~!
+                    newBillboard.transform.rotation = originalRotation; // Set to owiginaw wotation nya~!
 
                     // Add the DaggerfallBillboard component nya~!
                     var newBillboardComponent = newBillboard.AddComponent<DaggerfallBillboard>();
-                    newBillboardComponent.SetMaterial(210, 12); // Set archive to 210 and index to 12 nya~!
 
-                    Debug.Log($"[LightsOutScript] Created new DaggerfallBillboard at position {originalPosition} with TEXTURE.210 Index=12, nya~!");
+                    // Assign matewiaw and vawidate nya~!
+                    if (newBillboardComponent != null)
+                    {
+                        newBillboardComponent.SetMaterial(archive, record); // Assign the matewiaw nya~!
+                        Debug.Log($"[LightsOutScript] Cweated and assigned matewiaw to new DaggerfallBillboard at position {originalPosition}, nya~!");
+                    }
+                    else
+                    {
+                        Debug.LogError($"[LightsOutScript] Faiwed to add DaggerfallBillboard component to '{newBillboard.name}', nya~!");
+                    }
                 }
             }
         }
