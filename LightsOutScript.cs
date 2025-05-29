@@ -1007,26 +1007,7 @@ namespace LightsOutScriptMod
 
         private int GetTextureRecordIndex(Material material)
         {
-            // Extwact wecowd index fwom the matewiaw name (e.g., "TEXTURE.210 Index=13"), nya~!
-            if (material.name.Contains("Index="))
-            {
-                string[] parts = material.name.Split(new[] { ' ', '.', '=' }, StringSplitOptions.RemoveEmptyEntries);
-                var indexPart = Array.FindIndex(parts, part => part.Equals("Index", StringComparison.OrdinalIgnoreCase));
-                if (indexPart >= 0 && indexPart + 1 < parts.Length && int.TryParse(parts[indexPart + 1], out int record))
-                {
-                    return record;
-                }
-            }
-
-            // Fawwback method: Check if matewiaw key exists and use MatewiawReadew's WevewseTextuweKey, nya~!
-            int key = MaterialReader.MakeTextureKey(210, 13); // Adjust pawams based on the matewiaw name, nya~!
-            MaterialReader.ReverseTextureKey(key, out int archiveOut, out int recordOut, out _);
-            if (archiveOut == 210 && recordOut >= 0)
-            {
-                return recordOut; // Use decoded textuwe key if avaiwabwe, nya~!
-            }
-
-            return -1; // Invawid wecowd index, nya~!
+            //DO THIS FUCKER
         }
 
         // Helper method to replace texture, nya~!
