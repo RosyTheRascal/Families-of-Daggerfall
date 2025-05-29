@@ -190,100 +190,14 @@ namespace LightsOutScriptMod
 
         private void HandleNewHourEvent()
         {
-            allLocations = GameObject.FindObjectsOfType<DaggerfallLocation>(); // Populate allLocations
-            StartCoroutine(DeferMaterialProcessing());
-            Debug.Log($"Hour event raised!");
-        }
-
-        private IEnumerator DeferMaterialProcessing()
-        {
-            var newLocations = allLocations.Where(location => !processedLocations.Contains(location)).ToList();
-
-            // Wait a couple of frames to ensure all info is loaded
-            yield return null;
-            yield return null;
-            yield return null;
-            Debug.Log($"Defer coroutine called");
-            foreach (var location in newLocations)
-            {
-                // Process each location for new facades
-                ProcessLocationsForMaterialUpdates();
-                Debug.Log($"[LightsOutScript] Calling material update");
-                // Add this location to the processed list
-                processedLocations.Add(location);
-            }
-        }
-
-        public void ProcessLocationsForMaterialUpdates()
-        {
             if (LightsOut = false)
             {
-                Debug.Log($"LightsOut = false");
                 return;
             }
-
-            Debug.Log($"[LightsOutScript] Material Update called");
-            var allLocations = GameObject.FindObjectsOfType<DaggerfallLocation>();
-            foreach (var location in allLocations)
-            {
-                Debug.Log($"[LightsOutScript] Processing location: {location.name}, nya~!");
-
-                var blocks = location.GetComponentsInChildren<DaggerfallRMBBlock>(true);
-                Debug.Log($"[LightsOutScript] Found {blocks.Length} blocks in location: {location.name}, nya~!");
-
-                foreach (var block in blocks)
-                {
-                    Debug.Log($"[LightsOutScript] Processing block: {block.name}, nya~!");
-
-                    Transform modelsChild = block.transform.Find("Models");
-                    if (modelsChild != null)
-                    {
-                        Debug.Log($"[LightsOutScript] Found 'Models' in block: {block.name}, nya~!");
-
-                        Transform combinedModelsTransform = modelsChild.Find("CombinedModels");
-                        if (combinedModelsTransform != null)
-                        {
-                            Debug.Log($"[LightsOutScript] Found 'CombinedModels' in block: {block.name}, nya~!");
-
-                            var meshes = combinedModelsTransform.GetComponentsInChildren<MeshRenderer>();
-                            Debug.Log($"[LightsOutScript] Found {meshes.Length} MeshRenderers in 'CombinedModels' of block: {block.name}, nya~!");
-
-                            foreach (var meshRenderer in meshes)
-                            {
-                                foreach (var material in meshRenderer.materials)
-                                {
-                                    Debug.Log($"[LightsOutScript] Checking material: {material.name}, nya~!");
-
-                                    if (material.name.StartsWith("TEXTURE.") &&
-                                    int.TryParse(material.name.Substring(8, 3), out int textureValue) &&
-                                    textureValue >= 300 && textureValue <= 400 &&
-                                    material.name.Contains("[Index=3]"))
-                                    {
-                                        Shader shader = Shader.Find("Standard");
-                                        if (shader != null)
-                                        {
-                                            material.shader = shader;
-                                            Debug.Log($"[LightsOutScript] Shader updated to 'Standard' for material '{material.name}', nya~!");
-                                        }
-                                        else
-                                        {
-                                            Debug.LogWarning($"[LightsOutScript] Shader 'Standard' not found, unable to update material '{material.name}', nya~!");
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                        else
-                        {
-                            Debug.LogWarning($"[LightsOutScript] CombinedModels not found under 'Models' in block '{block.name}', nya~!");
-                        }
-                    }
-                    else
-                    {
-                        Debug.LogWarning($"[LightsOutScript] Models not found in block '{block.name}', nya~!");
-                    }
-                }
-            }
+            allLocations = GameObject.FindObjectsOfType<DaggerfallLocation>(); // Populate allLocations
+            ApplyTimeBasedEmissiveChanges();
+            TurnOutTheLights();
+            Debug.Log($"Hour event raised!");
         }
 
         private void ApplyTimeBasedEmissiveChanges()
