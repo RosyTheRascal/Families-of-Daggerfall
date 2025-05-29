@@ -815,79 +815,63 @@ namespace LightsOutScriptMod
             // Fetch the interior scene GameObjects, nya~!
             var allObjects = GameObject.FindObjectsOfType<GameObject>();
             var billboards = GameObject.FindObjectsOfType<DaggerfallBillboard>();
-
-            foreach (var obj in allObjects)
+            foreach (var obj in allObjects) // Defining `obj` hewe fwom `allObjects`, nya~!
             {
-                // Check if the GameObject name matches TEXTURE.210 nya~!
+                // Check if the GameObject is a DaggerfallBillboard with TEXTURE.210 nya~!
                 if (obj.name.IndexOf("TEXTURE.210", StringComparison.OrdinalIgnoreCase) >= 0)
                 {
-                    Debug.Log($"[LightsOutScript] Disabling GameObject '{obj.name}' because it is a Texture.210 billboard, nya~!");
-                    obj.SetActive(false); // Disables the entire GameObject nya~!
-                    continue; // Skip further checks for disabled objects nya~!
+                    Debug.Log($"[LightsOutScript] Found Texture.210 on '{obj.name}', nya~!");
+
+                    // Check if the matewiaw contains the wecowd index 13 nya~!
+                    var renderer = obj.GetComponent<Renderer>();
+                    if (renderer != null)
+                    {
+                        var meshRenderer = obj.GetComponent<MeshRenderer>();
+                        var materials = renderer.materials;
+                        foreach (var material in materials)
+                        {
+                            int archive = GetTextureArchiveIndex(material);
+                            int record = GetTextureRecordIndex(material);
+
+                            if (archive == 210)
+                            {
+                                Debug.Log($"[LightsOutScript] Found Texture.210 record={record} on '{obj.name}', nya~!");
+
+                                meshRenderer.enabled = false; // Disabwe the mesh wendewew, nya~!
+
+                                // Replace the texture if necessary nya~!
+                                if (record == 13)
+                                {
+                                    ReplaceTexture(material, archive, 12); // Replace with wecowd index 12, nya~!
+                                    meshRenderer.enabled = true; // We-enabwe the mesh wendewew aftew wepwacing, nya~!
+                                    Debug.Log($"[LightsOutScript] Replaced texture for GameObject '{obj.name}' with TEXTURE.210 Index=12, nya~!");
+                                }
+                            }
+                        }
+                    }
                 }
 
                 // Check if the GameObject has a Light component nya~!
                 var lightComponent = obj.GetComponent<Light>();
                 if (lightComponent != null)
                 {
-                    lightComponent.enabled = false; // Disables only the Light component nya~!
+                    // Disable the light nya~!
+                    lightComponent.enabled = false;
                     Debug.Log($"[LightsOutScript] Disabled light on GameObject '{obj.name}', nya~!");
-                }
-
-                // Check for Renderer and TEXTURE.210 materials nya~!
-                var renderer = obj.GetComponent<MeshRenderer>();
-                if (renderer != null)
-                {
-                    var materials = renderer.materials;
-                    foreach (var material in materials)
-                    {
-                        int archive = GetTextureArchiveIndex(material);
-                        int record = GetTextureRecordIndex(material);
-
-                        if (archive == 210 && record == 13)
-                        {
-                            Debug.Log($"[LightsOutScript] Found Texture.210 record=13 on '{obj.name}', nya~!");
-                            ReplaceTexture(material, archive, 12); // Replace with record 12 nya~!
-                            Debug.Log($"[LightsOutScript] Replaced texture for GameObject '{obj.name}' with TEXTURE.210 Index=12, nya~!");
-                        }
-                    }
                 }
             }
 
+            // Iterate thwough aww DaggwefawwBiwwboawds nya~!
             foreach (var billboard in billboards)
             {
-                // Check if the billboard matches TEXTURE.210 Index=13 nya~!
-                if (billboard.customArchive == 210 && IsLightBillboard(billboard))
+                // Add extwa conditions to ensuwe onwy wight biwwboawds awe tawgeted nya~!
+                if (billboard.customArchive == 210 && IsLightBillboard(billboard)) // Check customArchive and additionaw cwidewia nya~!
                 {
-                    Debug.Log($"[LightsOutScript] Found DaggerfallBillboard '{billboard.name}' with TEXTURE.210 Index=13, nya~!");
-
-                    // Stowe the position, wotation, and textuwe data befowe disabwing nya~!
-                    Vector3 originalPosition = billboard.transform.position;
-                    Quaternion originalRotation = billboard.transform.rotation;
-                    int archive = billboard.customArchive;
-                    int record = 12; // Set the new index nya~!
-
-                    // Disabwe the owiginaw biwwboawd nya~!
-                    billboard.gameObject.SetActive(false);
-                    Debug.Log($"[LightsOutScript] Disabwed owiginaw DaggerfallBillboard '{billboard.name}', nya~!");
-
-                    // Cweate a new biwwboawd with TEXTURE.210 Index=12 nya~!
-                    GameObject newBillboard = new GameObject("DaggerfallBillboard [TEXTURE.210, Index=12]");
-                    newBillboard.transform.position = originalPosition; // Set to owiginaw position nya~!
-                    newBillboard.transform.rotation = originalRotation; // Set to owiginaw wotation nya~!
-
-                    // Add the DaggerfallBillboard component nya~!
-                    var newBillboardComponent = newBillboard.AddComponent<DaggerfallBillboard>();
-
-                    // Assign matewiaw and vawidate nya~!
-                    if (newBillboardComponent != null)
+                    var meshRenderer = billboard.GetComponent<MeshRenderer>();
+                    if (meshRenderer != null)
                     {
-                        newBillboardComponent.SetMaterial(archive, record); // Assign the matewiaw nya~!
-                        Debug.Log($"[LightsOutScript] Cweated and assigned matewiaw to new DaggerfallBillboard at position {originalPosition}, nya~!");
-                    }
-                    else
-                    {
-                        Debug.LogError($"[LightsOutScript] Faiwed to add DaggerfallBillboard component to '{newBillboard.name}', nya~!");
+                        meshRenderer.enabled = false; // Disabwe the mesh wendewew fow wight biwwboawds, nya~!
+                        Debug.Log($"[LightsOutScript] Disabwed DaggerfallBillboard '{billboard.name}' because it is part of TEXTURE.210 and a light billboard, nya~!");
                     }
                 }
             }
@@ -902,32 +886,40 @@ namespace LightsOutScriptMod
 
         private int GetTextureArchiveIndex(Material material)
         {
-            // Extract archive index from the material name (e.g., "TEXTURE.210 Index=13")
-            if (material.name.StartsWith("TEXTURE.", System.StringComparison.OrdinalIgnoreCase))
+            // Extwact archive index fwom the matewiaw name (e.g., "TEXTURE.210 Index=13"), nya~!
+            if (material.name.StartsWith("TEXTURE.", StringComparison.OrdinalIgnoreCase))
             {
-                string[] parts = material.name.Split(new[] { ' ', '.', '=' }, System.StringSplitOptions.RemoveEmptyEntries);
+                string[] parts = material.name.Split(new[] { ' ', '.', '=' }, StringSplitOptions.RemoveEmptyEntries);
                 if (parts.Length > 1 && int.TryParse(parts[1], out int archive))
                 {
                     return archive;
                 }
             }
-            return -1; // Invalid archive index
+            return -1; // Invawid archive index, nya~!
         }
 
-        // Helper method to get texture record index, nya~!
         private int GetTextureRecordIndex(Material material)
         {
-            // Extract record index from the material name (e.g., "TEXTURE.210 Index=13")
+            // Extwact wecowd index fwom the matewiaw name (e.g., "TEXTURE.210 Index=13"), nya~!
             if (material.name.Contains("Index="))
             {
-                string[] parts = material.name.Split(new[] { ' ', '.', '=' }, System.StringSplitOptions.RemoveEmptyEntries);
-                int indexPart = parts.ToList().FindIndex(part => part.Equals("Index", System.StringComparison.OrdinalIgnoreCase));
+                string[] parts = material.name.Split(new[] { ' ', '.', '=' }, StringSplitOptions.RemoveEmptyEntries);
+                var indexPart = Array.FindIndex(parts, part => part.Equals("Index", StringComparison.OrdinalIgnoreCase));
                 if (indexPart >= 0 && indexPart + 1 < parts.Length && int.TryParse(parts[indexPart + 1], out int record))
                 {
                     return record;
                 }
             }
-            return -1; // Invalid record index
+
+            // Fawwback method: Check if matewiaw key exists and use MatewiawReadew's WevewseTextuweKey, nya~!
+            int key = MaterialReader.MakeTextureKey(210, 13); // Adjust pawams based on the matewiaw name, nya~!
+            MaterialReader.ReverseTextureKey(key, out int archiveOut, out int recordOut, out _);
+            if (archiveOut == 210 && recordOut >= 0)
+            {
+                return recordOut; // Use decoded textuwe key if avaiwabwe, nya~!
+            }
+
+            return -1; // Invawid wecowd index, nya~!
         }
 
         // Helper method to replace texture, nya~!
