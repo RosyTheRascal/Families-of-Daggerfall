@@ -904,7 +904,88 @@ namespace LightsOutScriptMod
             ApplyTimeBasedEmissiveChanges();
         }
 
+        private bool Caught = false;
 
+        private IEnumerator PeriodicStealthCheckCoroutine()
+        {
+            Debug.Log("[LightsOutScript] Starting periodic Stealth check coroutine, nya~!");
+
+            // Keep checking until caught
+            while (!Caught)
+            {
+                yield return new WaitForSeconds(5.0f); // Wait 5 seconds between checks nya~!
+
+                // Get the player's Stealth skill value
+                int playerStealth = GameManager.Instance.PlayerEntity.Skills.GetLiveSkillValue(DFCareer.Skills.Stealth);
+
+                // Calculate the probability of failing based on Stealth skill
+                float randomFactor = UnityEngine.Random.Range(-0.25f, 0.25f); // Add some randomness
+                float failureProbability = Mathf.Clamp01(0.5f - (playerStealth - 80) / 140f + randomFactor);
+                Debug.Log($"[LightsOutScript] Stealth failure probability rolled: {failureProbability}, nya~!");
+
+                // Roll the dice to see if guards are called
+                if (UnityEngine.Random.value < failureProbability)
+                {
+                    Debug.Log("[LightsOutScript] Player failed Stealth check! Guards called, nya~!");
+
+                    // Show a message box to notify the player
+                    DaggerfallMessageBox messageBox = new DaggerfallMessageBox(DaggerfallUI.Instance.UserInterfaceManager, DaggerfallUI.Instance.UserInterfaceManager.TopWindow);
+                    messageBox.SetText("You've been caught!");
+                    messageBox.ClickAnywhereToClose = true;
+                    messageBox.Show();
+
+                    // Access the interior component from PlayerEnterExit
+                    DaggerfallInterior interior = GameManager.Instance.PlayerEnterExit.Interior;
+
+                    if (interior != null && interior.Markers.Length > 0)
+                    {
+                        Vector3 entrancePosition = Vector3.zero;
+                        bool foundMarker = false;
+
+                        // Loop through markers to find the closest "Enter" marker
+                        foreach (var marker in interior.Markers)
+                        {
+                            if (marker.type == DaggerfallInterior.InteriorMarkerTypes.Enter)
+                            {
+                                entrancePosition = marker.gameObject.transform.position;
+                                foundMarker = true;
+                                break; // Stop after finding the first "Enter" marker
+                            }
+                        }
+
+                        if (foundMarker)
+                        {
+                            Vector3 guardDirection = Vector3.forward; // Default direction, adjust if needed
+                            GameManager.Instance.PlayerEntity.CrimeCommitted = PlayerEntity.Crimes.Trespassing;
+                            GameManager.Instance.PlayerEntity.CrimeCommitted = PlayerEntity.Crimes.Breaking_And_Entering;
+                            GameManager.Instance.PlayerEntity.SpawnCityGuard(entrancePosition, guardDirection);
+
+                            Debug.Log($"[LightsOutScript] Guards spawned at entrance marker position: {entrancePosition}, nya~!");
+                        }
+                        else
+                        {
+                            Debug.LogWarning("[LightsOutScript] No 'Enter' markers found! Guards will spawn at player's position instead.");
+                            Vector3 fallbackPosition = GameManager.Instance.PlayerEntityBehaviour.transform.position;
+                            GameManager.Instance.PlayerEntity.SpawnCityGuard(fallbackPosition, Vector3.forward);
+                        }
+                    }
+                    else
+                    {
+                        Debug.LogWarning("[LightsOutScript] No markers found in interior! Guards will spawn at player's position instead.");
+                        Vector3 fallbackPosition = GameManager.Instance.PlayerEntityBehaviour.transform.position;
+                        GameManager.Instance.PlayerEntity.SpawnCityGuard(fallbackPosition, Vector3.forward);
+                    }
+
+                    Caught = true; // Stop further checks
+                }
+                else
+                {
+                    Debug.Log("[LightsOutScript] Stealth check passed, nya~!");
+                }
+            }
+
+            Debug.Log("[LightsOutScript] Stopping Stealth check coroutine because player was caught, nya~!");
+        }
 
         // This is your coroutine nya~!
         private IEnumerator TriggerLightsOutCoroutine()
@@ -1164,6 +1245,7 @@ namespace LightsOutScriptMod
             }
             int livingNPCCount = CustomNPCBridgeMod.CustomNPCBridge.Instance.GetLivingNPCCountInInterior();
             CustomStaticNPCMod.CustomStaticNPC.NothingHereAidan();
+            StartCoroutine(PeriodicStealthCheckCoroutine());
             LightsOut = true;
         }
 
