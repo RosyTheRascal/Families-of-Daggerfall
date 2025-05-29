@@ -57,7 +57,7 @@ namespace LightsOutScriptMod
             DaggerfallWorkshop.Game.PlayerEnterExit.OnTransitionInterior += OnTransitionInterior;
             emissiveCombinedModelsActive = CheckEmissiveTextureStateCombinedModels();
             PlayerEnterExit.OnTransitionExterior += OnExteriorTransitionDetected;
-
+            DaggerfallUnity.Instance.WorldTime.OnNewHour += HandleNewHourEvent;
             Debug.Log($"[LightsOutScript] Initial emissiveCombinedModelsActive state: {(emissiveCombinedModelsActive ? "ACTIVE" : "INACTIVE")}, nya~!");
             Debug.Log($"[LightsOutScript] Initial emissiveFacadesActive state: {(emissiveFacadesActive ? "ACTIVE" : "INACTIVE")}, nya~!");
         }
@@ -185,6 +185,83 @@ namespace LightsOutScriptMod
             };
         }
 
+        public bool LightsOut = false;
+
+        private void HandleNewHourEvent()
+        {
+            ProcessLocationsForMaterialUpdates(); // Call the method on every hour update
+        }
+
+        public void ProcessLocationsForMaterialUpdates()
+        {
+            if (LightsOut =false)
+            {
+                return;
+            }
+
+            var allLocations = GameObject.FindObjectsOfType<DaggerfallLocation>();
+            foreach (var location in allLocations)
+            {
+                Debug.Log($"[LightsOutScript] Processing location: {location.name}, nya~!");
+
+                var blocks = location.GetComponentsInChildren<DaggerfallRMBBlock>(true);
+                Debug.Log($"[LightsOutScript] Found {blocks.Length} blocks in location: {location.name}, nya~!");
+
+                foreach (var block in blocks)
+                {
+                    Debug.Log($"[LightsOutScript] Processing block: {block.name}, nya~!");
+
+                    Transform modelsChild = block.transform.Find("Models");
+                    if (modelsChild != null)
+                    {
+                        Debug.Log($"[LightsOutScript] Found 'Models' in block: {block.name}, nya~!");
+
+                        Transform combinedModelsTransform = modelsChild.Find("CombinedModels");
+                        if (combinedModelsTransform != null)
+                        {
+                            Debug.Log($"[LightsOutScript] Found 'CombinedModels' in block: {block.name}, nya~!");
+
+                            var meshes = combinedModelsTransform.GetComponentsInChildren<MeshRenderer>();
+                            Debug.Log($"[LightsOutScript] Found {meshes.Length} MeshRenderers in 'CombinedModels' of block: {block.name}, nya~!");
+
+                            foreach (var meshRenderer in meshes)
+                            {
+                                foreach (var material in meshRenderer.materials)
+                                {
+                                    Debug.Log($"[LightsOutScript] Checking material: {material.name}, nya~!");
+
+                                    if (material.name.StartsWith("TEXTURE.") &&
+                                    int.TryParse(material.name.Substring(8, 3), out int textureValue) &&
+                                    textureValue >= 300 && textureValue <= 400 &&
+                                    material.name.Contains("[Index=3]"))
+                                    {
+                                        Shader shader = Shader.Find("Standard");
+                                        if (shader != null)
+                                        {
+                                            material.shader = shader;
+                                            Debug.Log($"[LightsOutScript] Shader updated to 'Standard' for material '{material.name}', nya~!");
+                                        }
+                                        else
+                                        {
+                                            Debug.LogWarning($"[LightsOutScript] Shader 'Standard' not found, unable to update material '{material.name}', nya~!");
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        else
+                        {
+                            Debug.LogWarning($"[LightsOutScript] CombinedModels not found under 'Models' in block '{block.name}', nya~!");
+                        }
+                    }
+                    else
+                    {
+                        Debug.LogWarning($"[LightsOutScript] Models not found in block '{block.name}', nya~!");
+                    }
+                }
+            }
+        }
+
         private void ApplyTimeBasedEmissiveChanges()
         {
             int currentHour = DaggerfallUnity.Instance.WorldTime.Now.Hour;
@@ -285,6 +362,8 @@ namespace LightsOutScriptMod
 
         private AudioSource cricketAudio;
 
+        private List<AudioSource> cricketSources = new List<AudioSource>();
+
         private void OnExteriorTransitionDetected(PlayerEnterExit.TransitionEventArgs args)
         {
             Debug.Log("[LightsOutScript] Exterior transition detected!");
@@ -298,32 +377,17 @@ namespace LightsOutScriptMod
             }
 
             // Stop and remove the cricket sound effect completely
-            if (cricketAudio != null)
+            foreach (var source in cricketSources)
             {
-                if (cricketAudio.isPlaying)
+                if (source != null && source.isPlaying)
                 {
-                    cricketAudio.Stop(); // Stop playback
-                    Debug.Log("[LightsOutScript] Cricket sound stopped!");
+                    source.Stop();
+                    Debug.Log("[LightsOutScript] Stopped cricket sound source.");
                 }
-                Destroy(cricketAudio); // Remove the AudioSource component
-                Debug.Log("[LightsOutScript] Cricket AudioSource destroyed!");
+                Destroy(source);
+                Debug.Log("[LightsOutScript] Destroyed cricket AudioSource.");
             }
-            else
-            {
-                Debug.LogWarning("[LightsOutScript] CricketAudio is already null!");
-
-                // Check for lingering AudioSources with AmbientCrickets clip
-                var lingeringSources = FindObjectsOfType<AudioSource>();
-                foreach (var source in lingeringSources)
-                {
-                    if (source.clip != null && source.clip.name.Contains("AmbientCrickets"))
-                    {
-                        source.Stop();
-                        Destroy(source);
-                        Debug.Log("[LightsOutScript] Lingering cricket AudioSource found and destroyed!");
-                    }
-                }
-            }
+            cricketSources.Clear(); //
 
             ApplyTimeBasedEmissiveChanges();
         }
@@ -1090,17 +1154,18 @@ namespace LightsOutScriptMod
             AudioClip cricketClip = DaggerfallUnity.Instance.SoundReader.GetAudioClip((int)SoundClips.AmbientCrickets);
             if (cricketClip == null)
             {
-                Debug.LogWarning("[LightsOutScript] Cricket sound effect not found, nya~!");
+                Debug.LogWarning("[LightsOutScript] Cricket sound effect not found!");
             }
             else
             {
-                AudioSource cricketAudio = gameObject.AddComponent<AudioSource>();
-                cricketAudio.clip = cricketClip;
-                cricketAudio.loop = true;
-                cricketAudio.volume = 0.8f;
-                cricketAudio.spatialBlend = 0; // Non-spatial sound, nya~!
-                cricketAudio.Play();
-                Debug.Log("[LightsOutScript] Playing cricket sound effect on loop, nya~!");
+                AudioSource newCricketAudio = gameObject.AddComponent<AudioSource>();
+                newCricketAudio.clip = cricketClip;
+                newCricketAudio.loop = true;
+                newCricketAudio.volume = 0.8f;
+                newCricketAudio.spatialBlend = 0; // Non-spatial sound
+                newCricketAudio.Play();
+                cricketSources.Add(newCricketAudio); // Track the new AudioSource
+                Debug.Log("[LightsOutScript] Playing cricket sound effect on loop.");
             }
             if (cricketAudio != null)
             {
