@@ -281,9 +281,28 @@ namespace LightsOutScriptMod
             return false;
         }
 
+        private Coroutine stopMusicCoroutine; // Keep track of the coroutine, nya~!
+
+        private AudioSource cricketAudio;
+
         private void OnExteriorTransitionDetected(PlayerEnterExit.TransitionEventArgs args)
         {
             Debug.Log("[LightsOutScript] Exterior transition detected, nya~!");
+
+            // Cease the music-stopping coroutine if it's running, nya~!
+            if (stopMusicCoroutine != null)
+            {
+                StopCoroutine(stopMusicCoroutine);
+                stopMusicCoroutine = null; // Reset the reference, nya~!
+                Debug.Log("[LightsOutScript] Music-stopping coroutine ceased, nya~!");
+            }
+
+            if (cricketAudio != null)
+            {
+                cricketAudio.Stop();
+                Debug.Log("[LightsOutScript] Cricket sound effect stopped!");
+            }
+
             ApplyTimeBasedEmissiveChanges();
         }
 
@@ -1040,6 +1059,28 @@ namespace LightsOutScriptMod
                 }
             }
 
+            var songPlayer = FindObjectOfType<DaggerfallSongPlayer>();
+            if (songPlayer != null)
+            {
+                StartCoroutine(StopMusicCoroutine(songPlayer)); // Stawt the coroutine, nya~!
+            }
+
+            AudioClip cricketClip = DaggerfallUnity.Instance.SoundReader.GetAudioClip((int)SoundClips.AmbientCrickets);
+            if (cricketClip == null)
+            {
+                Debug.LogWarning("[LightsOutScript] Cricket sound effect not found, nya~!");
+            }
+            else
+            {
+                AudioSource cricketAudio = gameObject.AddComponent<AudioSource>();
+                cricketAudio.clip = cricketClip;
+                cricketAudio.loop = true;
+                cricketAudio.volume = 0.8f;
+                cricketAudio.spatialBlend = 0; // Non-spatial sound, nya~!
+                cricketAudio.Play();
+                Debug.Log("[LightsOutScript] Playing cricket sound effect on loop, nya~!");
+            }
+
             var customNPCs = GameObject.FindObjectsOfType<CustomStaticNPCMod.CustomStaticNPC>();
             foreach (var customNPC in customNPCs)
             {
@@ -1050,6 +1091,29 @@ namespace LightsOutScriptMod
                     Debug.Log($"[LightsOutScript] Disabled MeshRenderer for CustomStaticNPC '{customNPC.name}', nya~!");
                 }
             }
+        }
+
+        IEnumerator StopMusicCoroutine(DaggerfallSongPlayer songPlayer)
+        {
+            // Disable reset conditions
+            songPlayer.AudioSource.playOnAwake = false;
+            songPlayer.AudioSource.loop = false;
+
+            while (true) // Keep this loop running endlessly
+            {
+                if (songPlayer.IsPlaying) // Check if music is playing
+                {
+                    songPlayer.Stop();
+
+                    // Force stop lingering playback
+                    songPlayer.AudioSource.Stop();
+                }
+
+                yield return null; // Wait until the next frame
+            }
+
+            // This won't actually run since we have an infinite loop
+            Debug.Log("[LightsOutScript] Music has been completely subdued!");
         }
 
         private bool IsLightBillboard(DaggerfallBillboard billboard)
