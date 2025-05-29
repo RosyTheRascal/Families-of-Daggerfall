@@ -194,10 +194,61 @@ namespace LightsOutScriptMod
             {
                 return;
             }
+
             allLocations = GameObject.FindObjectsOfType<DaggerfallLocation>(); // Populate allLocations
             ApplyTimeBasedEmissiveChanges();
-            TurnOutTheLights();
+            StartCoroutine(ResetShadersCoroutine(3.0f));
             Debug.Log($"Hour event raised!");
+        }
+
+        private IEnumerator ResetShadersCoroutine(float waitTime)
+        {
+            Debug.Log($"[LightsOutScript] Coroutine started, nya~! Waiting for {waitTime} seconds..."); // Debug log for tracking nya~!
+            if (LightsOut = false)
+            {
+                yield break;
+            }
+
+            // Wait for the specified amount of time
+            yield return new WaitForSeconds(waitTime);
+
+            Debug.Log("[LightsOutScript] Resetting shaders now, nya~!");
+
+            // Execute the shader reset logic
+            var allLocations = GameObject.FindObjectsOfType<DaggerfallLocation>();
+            foreach (var location in allLocations)
+            {
+                var blocks = location.GetComponentsInChildren<DaggerfallRMBBlock>(true);
+                foreach (var block in blocks)
+                {
+                    var combinedModelsTransform = block.transform.Find("Models/CombinedModels");
+                    if (combinedModelsTransform != null)
+                    {
+                        foreach (var meshRenderer in combinedModelsTransform.GetComponentsInChildren<MeshRenderer>())
+                        {
+                            foreach (var material in meshRenderer.materials)
+                            {
+                                Shader standardShader = Shader.Find("Standard");
+                                if (standardShader != null)
+                                {
+                                    material.shader = standardShader;
+                                    Debug.Log($"[LightsOutScript] Forced shader reset to 'Standard' for material '{material.name}', nya~!");
+                                }
+                                else
+                                {
+                                    Debug.LogWarning($"[LightsOutScript] Shader 'Standard' not found, unable to reset material '{material.name}', nya~!");
+                                }
+                            }
+                        }
+                    }
+                    else
+                    {
+                        Debug.LogWarning($"[LightsOutScript] CombinedModelsTransform not found in block '{block.name}', nya~!");
+                    }
+                }
+            }
+
+            Debug.Log("[LightsOutScript] Shader reset completed, nya~!");
         }
 
         private void ApplyTimeBasedEmissiveChanges()
@@ -874,7 +925,7 @@ namespace LightsOutScriptMod
             int currentHour = DaggerfallUnity.Instance.WorldTime.Now.Hour;
             // Get the PlayerEnterExit instance nya~!
             PlayerEnterExit playerEnterExit = GameManager.Instance.PlayerEnterExit;
-
+            Debug.Log("[LightsOutScript] Turning out the Lights!");
             // If we can't find the PlayerEnterExit, skip the method nya~!
             if (playerEnterExit == null)
             {
@@ -1024,61 +1075,32 @@ namespace LightsOutScriptMod
             var allLocations = GameObject.FindObjectsOfType<DaggerfallLocation>();
             foreach (var location in allLocations)
             {
-                Debug.Log($"[LightsOutScript] Processing location: {location.name}, nya~!");
-
                 var blocks = location.GetComponentsInChildren<DaggerfallRMBBlock>(true);
-                Debug.Log($"[LightsOutScript] Found {blocks.Length} blocks in location: {location.name}, nya~!");
-
                 foreach (var block in blocks)
                 {
-                    Debug.Log($"[LightsOutScript] Processing block: {block.name}, nya~!");
-
-                    Transform modelsChild = block.transform.Find("Models");
-                    if (modelsChild != null)
+                    var combinedModelsTransform = block.transform.Find("Models/CombinedModels");
+                    if (combinedModelsTransform != null)
                     {
-                        Debug.Log($"[LightsOutScript] Found 'Models' in block: {block.name}, nya~!");
-
-                        Transform combinedModelsTransform = modelsChild.Find("CombinedModels");
-                        if (combinedModelsTransform != null)
+                        foreach (var meshRenderer in combinedModelsTransform.GetComponentsInChildren<MeshRenderer>())
                         {
-                            Debug.Log($"[LightsOutScript] Found 'CombinedModels' in block: {block.name}, nya~!");
-
-                            var meshes = combinedModelsTransform.GetComponentsInChildren<MeshRenderer>();
-                            Debug.Log($"[LightsOutScript] Found {meshes.Length} MeshRenderers in 'CombinedModels' of block: {block.name}, nya~!");
-
-                            foreach (var meshRenderer in meshes)
+                            foreach (var material in meshRenderer.materials)
                             {
-                                foreach (var material in meshRenderer.materials)
+                                Shader standardShader = Shader.Find("Standard");
+                                if (standardShader != null)
                                 {
-                                    Debug.Log($"[LightsOutScript] Checking material: {material.name}, nya~!");
-
-                                    if (material.name.StartsWith("TEXTURE.") &&
-                                    int.TryParse(material.name.Substring(8, 3), out int textureValue) &&
-                                    textureValue >= 300 && textureValue <= 400 &&
-                                    material.name.Contains("[Index=3]"))
-                                    {
-                                        Shader shader = Shader.Find("Standard");
-                                        if (shader != null)
-                                        {
-                                            material.shader = shader;
-                                            Debug.Log($"[LightsOutScript] Shader updated to 'Standard' for material '{material.name}', nya~!");
-                                        }
-                                        else
-                                        {
-                                            Debug.LogWarning($"[LightsOutScript] Shader 'Standard' not found, unable to update material '{material.name}', nya~!");
-                                        }
-                                    }
+                                    material.shader = standardShader;
+                                    Debug.Log($"[LightsOutScript] Forced shader reset to 'Standard' for material '{material.name}', nya~!");
+                                }
+                                else
+                                {
+                                    Debug.LogWarning($"[LightsOutScript] Shader 'Standard' not found, unable to reset material '{material.name}', nya~!");
                                 }
                             }
-                        }
-                        else
-                        {
-                            Debug.LogWarning($"[LightsOutScript] CombinedModels not found under 'Models' in block '{block.name}', nya~!");
                         }
                     }
                     else
                     {
-                        Debug.LogWarning($"[LightsOutScript] Models not found in block '{block.name}', nya~!");
+                        Debug.LogWarning($"[LightsOutScript] CombinedModelsTransform not found in block '{block.name}', nya~!");
                     }
                 }
             }
