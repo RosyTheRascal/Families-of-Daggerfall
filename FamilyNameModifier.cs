@@ -309,7 +309,7 @@ namespace FamilyNameModifierMod
                 string uniqueKey = $"{buildingId}_{race}_{billboard.Summary.Record}";
                 int hashSeed = uniqueKey.GetHashCode();
                 var rng = new System.Random(hashSeed);
-                string[] surnames = DaggerfallUnity.Instance.NameHelper.GetSurnames(race);
+                string[] surnames = FamilyNameModifierMod.NameHelperExtensions.GetSurnames(DaggerfallUnity.Instance.NameHelper, race);
                 lastName = surnames.Length > 0 ? surnames[rng.Next(surnames.Length)] : "Unknown";
             }
             else

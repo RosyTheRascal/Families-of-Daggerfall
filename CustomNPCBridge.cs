@@ -52,15 +52,6 @@ namespace CustomNPCBridgeMod
         private static Dictionary<int, int> npcGreetingSections = new Dictionary<int, int>(); // New dictionary to store NPC greeting sections
         private static Dictionary<int, DeadFlags> buildingDeadFlags = new Dictionary<int, DeadFlags>();
 
-        [Flags]
-        public enum DeadFlags
-        {
-            None = 0,
-            ManDead = 1 << 0,
-            WomanDead = 1 << 1,
-            ChildDead = 1 << 2,
-        }
-
         public void MarkBuildingNPCDead(int buildingKey, DeadFlags flag)
         {
             if (!buildingDeadFlags.TryGetValue(buildingKey, out DeadFlags flags))
@@ -109,10 +100,11 @@ namespace CustomNPCBridgeMod
 
         public void RestoreSaveData(object saveData)
         {
-
             Debug.Log($"Save restored");
+            buildingDeadFlags.Clear(); // =＾● ⋏ ●＾= Clear all per-building dead flags on save load!
             deadNPCs.Clear();
             emptyBuildings.Clear();
+            Debug.Log($"Fags cleared i mean fags queered i Mean");
             boostData = (CustomNPCBoostData)saveData;
             if (boostData.IsBoosted)
             {

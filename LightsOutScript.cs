@@ -28,6 +28,14 @@ using DaggerfallConnect.Utility;
 using DaggerfallWorkshop.Game.MagicAndEffects.MagicEffects;
 using UnityEngine.SceneManagement; // Add this line
 using System.Reflection;
+using CustomStaticNPCMod;
+using CustomNPCBridgeMod;
+using FactionNPCInitializerMod;
+using FactionParserMod;
+using FamilyNameModifierMod;
+using CustomNPCClickHandlerMod;
+using CustomTalkManagerMod;
+using CustomDaggerfallTalkWindowMod;
 
 namespace LightsOutScriptMod
 {
@@ -184,17 +192,31 @@ namespace LightsOutScriptMod
                 Caught = false;
                 StopCoroutine(PeriodicStealthCheckCoroutine());
                 ApplyTimeBasedEmissiveChanges();
-                if (GameObject.Find("Exterior")?.activeInHierarchy == true && GameObject.Find("Interior")?.activeInHierarchy == false)
-                {
-                    Debug.Log("[LightsOutScript] Returning after save because the player is in an exterior, nya~!");
-                    return;
-                }
-                else
-                {
-                    Debug.Log("[LightsOutScript] Player not in exterior, starting LightsOut!");
-                    StartCoroutine(TriggerLightsOutCoroutine());
-                }
+
+                // Add a deferred coroutine check for Exterior state
+                StartCoroutine(CheckExteriorStateAfterLoad());
             };
+        }
+
+        private IEnumerator CheckExteriorStateAfterLoad()
+        {
+            // Wait a few frames to ensure Exterior is fully active
+            yield return null;
+            yield return null;
+            yield return new WaitForSeconds(0.9f);
+            var exterior = GameObject.Find("Exterior");
+            var interior = GameObject.Find("Interior");
+
+            if (exterior?.activeInHierarchy == true && interior == null)
+            {
+                Debug.Log("[LightsOutScript] Player is in an exterior, nya~!");
+                yield break; // Stop further logic
+            }
+            else
+            {
+                Debug.Log("[LightsOutScript] Player not in exterior, starting LightsOut!");
+                StartCoroutine(TriggerLightsOutCoroutine());
+            }
         }
 
         public bool LightsOut = false;
@@ -624,6 +646,8 @@ namespace LightsOutScriptMod
         DaggerfallConnect.DFLocation.BuildingTypes.House4,
         DaggerfallConnect.DFLocation.BuildingTypes.House5,
         DaggerfallConnect.DFLocation.BuildingTypes.House6,
+        DaggerfallConnect.DFLocation.BuildingTypes.Town4,
+        DaggerfallConnect.DFLocation.BuildingTypes.Town23,
         DaggerfallConnect.DFLocation.BuildingTypes.Ship,
     };
 
@@ -865,9 +889,11 @@ namespace LightsOutScriptMod
                 case DFLocation.BuildingTypes.GuildHall:
                     return currentHour < 23 && currentHour >= 11;
                 case DFLocation.BuildingTypes.Temple:
+                case DFLocation.BuildingTypes.Palace:
                 case DFLocation.BuildingTypes.Tavern:
                     return true; // Never deactivate nya~!
                 case DFLocation.BuildingTypes.HouseForSale:
+                case DFLocation.BuildingTypes.Town23:
                     return false; // Always deactivate nya~!
                 default:
                     Debug.LogWarning($"[LightsOutScript][WARN] Unknown BuildingType '{buildingType}', defaulting to deactivate emissive, nya~!");
@@ -934,7 +960,7 @@ namespace LightsOutScriptMod
             // Keep checking until caught
             while (!Caught)
             {
-                yield return new WaitForSeconds(5.0f); // Wait 5 seconds between checks nya~!
+                yield return new WaitForSeconds(8.0f); //Time to wait between checks uwu
 
                 // Get the player's Stealth skill value
                 int playerStealth = GameManager.Instance.PlayerEntity.Skills.GetLiveSkillValue(DFCareer.Skills.Stealth);
@@ -1002,6 +1028,8 @@ namespace LightsOutScriptMod
                 else
                 {
                     Debug.Log("[LightsOutScript] Stealth check passed, nya~!");
+                    GameManager.Instance.PlayerEntity.TallySkill(DFCareer.Skills.Stealth, 1);
+                    Debug.Log("[LightsOutScript] Tallied 1 Stealth skill use for player, nya~!");
                 }
             }
 
@@ -1012,9 +1040,9 @@ namespace LightsOutScriptMod
         private IEnumerator TriggerLightsOutCoroutine()
         {
             Debug.Log("[LightsOutScript] Coroutine started, nya~! Waiting for 1.5 seconds..."); // Debug log for tracking nya~!
-
-            yield return new WaitForSeconds(.8f); // Pause for n seconds nya~!
-
+            yield return null;
+            yield return new WaitForSeconds(0.7f); // Pause for n seconds nya~!
+            yield return null;
             TurnOutTheLights(); // Call the TurnOutTheLights method nya~!
             Debug.Log("[LightsOutScript] TurnOutTheLights method called, nya~!"); // Log the method execution nya~!
         }
@@ -1043,7 +1071,7 @@ namespace LightsOutScriptMod
             }
 
             // Skip specific building types nya~
-            if (buildingType == DFLocation.BuildingTypes.Tavern || buildingType == DFLocation.BuildingTypes.Temple)
+            if (buildingType == DFLocation.BuildingTypes.Tavern || buildingType == DFLocation.BuildingTypes.Temple || buildingType == DFLocation.BuildingTypes.Palace || buildingType == DFLocation.BuildingTypes.Town23 || buildingType == DFLocation.BuildingTypes.Town4 || buildingType == DFLocation.BuildingTypes.Ship)
             {
                 Debug.Log($"[LightsOutScript] TurnOutTheLights() skipped because the player is in a {buildingType}, nya~!");
                 return;

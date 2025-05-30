@@ -285,7 +285,7 @@ namespace CustomStaticNPCMod
             }
         }
 
-        private void NothingHereAidan()
+        public static void NothingHereAidan()
         {
             if (aidanFired) return; // Never fire again if already fired (safety net)
             aidanFired = true;
@@ -390,6 +390,10 @@ namespace CustomStaticNPCMod
             if (ShouldCallGuards())
             {
                 Debug.Log("Guards are being called to the scene!");
+                DaggerfallMessageBox messageBox = new DaggerfallMessageBox(DaggerfallUI.Instance.UserInterfaceManager, DaggerfallUI.Instance.UserInterfaceManager.TopWindow);
+                messageBox.SetText("You've been caught!");
+                messageBox.ClickAnywhereToClose = true;
+                messageBox.Show();
                 GameManager.Instance.PlayerEntity.SpawnCityGuards(true); // Call the method to spawn guards
                 GameManager.Instance.PlayerEntity.CrimeCommitted = PlayerEntity.Crimes.Murder;
                 GameManager.Instance.PlayerEntity.CrimeCommitted = PlayerEntity.Crimes.Assault;
@@ -505,7 +509,7 @@ namespace CustomStaticNPCMod
             if (archiveIndex == 182)
             {
                 // Explicit cases for female
-                if (recordIndex == 4 || recordIndex == 15 || recordIndex == 16 || recordIndex == 17 || recordIndex == 18 || recordIndex == 19 || recordIndex == 20 || recordIndex == 21 || recordIndex == 22 || recordIndex == 23 || recordIndex == 24 || recordIndex == 25 || recordIndex == 29 || recordIndex == 35 || recordIndex == 36 || recordIndex == 39 || recordIndex == 42 || recordIndex == 43 || recordIndex == 46 || recordIndex == 52)
+                if (recordIndex == 4 || recordIndex == 15 || recordIndex == 16 || recordIndex == 17 || recordIndex == 18 || recordIndex == 19 || recordIndex == 20 || recordIndex == 21 || recordIndex == 22 || recordIndex == 23 || recordIndex == 24 || recordIndex == 25 || recordIndex == 29 || recordIndex == 35 || recordIndex == 36 || recordIndex == 39 || recordIndex == 42 || recordIndex == 43 || recordIndex == 46)
                     return Genders.Male;
 
                 else

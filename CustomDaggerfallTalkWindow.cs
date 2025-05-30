@@ -328,8 +328,8 @@ namespace CustomDaggerfallTalkWindowMod
 
         protected Panel npcPortrait;
         protected TextLabel labelNameNPC;
-        private   ExtendedListBox listboxTopics;
-        private   ExtendedListBox listboxConversation;
+        private ExtendedListBox listboxTopics;
+        private ExtendedListBox listboxConversation;
         protected Panel dialogPanel;
         protected TextLabel labelGreeting;
         protected ListBox playerSaysListBox;
@@ -627,7 +627,7 @@ namespace CustomDaggerfallTalkWindowMod
             // Pass scaleFactor to other methods
 
             SetUpDummy(scaleFactor);
- 
+
             if (isChildNPC)
             {
                 SetUpBlockers(scaleFactor);
@@ -1553,6 +1553,11 @@ namespace CustomDaggerfallTalkWindowMod
                     recordIndex = 420;
                     Debug.Log($"Forced portrait selection: Archive 357, Record 1 -> CommonFaces, Record Index: {recordIndex}");
                 }
+                else if (customNpc.Data.billboardArchiveIndex == 182 && customNpc.Data.billboardRecordIndex == 43)
+                {
+                    recordIndex = 491;
+                    Debug.Log($"Forced portrait selection: Archive 357, Record 1 -> CommonFaces, Record Index: {recordIndex}");
+                }
                 else if (customNpc.Data.billboardArchiveIndex == 182 && customNpc.Data.billboardRecordIndex == 26)
                 {
                     recordIndex = 450;
@@ -1733,7 +1738,7 @@ namespace CustomDaggerfallTalkWindowMod
                     recordIndex = 393;
                     Debug.Log($"Forced portrait selection: Archive 357, Record 1 -> CommonFaces, Record Index: {recordIndex}");
                 }
-                else if (customNpc.Data.billboardArchiveIndex == 184 && customNpc.Data.billboardRecordIndex == 26 )
+                else if (customNpc.Data.billboardArchiveIndex == 184 && customNpc.Data.billboardRecordIndex == 26)
                 {
                     recordIndex = 424;
                     Debug.Log($"Forced portrait selection: Archive 357, Record 1 -> CommonFaces, Record Index: {recordIndex}");
@@ -1778,13 +1783,6 @@ namespace CustomDaggerfallTalkWindowMod
                     recordIndex = 371;
                     Debug.Log($"Forced portrait selection: Archive 357, Record 1 -> CommonFaces, Record Index: {recordIndex}");
                 }
-                if (billboardArchiveIndex == 0 || billboardRecordIndex == 0)
-                {
-                    // Fallback for vanilla NPCs that haven't been processed by ProcessBillboards
-                    billboardArchiveIndex = customNpc.Data.billboardArchiveIndex;
-                    billboardRecordIndex = customNpc.Data.billboardRecordIndex;
-                    Debug.LogWarning($"Falling back to Data fields: Archive={billboardArchiveIndex}, Record={billboardRecordIndex}");
-                }
 
                 Debug.Log($"NPC Data - BillboardArchiveIndex: {billboardArchiveIndex}, BillboardRecordIndex: {billboardRecordIndex}");
 
@@ -1819,7 +1817,13 @@ namespace CustomDaggerfallTalkWindowMod
                 SetNPCPortrait(facePortraitArchive, recordIndex);
 
                 Debug.Log($"Final NPC Data - BillboardArchiveIndex: {billboardArchiveIndex}, BillboardRecordIndex: {billboardRecordIndex}, recordIndex: {recordIndex}");
-
+                if (billboardArchiveIndex == 0 && billboardRecordIndex == 0)
+                {
+                    // Fallback for vanilla NPCs that haven't been processed by ProcessBillboards
+                    billboardArchiveIndex = customNpc.Data.billboardArchiveIndex;
+                    billboardRecordIndex = customNpc.Data.billboardRecordIndex;
+                    Debug.LogWarning($"Falling back to Data fields: Archive={billboardArchiveIndex}, Record={billboardRecordIndex}");
+                }
                 isChildNPC =
                      (billboardArchiveIndex == 182 &&
                         (billboardRecordIndex == 4 || billboardRecordIndex == 38 || billboardRecordIndex == 42 || billboardRecordIndex == 43 || billboardRecordIndex == 52 || billboardRecordIndex == 53)) ||
@@ -1833,6 +1837,7 @@ namespace CustomDaggerfallTalkWindowMod
                     Debug.Log("Child detected");
                     return;
                 }
+    
             }
             else
             {
@@ -1884,10 +1889,14 @@ namespace CustomDaggerfallTalkWindowMod
                         default: return null;
                     }
                 case 1305:
-                    return "Khajiit.png";
-                default:
-                    return null;
+                    switch (recordIndex)
+                    {
+                        case 0: return "Khajiit.png";
+                        default: return null;
+                    }
+            
             }
+            return null;
         }
 
         private static readonly Dictionary<int, int> billboardToRecordIndexMap = new Dictionary<int, int>
@@ -2270,7 +2279,7 @@ namespace CustomDaggerfallTalkWindowMod
 
             // Perform personality check
             int playerPersonality = GameManager.Instance.PlayerEntity.Stats.LivePersonality;
-            int checkValue = 60; // Define a threshold value for personality check
+            int checkValue = 70; // Define a threshold value for personality check
 
             string npcResponse;
 
