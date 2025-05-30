@@ -263,15 +263,11 @@ namespace LightsOutScriptMod
                         {
                             foreach (var material in meshRenderer.materials)
                             {
-                                Shader standardShader = Shader.Find("Standard");
-                                if (standardShader != null)
+                                if (material.HasProperty("_EmissionMap") || material.HasProperty("_EmissionColor"))
                                 {
-                                    material.shader = standardShader;
-                                    Debug.Log($"[LightsOutScript] Forced shader reset to 'Standard' for material '{material.name}', nya~!");
-                                }
-                                else
-                                {
-                                    Debug.LogWarning($"[LightsOutScript] Shader 'Standard' not found, unable to reset material '{material.name}', nya~!");
+                                    material.DisableKeyword("_EMISSION");
+                                    material.SetColor("_EmissionColor", Color.black);
+                                    Debug.Log($"[LightsOutScript] Disabled emission for material '{material.name}', nya~!");
                                 }
                             }
                         }
@@ -1212,15 +1208,11 @@ namespace LightsOutScriptMod
                         {
                             foreach (var material in meshRenderer.materials)
                             {
-                                Shader standardShader = Shader.Find("Standard");
-                                if (standardShader != null)
+                                if (material.HasProperty("_EmissionMap") || material.HasProperty("_EmissionColor"))
                                 {
-                                    material.shader = standardShader;
-                                    Debug.Log($"[LightsOutScript] Forced shader reset to 'Standard' for material '{material.name}', nya~!");
-                                }
-                                else
-                                {
-                                    Debug.LogWarning($"[LightsOutScript] Shader 'Standard' not found, unable to reset material '{material.name}', nya~!");
+                                    material.DisableKeyword("_EMISSION");
+                                    material.SetColor("_EmissionColor", Color.black);
+                                    Debug.Log($"[LightsOutScript] Disabled emission for material '{material.name}', nya~!");
                                 }
                             }
                         }

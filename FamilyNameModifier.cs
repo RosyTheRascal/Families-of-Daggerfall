@@ -344,8 +344,24 @@ namespace FamilyNameModifierMod
             // Unregister the original NPC from CustomNPCBridge
             CustomNPCBridge.Instance.UnregisterNPC(originalNpcId);
 
-            // Create the new NPC GameObject and set its transform properties
+            // Find the "Interior" parent GameObject
+            GameObject interiorParent = null;
+            if (GameManager.Instance.PlayerEnterExit != null && GameManager.Instance.PlayerEnterExit.IsPlayerInside)
+            {
+                interiorParent = GameManager.Instance.PlayerEnterExit.InteriorParent;
+            }
+            if (interiorParent == null)
+            {
+                interiorParent = GameObject.Find("Interior");
+            }
+
+            // Create the new NPC GameObject and parent it under "Interior"
             GameObject newNpcObject = new GameObject(originalNpc.gameObject.name);
+            if (interiorParent != null)
+            {
+                newNpcObject.transform.parent = interiorParent.transform;
+            }
+
             newNpcObject.transform.position = originalNpc.transform.position;
             newNpcObject.transform.rotation = originalNpc.transform.rotation;
             newNpcObject.transform.localScale = originalNpc.transform.localScale;
