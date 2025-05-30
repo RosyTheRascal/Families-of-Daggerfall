@@ -104,7 +104,7 @@ namespace CustomNPCBridgeMod
             buildingDeadFlags.Clear(); // =＾● ⋏ ●＾= Clear all per-building dead flags on save load!
             deadNPCs.Clear();
             emptyBuildings.Clear();
-            Debug.Log($"Fags cleared i mean fags queered i Mean");
+            Debug.Log($"Flags cleared");
             boostData = (CustomNPCBoostData)saveData;
             if (boostData.IsBoosted)
             {
