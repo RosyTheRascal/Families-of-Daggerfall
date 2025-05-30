@@ -180,8 +180,19 @@ namespace LightsOutScriptMod
             SaveLoadManager.OnLoad += delegate
             {
                 Debug.Log("[LightsOutScript] Save loaded, rechecking emissive states, nya~!");
+                LightsOut = false;
+                Caught = false;
+                StopCoroutine(PeriodicStealthCheckCoroutine());
                 ApplyTimeBasedEmissiveChanges();
-                StartCoroutine(TriggerLightsOutCoroutine());
+                if (GameObject.Find("Exterior")?.activeInHierarchy == true && GameObject.Find("Interior")?.activeInHierarchy == false)
+                {
+                    Debug.Log("[LightsOutScript] Returning after save because the player is in an exterior, nya~!");
+                    return;
+                }
+                else
+                {
+                    StartCoroutine(TriggerLightsOutCoroutine());
+                }
             };
         }
 
@@ -356,12 +367,13 @@ namespace LightsOutScriptMod
 
         private void OnExteriorTransitionDetected(PlayerEnterExit.TransitionEventArgs args)
         {
-
+            StopCoroutine(PeriodicStealthCheckCoroutine());
             if (Caught == true)
             {
                 Vector3 fallbackPosition = GameManager.Instance.PlayerEntityBehaviour.transform.position;
                 GameManager.Instance.PlayerEntity.SpawnCityGuard(fallbackPosition, Vector3.forward);
             }
+            Caught = false;
             Debug.Log("[LightsOutScript] Exterior transition detected!");
             var songPlayer = FindObjectOfType<DaggerfallSongPlayer>();
             // Cease the music-stopping coroutine if it's running
@@ -1000,10 +1012,7 @@ namespace LightsOutScriptMod
         {
             Debug.Log("[LightsOutScript] Coroutine started, nya~! Waiting for 1.5 seconds..."); // Debug log for tracking nya~!
 
-            yield return new WaitForSeconds(.8f); // Pause for 1.5 seconds nya~!
-
-             // Set the unique flag nya~!
-            Debug.Log("[LightsOutScript] Unique flag set to true, nya~!"); // Log the flag change nya~!
+            yield return new WaitForSeconds(.8f); // Pause for n seconds nya~!
 
             TurnOutTheLights(); // Call the TurnOutTheLights method nya~!
             Debug.Log("[LightsOutScript] TurnOutTheLights method called, nya~!"); // Log the method execution nya~!
