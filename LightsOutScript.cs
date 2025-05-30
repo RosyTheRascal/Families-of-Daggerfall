@@ -191,6 +191,7 @@ namespace LightsOutScriptMod
                 }
                 else
                 {
+                    Debug.Log("[LightsOutScript] Player not in exterior, starting LightsOut!");
                     StartCoroutine(TriggerLightsOutCoroutine());
                 }
             };
