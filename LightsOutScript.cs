@@ -356,8 +356,14 @@ namespace LightsOutScriptMod
 
         private void OnExteriorTransitionDetected(PlayerEnterExit.TransitionEventArgs args)
         {
-            Debug.Log("[LightsOutScript] Exterior transition detected!");
 
+            if (Caught == true)
+            {
+                Vector3 fallbackPosition = GameManager.Instance.PlayerEntityBehaviour.transform.position;
+                GameManager.Instance.PlayerEntity.SpawnCityGuard(fallbackPosition, Vector3.forward);
+            }
+            Debug.Log("[LightsOutScript] Exterior transition detected!");
+            var songPlayer = FindObjectOfType<DaggerfallSongPlayer>();
             // Cease the music-stopping coroutine if it's running
             if (stopMusicCoroutine != null)
             {
@@ -379,6 +385,7 @@ namespace LightsOutScriptMod
             }
             cricketSources.Clear(); //
             LightsOut = false;
+            StopCoroutine(StopMusicCoroutine(songPlayer));
             ApplyTimeBasedEmissiveChanges();
         }
 
@@ -1250,27 +1257,24 @@ namespace LightsOutScriptMod
             LightsOut = true;
         }
 
-        IEnumerator StopMusicCoroutine(DaggerfallSongPlayer songPlayer)
+        private bool stopMusicFlag = false; // Flag to terminate the coroutine
+
+        private IEnumerator StopMusicCoroutine(DaggerfallSongPlayer songPlayer)
         {
-            // Disable reset conditions
-            songPlayer.AudioSource.playOnAwake = false;
-            songPlayer.AudioSource.loop = false;
+            Debug.Log("[LightsOutScript] Starting music-stopping coroutine!");
 
-            while (true) // Keep this loop running endlessly
+            while (!stopMusicFlag) // Keep checking until the flag is set to true
             {
-                if (songPlayer.IsPlaying) // Check if music is playing
+                if (songPlayer != null && songPlayer.IsPlaying)
                 {
-                    songPlayer.Stop();
-
-                    // Force stop lingering playback
-                    songPlayer.AudioSource.Stop();
+                    songPlayer.AudioSource.volume = 0f; // Ensure the volume is muted
+                    Debug.Log("[LightsOutScript] Music volume set to 0!");
                 }
 
                 yield return null; // Wait until the next frame
             }
 
-            // This won't actually run since we have an infinite loop
-            Debug.Log("[LightsOutScript] Music has been completely subdued!");
+            Debug.Log("[LightsOutScript] Music-stopping coroutine terminated!");
         }
 
         private bool IsLightBillboard(DaggerfallBillboard billboard)
