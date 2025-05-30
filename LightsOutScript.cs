@@ -203,6 +203,7 @@ namespace LightsOutScriptMod
 
         private IEnumerator ResetShadersCoroutine(float waitTime)
         {
+
             Debug.Log($"[LightsOutScript] Coroutine started, nya~! Waiting for {waitTime} seconds..."); // Debug log for tracking nya~!
             if (LightsOut == false)
             {
@@ -1003,6 +1004,7 @@ namespace LightsOutScriptMod
 
         private void TurnOutTheLights()
         {
+           
             int currentHour = DaggerfallUnity.Instance.WorldTime.Now.Hour;
             // Get the PlayerEnterExit instance nya~!
             PlayerEnterExit playerEnterExit = GameManager.Instance.PlayerEnterExit;
@@ -1081,8 +1083,7 @@ namespace LightsOutScriptMod
                     Debug.Log($"[LightsOutScript] TurnOutTheLights() skipped because the building type '{buildingType}' is not handled, nya~!");
                     return;
             }
-
-            // Fetch the interior scene GameObjects, nya~!
+            
             var allObjects = GameObject.FindObjectsOfType<GameObject>();
             var billboards = GameObject.FindObjectsOfType<DaggerfallBillboard>();
             foreach (var obj in allObjects) // Defining `obj` hewe fwom `allObjects`, nya~!
@@ -1127,7 +1128,7 @@ namespace LightsOutScriptMod
                         }
                     }
                 }
-
+              
                 // Check if the GameObject has a Light component nya~!
                 var lightComponent = obj.GetComponent<Light>();
                 if (lightComponent != null)
@@ -1137,7 +1138,7 @@ namespace LightsOutScriptMod
                     Debug.Log($"[LightsOutScript] Disabled light on GameObject '{obj.name}', nya~!");
                 }
             }
-
+   
             // Iterate thwough aww DaggwefawwBiwwboawds nya~!
             foreach (var billboard in billboards)
             {
@@ -1152,7 +1153,7 @@ namespace LightsOutScriptMod
                     }
                 }
             }
-
+  
             var allLocations = GameObject.FindObjectsOfType<DaggerfallLocation>();
             foreach (var location in allLocations)
             {
@@ -1185,7 +1186,7 @@ namespace LightsOutScriptMod
                     }
                 }
             }
-
+  
             var songPlayer = FindObjectOfType<DaggerfallSongPlayer>();
             if (songPlayer != null)
             {
