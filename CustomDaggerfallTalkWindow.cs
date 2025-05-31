@@ -41,10 +41,8 @@ using CustomDaggerfallTalkWindowMod;
 namespace CustomDaggerfallTalkWindowMod
 {
 
-    public class ExtendedListBox : MonoBehaviour
+    public class ExtendedListBox : ListBox
     {
-        private ListBox internalListBox;
-        private static Mod mod;
         private int _selectedIndex = -1;
         private bool _isUpdating;
         private const int PixelWiseScrollIncrement = 20; // Adjust this value to control the scroll speed for PixelWise
@@ -53,21 +51,6 @@ namespace CustomDaggerfallTalkWindowMod
         {
             get { return GetHighlightedIndex(); }
             set { SetHighlightedIndex(value); }
-        }
-
-        public enum VerticalScrollModes
-        {
-            EntryWise,
-            PixelWise
-        }
-
-        public class ListItem
-        {
-            public TextLabel textLabel;
-            public Color textColor;
-            public Color disabledTextColor;
-            public bool Enabled = true;
-            // Add other fields if needed!
         }
 
         public new int SelectedIndex
@@ -114,9 +97,9 @@ namespace CustomDaggerfallTalkWindowMod
                 .SetValue(this, value);
 
             // Ensure the selected index is valid and update any UI or logic as needed
-            if (value >= 0 && value < internalListBox.Count)
+            if (value >= 0 && value < this.Count)
             {
-                internalListBox.Update(); // Force an update to the UI or any dependent logic
+                this.Update(); // Force an update to the UI or any dependent logic
             }
         }
 
@@ -183,12 +166,7 @@ namespace CustomDaggerfallTalkWindowMod
                 .GetValue(this);
         }
 
-        void OnGUI()
-        {
-            internalListBox.Draw();
-        }
-
-        public void Draw()
+        public override void Draw()
         {
             base.Draw();
 
@@ -235,7 +213,7 @@ namespace CustomDaggerfallTalkWindowMod
                     TextLabel label = listItems[i].textLabel;
 
                     // Check if the current item is within the visible area
-                    if (y + label.TextHeight < 0 || y >= internalListBox.Size.y)
+                    if (y + label.TextHeight < 0 || y >= this.Size.y)
                     {
                         y += label.TextHeight + RowSpacing;
                         continue;
@@ -308,7 +286,7 @@ namespace CustomDaggerfallTalkWindowMod
                 {
                     SetScrollIndex(scrollIndex - 1); // Default increment for EntryWise
                 }
-                UnityEngine.PlayerLoop.Update();
+                Update();
             }
         }
 
@@ -330,7 +308,7 @@ namespace CustomDaggerfallTalkWindowMod
                     SetScrollIndex(scrollIndex + 1); // Default increment for EntryWise
                 }
             }
-            UnityEngine.PlayerLoop.Update();
+            Update();
         }
     }
 
@@ -495,9 +473,9 @@ namespace CustomDaggerfallTalkWindowMod
         public CustomDaggerfallTalkWindow(IUserInterfaceManager uiManager, DaggerfallBaseWindow previousWindow, CustomTalkManagerMod.CustomTalkManager customTalkManager)
       : base(uiManager)
         {
-            internalListBox.uiManager = uiManager;
-            internalListBox.previousWindow = previousWindow;
-            internalListBox.customTalkManager = customTalkManager;
+            this.uiManager = uiManager;
+            this.previousWindow = previousWindow;
+            this.customTalkManager = customTalkManager;
             Setup();
         }
 
@@ -595,14 +573,13 @@ namespace CustomDaggerfallTalkWindowMod
         // Use this for initialization
         void Start()
         {
-            internalListBox = new ListBox();
             PlayerEnterExit.OnTransitionExterior += OnTransitionToExterior;
             Setup();
         }
 
         public void SetMacroDataSource(MacroDataSource macroDataSource)
         {
-            internalListBox.macroDataSource = macroDataSource;
+            this.macroDataSource = macroDataSource;
         }
 
         protected void Setup()
@@ -1860,7 +1837,7 @@ namespace CustomDaggerfallTalkWindowMod
                     Debug.Log("Child detected");
                     return;
                 }
-
+    
             }
             else
             {
@@ -1917,7 +1894,7 @@ namespace CustomDaggerfallTalkWindowMod
                         case 0: return "Khajiit.png";
                         default: return null;
                     }
-
+            
             }
             return null;
         }
