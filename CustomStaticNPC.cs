@@ -37,7 +37,7 @@ namespace CustomStaticNPCMod
 {
   
 
-    public class CustomStaticNPC : MonoBehaviour
+    public class CustomStaticNPC : MonoBehaviour, IPlayerActivable
     {
         public static bool AnySpecialBillboardsPresent = false;
         private StaticNPC.NPCData npcData;
@@ -52,6 +52,12 @@ namespace CustomStaticNPCMod
         public static bool guardsCalled = false;
 
         private static Mod mod;
+
+        public void Activate(RaycastHit hit)
+        {
+            // Your custom activation logic here (open your custom talk window, etc)
+            CustomTalkManagerMod.CustomTalkManager.Instance.StartConversation(this);
+        }
 
         [Invoke(StateManager.StateTypes.Start, 0)]
         public static void Init(InitParams initParams)

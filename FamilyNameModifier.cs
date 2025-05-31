@@ -25,7 +25,7 @@ using DaggerfallWorkshop.Game.Utility;
 using DaggerfallWorkshop.Utility.AssetInjection;
 using DaggerfallConnect.Utility;
 using DaggerfallWorkshop.Game.MagicAndEffects.MagicEffects;
-using UnityEngine.SceneManagement; 
+using UnityEngine.SceneManagement;
 using System.Reflection;
 using CustomStaticNPCMod;
 using CustomNPCBridgeMod;
