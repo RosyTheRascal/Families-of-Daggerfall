@@ -71,6 +71,8 @@ namespace FamilyNameModifierMod
 
         void Start()
         {
+            var test = NameHelperExtensions.GetSurnames(DaggerfallUnity.Instance.NameHelper, NameHelper.BankTypes.HighElf);
+            Debug.Log("Forced static extension reference. Got " + test.Length + " surnames.");
             familyLastName = GenerateFamilyLastName();
             Debug.Log("FamilyNameModifier script started.");
         }
@@ -328,6 +330,7 @@ namespace FamilyNameModifierMod
 
             if (isHighElf)
             {
+
                 // Unique surname per High Elf per-billboard (but stable/deterministic per building+record)
                 // Use building, race, and record for unique seed
                 string uniqueKey = $"{buildingId}_{race}_{billboard.Summary.Record}";
@@ -716,6 +719,10 @@ namespace FamilyNameModifierMod
     {
         public static string[] GetSurnames(this NameHelper nameHelper, NameHelper.BankTypes bank)
         {
+            DaggerfallMessageBox mbA = new DaggerfallMessageBox(DaggerfallUI.Instance.UserInterfaceManager, DaggerfallUI.Instance.UserInterfaceManager.TopWindow);
+            mbA.SetText("GetSurnames: method ENTERED for race " + bank);
+            mbA.ClickAnywhereToClose = true;
+            mbA.Show();
             // Access the internal bankDict using reflection (read-only, safe for modding)
             var field = typeof(NameHelper).GetField("bankDict", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
             var bankDict = field.GetValue(nameHelper) as System.Collections.IDictionary;
