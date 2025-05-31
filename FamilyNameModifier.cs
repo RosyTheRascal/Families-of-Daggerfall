@@ -25,7 +25,7 @@ using DaggerfallWorkshop.Game.Utility;
 using DaggerfallWorkshop.Utility.AssetInjection;
 using DaggerfallConnect.Utility;
 using DaggerfallWorkshop.Game.MagicAndEffects.MagicEffects;
-using UnityEngine.SceneManagement;
+using UnityEngine.SceneManagement; 
 using System.Reflection;
 using CustomStaticNPCMod;
 using CustomNPCBridgeMod;
@@ -255,26 +255,7 @@ namespace FamilyNameModifierMod
                             Debug.Log($"ProcessBillboards: Added CustomStaticNPC to billboard '{billboard.name}'.");
                         }
 
-                        // Example inside your billboard setup:
-                        PlayerActivate.RegisterCustomActivation(
-                            mod,
-                            billboard.Summary.Archive,
-                            billboard.Summary.Record,
-                            (RaycastHit hit) =>
-                            {
-                                var npc = hit.transform.GetComponent<CustomStaticNPC>();
-                                if (npc != null)
-                                {
-                                    if (TalkManager.Instance != null)
-                                        TalkManager.Instance.enabled = false;
-                                    CustomTalkManagerMod.CustomTalkManager.Instance.enabled = true;
-                                    CustomTalkManagerMod.CustomTalkManager.Instance.StartConversation(npc);
-                                }
-                            }
-                        // Optional: , PlayerActivate.StaticNPCActivationDistance
-                        );
                         // Store the original billboard data before assigning names
-
                         customNPC.StoreOriginalBillboardData(billboard.Summary.Archive, billboard.Summary.Record);
 
                         // Set race-based display name

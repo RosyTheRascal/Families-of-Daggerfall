@@ -35,9 +35,7 @@ using CustomTalkManagerMod;
 
 namespace CustomStaticNPCMod
 {
-  
-
-    public class CustomStaticNPC : MonoBehaviour, IPlayerActivable
+    public class CustomStaticNPC : MonoBehaviour
     {
         public static bool AnySpecialBillboardsPresent = false;
         private StaticNPC.NPCData npcData;
@@ -53,19 +51,10 @@ namespace CustomStaticNPCMod
 
         private static Mod mod;
 
-        public void Activate(RaycastHit hit)
-        {
-            if (TalkManager.Instance != null)
-                TalkManager.Instance.enabled = false;
-            CustomTalkManagerMod.CustomTalkManager.Instance.enabled = true;
-            CustomTalkManagerMod.CustomTalkManager.Instance.StartConversation(this);
-        }
-
         [Invoke(StateManager.StateTypes.Start, 0)]
         public static void Init(InitParams initParams)
         {
             mod = initParams.Mod;
-
 
             var go = new GameObject(mod.Title);
             go.AddComponent<CustomStaticNPC>();
@@ -88,36 +77,6 @@ namespace CustomStaticNPCMod
         {
             get { return npcData.gender; }
             set { npcData.gender = value; }
-        }
-
-        void Awake()
-        {
-            // List all your billboard (archive, record) pairs here
-            PlayerActivate.RegisterCustomActivation(mod, 1300, 0, HandleCustomStaticNPC);
-            PlayerActivate.RegisterCustomActivation(mod, 1300, 1, HandleCustomStaticNPC);
-            PlayerActivate.RegisterCustomActivation(mod, 1300, 2, HandleCustomStaticNPC);
-            PlayerActivate.RegisterCustomActivation(mod, 1300, 3, HandleCustomStaticNPC);
-            PlayerActivate.RegisterCustomActivation(mod, 1300, 4, HandleCustomStaticNPC);
-            PlayerActivate.RegisterCustomActivation(mod, 1300, 5, HandleCustomStaticNPC);
-            PlayerActivate.RegisterCustomActivation(mod, 1300, 6, HandleCustomStaticNPC);
-            PlayerActivate.RegisterCustomActivation(mod, 1300, 7, HandleCustomStaticNPC);
-            PlayerActivate.RegisterCustomActivation(mod, 1300, 8, HandleCustomStaticNPC);
-            PlayerActivate.RegisterCustomActivation(mod, 1300, 9, HandleCustomStaticNPC);
-            PlayerActivate.RegisterCustomActivation(mod, 1301, 1, HandleCustomStaticNPC);
-            PlayerActivate.RegisterCustomActivation(mod, 1301, 2, HandleCustomStaticNPC);
-            PlayerActivate.RegisterCustomActivation(mod, 1301, 3, HandleCustomStaticNPC);
-            PlayerActivate.RegisterCustomActivation(mod, 1302, 0, HandleCustomStaticNPC);
-            PlayerActivate.RegisterCustomActivation(mod, 1302, 1, HandleCustomStaticNPC);
-            PlayerActivate.RegisterCustomActivation(mod, 1305, 0, HandleCustomStaticNPC);
-        }
-
-        // This method is used for all billboard pairs above
-        private void HandleCustomStaticNPC(RaycastHit hit)
-        {
-            Debug.Log("Drake and Josh");
-            var customNpc = hit.transform.GetComponent<CustomStaticNPCMod.CustomStaticNPC>();
-            if (customNpc != null)
-                CustomTalkManagerMod.CustomTalkManager.Instance.StartConversation(customNpc);
         }
 
         void Start()
