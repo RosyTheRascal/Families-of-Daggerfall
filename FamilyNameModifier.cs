@@ -71,8 +71,8 @@ namespace FamilyNameModifierMod
 
         void Start()
         {
-            var test = NameHelperExtensions.GetSurnames(DaggerfallUnity.Instance.NameHelper, NameHelper.BankTypes.HighElf);
-            Debug.Log("Forced static extension reference. Got " + test.Length + " surnames.");
+
+            FamilyNameModifierMod.NameHelperExtensions.Touch();
             familyLastName = GenerateFamilyLastName();
             Debug.Log("FamilyNameModifier script started.");
         }
@@ -336,7 +336,11 @@ namespace FamilyNameModifierMod
                 string uniqueKey = $"{buildingId}_{race}_{billboard.Summary.Record}";
                 int hashSeed = uniqueKey.GetHashCode();
                 var rng = new System.Random(hashSeed);
-                string[] surnames = FamilyNameModifierMod.NameHelperExtensions.GetSurnames(DaggerfallUnity.Instance.NameHelper, race);
+                DaggerfallMessageBox mb3 = new DaggerfallMessageBox(DaggerfallUI.Instance.UserInterfaceManager, DaggerfallUI.Instance.UserInterfaceManager.TopWindow);
+                mb3.SetText("Calling GetSurnames");
+                mb3.ClickAnywhereToClose = true;
+                mb3.Show();
+                string[] surnames = GetSurnames(race);
                 lastName = surnames.Length > 0 ? surnames[rng.Next(surnames.Length)] : "Unknown";
             }
             else
@@ -713,24 +717,22 @@ namespace FamilyNameModifierMod
                 Debug.LogError($"{context}: NPC has invalid or null data. NPC ID: {npc?.GetInstanceID() ?? -1}");
             }
         }
-    }
 
-    public static class NameHelperExtensions
-    {
-        public static string[] GetSurnames(this NameHelper nameHelper, NameHelper.BankTypes bank)
+        public string[] GetSurnames(NameHelper.BankTypes race)
         {
-            DaggerfallMessageBox mbA = new DaggerfallMessageBox(DaggerfallUI.Instance.UserInterfaceManager, DaggerfallUI.Instance.UserInterfaceManager.TopWindow);
-            mbA.SetText("GetSurnames: method ENTERED for race " + bank);
-            mbA.ClickAnywhereToClose = true;
-            mbA.Show();
-            // Access the internal bankDict using reflection (read-only, safe for modding)
+            DaggerfallMessageBox mb3 = new DaggerfallMessageBox(DaggerfallUI.Instance.UserInterfaceManager, DaggerfallUI.Instance.UserInterfaceManager.TopWindow);
+            mb3.SetText("GetSurnames called!");
+            mb3.ClickAnywhereToClose = true;
+            mb3.Show();
+
+            var nameHelper = DaggerfallUnity.Instance.NameHelper;
+
             var field = typeof(NameHelper).GetField("bankDict", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
             var bankDict = field.GetValue(nameHelper) as System.Collections.IDictionary;
-            if (bankDict == null || !bankDict.Contains(bank))
+            if (bankDict == null || !bankDict.Contains(race))
                 return new string[0];
 
-            // Get the NameBank and then surname sets (4 and 5)
-            dynamic nameBank = bankDict[bank];
+            dynamic nameBank = bankDict[race];
             var sets = nameBank.sets as System.Array;
             if (sets == null || sets.Length < 6)
                 return new string[0];
@@ -740,12 +742,20 @@ namespace FamilyNameModifierMod
             if (partsA == null || partsB == null)
                 return new string[0];
 
-            // Combine all possible surnames (safe for deterministic RNG)
-            var list = new System.Collections.Generic.List<string>();
+            var list = new List<string>();
             foreach (var a in partsA)
                 foreach (var b in partsB)
                     list.Add(a + b);
             return list.ToArray();
+        }
+    }
+
+    public static class NameHelperExtensions
+    {
+
+        public static void Touch()
+        {
+            Debug.Log("NameHelperExtensions.Touch() called");
         }
     }
 
