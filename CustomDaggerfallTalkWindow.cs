@@ -48,17 +48,6 @@ namespace CustomDaggerfallTalkWindowMod
         private bool _isUpdating;
         private const int PixelWiseScrollIncrement = 20; // Adjust this value to control the scroll speed for PixelWise
 
-        [Invoke(StateManager.StateTypes.Start, 0)]
-        public static void Init(InitParams initParams)
-        {
-            mod = initParams.Mod;
-
-            var go = new GameObject(mod.Title);
-            go.AddComponent<ExtendedListBox>();
-
-            mod.IsReady = true;
-        }
-
         public int HighlightedIndex
         {
             get { return GetHighlightedIndex(); }
