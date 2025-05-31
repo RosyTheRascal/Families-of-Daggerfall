@@ -297,11 +297,19 @@ namespace CustomTalkManagerMod
         // Ensure that the CustomTalkManager is used in StartConversation and not the vanilla TalkManager
         public void StartConversation(CustomStaticNPC customNpc)
         {
+            DaggerfallMessageBox messageBox = new DaggerfallMessageBox(DaggerfallUI.Instance.UserInterfaceManager, DaggerfallUI.Instance.UserInterfaceManager.TopWindow);
             if (customNpc == null)
             {
-                Debug.LogWarning("StartConversation: Custom NPC is null in StartConversation");
+                messageBox.SetText("CustomNPC is null!");
+                messageBox.ClickAnywhereToClose = true;
+                messageBox.Show();
                 return;
             }
+
+            DaggerfallMessageBox boxNPC = new DaggerfallMessageBox(DaggerfallUI.Instance.UserInterfaceManager, DaggerfallUI.Instance.UserInterfaceManager.TopWindow);
+            boxNPC.SetText("StartConversation: customNpc OK\nDisplayName: " + customNpc.CustomDisplayName + "\nID: " + customNpc.GetInstanceID());
+            boxNPC.ClickAnywhereToClose = true;
+            boxNPC.Show();
 
             Debug.Log($"StartConversation: Starting conversation with custom NPC ID: {customNpc.GetInstanceID()}");
 

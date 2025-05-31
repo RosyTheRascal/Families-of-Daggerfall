@@ -73,6 +73,7 @@ namespace CustomNPCClickHandlerMod
                     var customNPC = hit.transform.GetComponent<CustomStaticNPCMod.CustomStaticNPC>();
                     if (customNPC != null)
                     {
+
                         // Check the distance between the player and the NPC
                         float distance = Vector3.Distance(GameManager.Instance.PlayerObject.transform.position, customNPC.transform.position);
                         if (distance > StaticNPCActivationDistance)
@@ -89,6 +90,7 @@ namespace CustomNPCClickHandlerMod
                             TalkManager.Instance.enabled = false;
                             Debug.Log($"Vanilla TalkManager disabled");
                         }
+
 
                         // Enable the custom talk manager before starting the conversation
                         CustomTalkManagerMod.CustomTalkManager.Instance.enabled = true;

@@ -255,6 +255,14 @@ namespace FamilyNameModifierMod
                             Debug.Log($"ProcessBillboards: Added CustomStaticNPC to billboard '{billboard.name}'.");
                         }
 
+                        // Attach the CustomNPCClickHandler if not already present
+                        CustomNPCClickHandler clickHandler = billboard.gameObject.GetComponent<CustomNPCClickHandler>();
+                        if (clickHandler == null)
+                        {
+                            clickHandler = billboard.gameObject.AddComponent<CustomNPCClickHandler>();
+                            Debug.Log($"ProcessBillboards: Added CustomNPCClickHandler to billboard '{billboard.name}'.");
+                        }
+
                         // Store the original billboard data before assigning names
                         customNPC.StoreOriginalBillboardData(billboard.Summary.Archive, billboard.Summary.Record);
 
@@ -266,6 +274,22 @@ namespace FamilyNameModifierMod
                     default:
                         break;
                 }
+            }
+
+            // Attach the CustomNPCClickHandler to the player object as well (if not present)
+            GameObject playerObj = GameManager.Instance?.PlayerObject;
+            if (playerObj != null)
+            {
+                CustomNPCClickHandler playerClickHandler = playerObj.GetComponent<CustomNPCClickHandler>();
+                if (playerClickHandler == null)
+                {
+                    playerClickHandler = playerObj.AddComponent<CustomNPCClickHandler>();
+                    Debug.Log("ProcessBillboards: Added CustomNPCClickHandler to player object.");
+                }
+            }
+            else
+            {
+                Debug.LogWarning("ProcessBillboards: Player object not found when trying to attach CustomNPCClickHandler.");
             }
 
             Debug.Log("ProcessBillboards: Finished processing billboards.");
