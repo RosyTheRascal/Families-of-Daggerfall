@@ -55,7 +55,9 @@ namespace CustomStaticNPCMod
 
         public void Activate(RaycastHit hit)
         {
-            // Your custom activation logic here (open your custom talk window, etc)
+            if (TalkManager.Instance != null)
+                TalkManager.Instance.enabled = false;
+            CustomTalkManagerMod.CustomTalkManager.Instance.enabled = true;
             CustomTalkManagerMod.CustomTalkManager.Instance.StartConversation(this);
         }
 
