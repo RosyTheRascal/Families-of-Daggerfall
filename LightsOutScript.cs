@@ -27,6 +27,7 @@ using DaggerfallWorkshop.Utility.AssetInjection;
 using DaggerfallConnect.Utility;
 using DaggerfallWorkshop.Game.MagicAndEffects.MagicEffects;
 using UnityEngine.SceneManagement; // Add this line
+using DaggerfallWorkshop.Utility.AssetInjection;
 using System.Reflection;
 using CustomStaticNPCMod;
 using CustomNPCBridgeMod;
@@ -818,18 +819,55 @@ namespace LightsOutScriptMod
                         {
                             foreach (var material in meshRenderer.materials)
                             {
-                                if (material.HasProperty("_EmissionMap"))
+                                // --- NEW LOGIC: Replace texture and set shader if name contains "326_3-0"
+                                if (material.name.Contains("326_3-0"))
                                 {
-                                    if (enableEmissive)
+                                    material.shader = Shader.Find("Daggerfall/Default");
+
+                                    // Generate emission map exactly as vanilla DFU would
+                                    var matReader = DaggerfallUnity.Instance.MaterialReader;
+                                    var texReader = matReader.TextureReader;
+                                    Texture2D emissionMap = null;
+
+                                    try
                                     {
+                                        if (texReader != null)
+                                        {
+                                            string arena2 = DaggerfallUnity.Instance.Arena2Path;
+                                            var textureFile = new DaggerfallConnect.Arena2.TextureFile();
+                                            textureFile.Load(Path.Combine(arena2, DaggerfallConnect.Arena2.TextureFile.IndexToFileName(326)), FileUsage.UseMemory, true);
+                                            var dfBitmap = textureFile.GetDFBitmap(3, 0);
+                                            var emissionColors = textureFile.GetWindowColors32(dfBitmap);
+                                            emissionMap = new Texture2D(dfBitmap.Width, dfBitmap.Height, TextureFormat.ARGB32, false);
+                                            emissionMap.SetPixels32(emissionColors);
+                                            emissionMap.Apply();
+                                        }
+                                    }
+                                    catch (Exception ex)
+                                    {
+                                        Debug.LogWarning($"[LightsOutScript] Error generating emission map for 326_3-0: {ex}");
+                                    }
+
+                                    if (emissionMap != null)
+                                    {
+                                        material.SetTexture("_EmissionMap", emissionMap);
                                         material.EnableKeyword("_EMISSION");
-                                        Debug.Log($"[LightsOutScript] Activated emissive for Combined Models material '{material.name}', nya~!");
+                                        var nightColor = matReader != null ? matReader.NightWindowColor * matReader.NightWindowIntensity : Color.white;
+                                        material.SetColor("_EmissionColor", nightColor);
+                                        Debug.Log("[LightsOutScript] Assigned classic window emission map to 326_3-0 (nyan~)!");
                                     }
                                     else
                                     {
-                                        material.DisableKeyword("_EMISSION");
-                                        Debug.Log($"[LightsOutScript] Deactivated emissive for Combined Models material '{material.name}', nya~!");
+                                        Debug.LogWarning("[LightsOutScript] Could not assign classic emission map to 326_3-0, nya~!");
                                     }
+                                }
+                                // --- Existing emissive logic (leave as is)
+                                if (material.HasProperty("_EmissionMap"))
+                                {
+                                    if (enableEmissive)
+                                        material.EnableKeyword("_EMISSION");
+                                    else
+                                        material.DisableKeyword("_EMISSION");
                                 }
                             }
                         }

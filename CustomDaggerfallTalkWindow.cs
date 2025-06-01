@@ -1643,6 +1643,11 @@ namespace CustomDaggerfallTalkWindowMod
                     recordIndex = 419;
                     Debug.Log($"Forced portrait selection: Archive 357, Record 1 -> CommonFaces, Record Index: {recordIndex}");
                 }
+                else if (customNpc.Data.billboardArchiveIndex == 182 && customNpc.Data.billboardRecordIndex == 21)
+                {
+                    recordIndex = 440;
+                    Debug.Log($"Forced portrait selection: Archive 357, Record 1 -> CommonFaces, Record Index: {recordIndex}");
+                }
                 else if (customNpc.Data.billboardArchiveIndex == 182 && customNpc.Data.billboardRecordIndex == 46)
                 {
                     recordIndex = 492;

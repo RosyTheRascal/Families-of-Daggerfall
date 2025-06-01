@@ -88,24 +88,25 @@ namespace CustomNPCBridgeMod
 
         public object GetSaveData()
         {
+            boostData.DeadNPCs = deadNPCs.ToList();
             return boostData;
         }
 
         public void RestoreSaveData(object saveData)
         {
             Debug.Log($"Save restored");
+            boostData = (CustomNPCBoostData)saveData;
             deadNPCs.Clear();
             emptyBuildings.Clear();
-            Debug.Log($"Flags cleared");
-            boostData = (CustomNPCBoostData)saveData;
-            if (boostData.IsBoosted)
+            // Restore dead NPCs from save data
+            if (boostData.DeadNPCs != null)
+            {
+                foreach (var hash in boostData.DeadNPCs)
+                    deadNPCs.Add(hash);
+            }
+            if (boostData.IsBoosted == true)
             {
                 RemoveBoost();
-                Debug.Log($"Boost detected - removed");
-            }
-            else
-            {
-                Debug.Log($"No boost detected");
             }
         }
 
@@ -342,5 +343,6 @@ namespace CustomNPCBridgeMod
     public class CustomNPCBoostData
     {
         public bool IsBoosted { get; set; }
+        public List<string> DeadNPCs { get; set; } = new List<string>();
     }
 }

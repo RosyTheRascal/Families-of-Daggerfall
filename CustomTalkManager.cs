@@ -1029,15 +1029,6 @@ namespace CustomTalkManagerMod
         }
         #endregion
 
-
-
-
-
-
-
-
-
-
         private string ExpandRandomTextRecord(int recordIndex)
         {
             Debug.Log($"Expanding record with index: {recordIndex}");

@@ -108,7 +108,7 @@ namespace CustomStaticNPCMod
             string npcName = this.CustomDisplayName;
             Billboard[] billboards = GetComponentsInChildren<Billboard>();
 
-            if (CustomNPCBridge.Instance.IsNpcDead(buildingKey, archive, record));
+            if (CustomNPCBridge.Instance.IsNpcDead(buildingKey, archive, record))
             {
                 Debug.Log("NPC marked dead A");
                 MeshRenderer meshRenderer = GetComponent<MeshRenderer>();
@@ -304,6 +304,7 @@ namespace CustomStaticNPCMod
             {
                 Vector3 fallbackPosition = GameManager.Instance.PlayerEntityBehaviour.transform.position;
                 GameManager.Instance.PlayerEntity.SpawnCityGuard(fallbackPosition, Vector3.forward);
+                GameManager.Instance.PlayerEntity.SpawnCityGuards(true);
             }
         }
 
@@ -333,6 +334,8 @@ namespace CustomStaticNPCMod
             {
                 boxCollider.enabled = false;
             }
+            CapsuleCollider collider = GetComponent<CapsuleCollider>();
+            if (collider != null) collider.enabled = false;
 
             PlayBloodEffect(transform.position);
             CustomNPCBridge.Instance.MarkNpcAsDead(buildingKey, archive, record);
@@ -419,7 +422,6 @@ namespace CustomStaticNPCMod
 
         public bool IsChildNPC => IsChildNPCData(Data);
 
-        // Method to initialize NPC data
         public void InitializeNPCData(StaticNPC.NPCData data)
         {
             npcData = data;

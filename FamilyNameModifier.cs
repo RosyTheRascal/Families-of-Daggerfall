@@ -460,21 +460,21 @@ namespace FamilyNameModifierMod
 
         public bool IsHammerfellRegion(int regionIndex)
         {
-            // Define Hammerfell regions based on findings
+            // Hammerfell regions only!
             int[] hammerfellRegions = new int[]
             {
-        0, 1, 20, 22, 21, 25, 28, 29, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56
+        0, 1, 8, 10, 11, 20, 22, 25, 28, 29, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56
             };
             return System.Array.Exists(hammerfellRegions, region => region == regionIndex);
         }
 
         private bool IsHighRockRegion(int regionIndex)
         {
-            // Define High Rock regions based on findings
+            // High Rock regions only!
             int[] highRockRegions = new int[]
             {
-        2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 23, 24, 30, 31,
-        32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42
+        2, 3, 4, 5, 6, 7, 9, 12, 13, 14, 15, 16, 17, 18, 19, 21, 23, 24, 26, 27, 30, 31,
+        32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 57, 58, 59, 60, 61
             };
             return System.Array.Exists(highRockRegions, region => region == regionIndex);
         }
@@ -561,6 +561,11 @@ namespace FamilyNameModifierMod
 
         private void OnTransitionToInterior(PlayerEnterExit.TransitionEventArgs args)
         {
+            // Debug: Log the current region index and region name
+            int regionIndex = GameManager.Instance.PlayerGPS.CurrentRegionIndex;
+            string regionName = GameManager.Instance.PlayerGPS.CurrentRegionName;
+            Debug.Log($"[FamilyNameModifier] OnTransitionToInterior: regionIndex={regionIndex}, regionName={regionName}");
+
             DespawnCustomNPCs();
 
             if (updateNPCCoroutine != null)
