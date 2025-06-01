@@ -330,18 +330,19 @@ namespace FamilyNameModifierMod
 
             if (isHighElf)
             {
+                // Hardcoded High Elf surnames
+                string[] highElfSurnames = new string[]
+                {
+            "of Elsinore", "of Llarenthil", "of Ellendil", "of Lillandril",
+            "of Rellenthil", "of Auridon", "of Glistervale", "of Firsthold",
+            "of Sunhold", "of Skywatch", "of Shimmerene", "of Cloudrest"
+                };
 
                 // Unique surname per High Elf per-billboard (but stable/deterministic per building+record)
-                // Use building, race, and record for unique seed
                 string uniqueKey = $"{buildingId}_{race}_{billboard.Summary.Record}";
                 int hashSeed = uniqueKey.GetHashCode();
                 var rng = new System.Random(hashSeed);
-                DaggerfallMessageBox mb3 = new DaggerfallMessageBox(DaggerfallUI.Instance.UserInterfaceManager, DaggerfallUI.Instance.UserInterfaceManager.TopWindow);
-                mb3.SetText("Calling GetSurnames");
-                mb3.ClickAnywhereToClose = true;
-                mb3.Show();
-                string[] surnames = GetSurnames(race);
-                lastName = surnames.Length > 0 ? surnames[rng.Next(surnames.Length)] : "Unknown";
+                lastName = highElfSurnames[rng.Next(highElfSurnames.Length)];
             }
             else
             {
@@ -716,37 +717,6 @@ namespace FamilyNameModifierMod
             {
                 Debug.LogError($"{context}: NPC has invalid or null data. NPC ID: {npc?.GetInstanceID() ?? -1}");
             }
-        }
-
-        public string[] GetSurnames(NameHelper.BankTypes race)
-        {
-            DaggerfallMessageBox mb3 = new DaggerfallMessageBox(DaggerfallUI.Instance.UserInterfaceManager, DaggerfallUI.Instance.UserInterfaceManager.TopWindow);
-            mb3.SetText("GetSurnames called!");
-            mb3.ClickAnywhereToClose = true;
-            mb3.Show();
-
-            var nameHelper = DaggerfallUnity.Instance.NameHelper;
-
-            var field = typeof(NameHelper).GetField("bankDict", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-            var bankDict = field.GetValue(nameHelper) as System.Collections.IDictionary;
-            if (bankDict == null || !bankDict.Contains(race))
-                return new string[0];
-
-            dynamic nameBank = bankDict[race];
-            var sets = nameBank.sets as System.Array;
-            if (sets == null || sets.Length < 6)
-                return new string[0];
-
-            var partsA = ((dynamic)sets.GetValue(4)).parts as string[];
-            var partsB = ((dynamic)sets.GetValue(5)).parts as string[];
-            if (partsA == null || partsB == null)
-                return new string[0];
-
-            var list = new List<string>();
-            foreach (var a in partsA)
-                foreach (var b in partsB)
-                    list.Add(a + b);
-            return list.ToArray();
         }
     }
 
