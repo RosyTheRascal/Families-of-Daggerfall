@@ -34,40 +34,31 @@ using CustomDaggerfallTalkWindowMod;
 
 namespace CustomNPCBridgeMod
 {
-    
-    [System.Flags]
-    public enum DeadFlags
-    {
-        None = 0,
-        ManDead = 1 << 0,
-        WomanDead = 1 << 1,
-        ChildDead = 1 << 2,
-    }
-
     public class CustomNPCBridge : MonoBehaviour, IHasModSaveData
     {
         private static CustomNPCBridge instance;
         private static Mod mod;
         private static Dictionary<int, CustomStaticNPCMod.CustomStaticNPC> customNPCs = new Dictionary<int, CustomStaticNPCMod.CustomStaticNPC>();
         private static Dictionary<int, int> npcGreetingSections = new Dictionary<int, int>(); // New dictionary to store NPC greeting sections
-        private static Dictionary<int, DeadFlags> buildingDeadFlags = new Dictionary<int, DeadFlags>();
+        private HashSet<string> deadNPCs = new HashSet<string>();
 
-        public void MarkBuildingNPCDead(int buildingKey, DeadFlags flag)
+        // Helper to make a unique key from name and building
+        public static string MakeDeadNpcKey(string npcName, int buildingKey)
         {
-            if (!buildingDeadFlags.TryGetValue(buildingKey, out DeadFlags flags))
-                flags = DeadFlags.None;
-            buildingDeadFlags[buildingKey] = flags | flag;
-            Debug.Log($"[FamiliesOfDaggerfall] Marked {flag} dead in building {buildingKey}");
+            return $"{npcName}::{buildingKey}";
         }
 
-        public bool IsBuildingNPCDead(int buildingKey, DeadFlags flag)
+        public void MarkNpcAsDead(string npcName, int buildingKey)
         {
-            return buildingDeadFlags.TryGetValue(buildingKey, out DeadFlags flags) && (flags & flag) != 0;
+            deadNPCs.Add(MakeDeadNpcKey(npcName, buildingKey));
         }
 
-        private static HashSet<int> deadNPCs = new HashSet<int>();
+        public bool IsNpcDead(string npcName, int buildingKey)
+        {
+            return deadNPCs.Contains(MakeDeadNpcKey(npcName, buildingKey));
+        }
+
         private static HashSet<int> emptyBuildings = new HashSet<int>();
-
         public CustomNPCBoostData boostData = new CustomNPCBoostData();
 
         [Invoke(StateManager.StateTypes.Start, 0)]
@@ -101,7 +92,6 @@ namespace CustomNPCBridgeMod
         public void RestoreSaveData(object saveData)
         {
             Debug.Log($"Save restored");
-            buildingDeadFlags.Clear(); // =＾● ⋏ ●＾= Clear all per-building dead flags on save load!
             deadNPCs.Clear();
             emptyBuildings.Clear();
             Debug.Log($"Flags cleared");
@@ -195,24 +185,16 @@ namespace CustomNPCBridgeMod
             return null;
         }
 
-        public bool IsNPCDead(int npcHash)
-        {
-            return deadNPCs.Contains(npcHash);
-        }
-
-        public void MarkNPCAsDead(int npcHash)
-        {
-            deadNPCs.Add(npcHash);
-            Debug.Log($"NPC with hash {npcHash} marked as dead.");
-        }
-
         public void DisableDeadNPCsInInterior()
         {
             foreach (var npc in GetAllCustomNPCs().Values)
             {
                 if (npc == null) continue;
-                int npcHash = npc.GenerateHash(npc.CustomDisplayName, npc.GetCurrentHouseID());
-                if (IsNPCDead(npcHash))
+
+                string npcName = npc.CustomDisplayName;
+                int buildingKey = GameManager.Instance.PlayerEnterExit.BuildingDiscoveryData.buildingKey;
+
+                if (IsNpcDead(npcName, buildingKey))
                 {
                     // Disable render and collider, just like in CustomStaticNPC.Start()
                     var meshRenderer = npc.GetComponent<MeshRenderer>();
@@ -234,11 +216,12 @@ namespace CustomNPCBridgeMod
             }
 
             int count = 0;
+            int buildingKey = GameManager.Instance.PlayerEnterExit.BuildingDiscoveryData.buildingKey;
+
             foreach (var npc in customNPCs.Values)
             {
-                // Use whatever logic you normally use to get npcHash
-                int npcHash = npc.GenerateHash(npc.CustomDisplayName, npc.GetCurrentHouseID());
-                if (!IsNPCDead(npcHash))
+                string npcName = npc.CustomDisplayName;
+                if (!IsNpcDead(npcName, buildingKey))
                 {
                     count++;
                 }
