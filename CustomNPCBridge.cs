@@ -40,22 +40,24 @@ namespace CustomNPCBridgeMod
         private static Mod mod;
         private static Dictionary<int, CustomStaticNPCMod.CustomStaticNPC> customNPCs = new Dictionary<int, CustomStaticNPCMod.CustomStaticNPC>();
         private static Dictionary<int, int> npcGreetingSections = new Dictionary<int, int>(); // New dictionary to store NPC greeting sections
+        public int OriginalBillboardArchiveIndex { get; private set; }
+        public int OriginalBillboardRecordIndex { get; private set; }
         private HashSet<string> deadNPCs = new HashSet<string>();
 
-        // Helper to make a unique key from name and building
-        public static string MakeDeadNpcKey(string npcName, int buildingKey)
+        public static string MakeDeadNpcKey(int buildingKey, int archive, int record)
         {
-            return $"{npcName}::{buildingKey}";
+            return $"{buildingKey}:{archive}:{record}";
         }
 
-        public void MarkNpcAsDead(string npcName, int buildingKey)
+        public void MarkNpcAsDead(int buildingKey, int archive, int record)
         {
-            deadNPCs.Add(MakeDeadNpcKey(npcName, buildingKey));
+            deadNPCs.Add(MakeDeadNpcKey(buildingKey, archive, record));
+            Debug.Log($"NPC marked as dead: {buildingKey}:{archive}:{record}");
         }
 
-        public bool IsNpcDead(string npcName, int buildingKey)
+        public bool IsNpcDead(int buildingKey, int archive, int record)
         {
-            return deadNPCs.Contains(MakeDeadNpcKey(npcName, buildingKey));
+            return deadNPCs.Contains(MakeDeadNpcKey(buildingKey, archive, record));
         }
 
         private static HashSet<int> emptyBuildings = new HashSet<int>();
@@ -192,9 +194,11 @@ namespace CustomNPCBridgeMod
                 if (npc == null) continue;
 
                 string npcName = npc.CustomDisplayName;
+                int archive = OriginalBillboardArchiveIndex;
+                int record = OriginalBillboardRecordIndex;
                 int buildingKey = GameManager.Instance.PlayerEnterExit.BuildingDiscoveryData.buildingKey;
-
-                if (IsNpcDead(npcName, buildingKey))
+                Debug.Log($"RunningDisableDeadNPC's");
+                if (IsNpcDead(buildingKey, archive, record))
                 {
                     // Disable render and collider, just like in CustomStaticNPC.Start()
                     var meshRenderer = npc.GetComponent<MeshRenderer>();
@@ -217,11 +221,12 @@ namespace CustomNPCBridgeMod
 
             int count = 0;
             int buildingKey = GameManager.Instance.PlayerEnterExit.BuildingDiscoveryData.buildingKey;
-
+            int archive = OriginalBillboardArchiveIndex;
+            int record = OriginalBillboardRecordIndex;
             foreach (var npc in customNPCs.Values)
             {
                 string npcName = npc.CustomDisplayName;
-                if (!IsNpcDead(npcName, buildingKey))
+                if (!IsNpcDead(buildingKey, archive, record))
                 {
                     count++;
                 }

@@ -48,7 +48,9 @@ namespace CustomStaticNPCMod
         private bool isProcessed = false;
         public static bool aidanFired = false;
         public static bool guardsCalled = false;
-
+        //var customNpc = CustomTalkManagerMod.CustomTalkManager.Instance.GetTargetCustomNPC();
+        //int billboardArchiveIndex = customNpc.OriginalBillboardArchiveIndex;
+       //int billboardRecordIndex = customNpc.OriginalBillboardRecordIndex;
         private static Mod mod;
 
         [Invoke(StateManager.StateTypes.Start, 0)]
@@ -101,11 +103,14 @@ namespace CustomStaticNPCMod
             }
 
             int buildingKey = GameManager.Instance.PlayerEnterExit.BuildingDiscoveryData.buildingKey;
+            int archive = OriginalBillboardArchiveIndex;
+            int record = OriginalBillboardRecordIndex;
             string npcName = this.CustomDisplayName;
             Billboard[] billboards = GetComponentsInChildren<Billboard>();
 
-            if (CustomNPCBridge.Instance.IsNpcDead(npcName, buildingKey))
+            if (CustomNPCBridge.Instance.IsNpcDead(buildingKey, archive, record));
             {
+                Debug.Log("NPC marked dead A");
                 MeshRenderer meshRenderer = GetComponent<MeshRenderer>();
                 if (meshRenderer != null) meshRenderer.enabled = false;
                 BoxCollider boxCollider = GetComponent<BoxCollider>();
@@ -113,33 +118,13 @@ namespace CustomStaticNPCMod
                 CapsuleCollider collider = GetComponent<CapsuleCollider>();
                 if (collider != null) collider.enabled = false;
             }
-
-            // Update the last NPC display name
-            lastNpcDisplayName = npcDisplayName;
-
-            // Check if the NPC is marked as dead
-            if (CustomNPCBridgeMod.CustomNPCBridge.Instance.IsNpcDead(npcName, buildingKey))
-            {
-                // Disable the MeshRenderer component
-                MeshRenderer meshRenderer = GetComponent<MeshRenderer>();
-                if (meshRenderer != null)
-                {
-                    meshRenderer.enabled = false;
-                }
-
-                // Disable the BoxCollider component
-                BoxCollider boxCollider = GetComponent<BoxCollider>();
-                if (boxCollider != null)
-                {
-                    boxCollider.enabled = false;
-                }
-                CustomNPCBridgeMod.CustomNPCBridge.Instance.DisableDeadNPCsInInterior();
-            }
             else
             {
                 // Register the NPC with CustomNPCBridge
                 CustomNPCBridgeMod.CustomNPCBridge.Instance.RegisterCustomNPC(GetInstanceID(), this);
             }
+            // Update the last NPC display name
+            lastNpcDisplayName = npcDisplayName;
         }
 
         public static void UpdateSpecialBillboardsFlag()
@@ -175,6 +160,8 @@ namespace CustomStaticNPCMod
             int playerPickpocket = GameManager.Instance.PlayerEntity.Skills.GetLiveSkillValue(DFCareer.Skills.Pickpocket);
             string npcDisplayName = CustomDisplayName;
             int houseID = GetCurrentHouseID(); // Implement this method to get the current house ID
+            int archive = OriginalBillboardArchiveIndex;
+            int record = OriginalBillboardRecordIndex;
             npcTopicHash = GenerateHash(npcDisplayName, houseID);
 
             // Log the current and last NPC display names
@@ -195,7 +182,7 @@ namespace CustomStaticNPCMod
             // Check if the NPC is marked as dead
             string npcName = CustomDisplayName; // or use your unique name logic
 
-            if (CustomNPCBridgeMod.CustomNPCBridge.Instance.IsNpcDead(npcName, buildingKey))
+            if (CustomNPCBridgeMod.CustomNPCBridge.Instance.IsNpcDead(buildingKey, archive, record))
             {
                 // Disable the MeshRenderer component
                 MeshRenderer meshRenderer = GetComponent<MeshRenderer>();
@@ -328,8 +315,12 @@ namespace CustomStaticNPCMod
             int livingNPCCount = CustomNPCBridgeMod.CustomNPCBridge.Instance.GetLivingNPCCountInInterior();
             int playerStealth = GameManager.Instance.PlayerEntity.Skills.GetLiveSkillValue(DFCareer.Skills.Stealth);
             int playerPickpocket = GameManager.Instance.PlayerEntity.Skills.GetLiveSkillValue(DFCareer.Skills.Pickpocket);
-            // Mark the NPC as dead in the NPC bridge
-            CustomNPCBridge.Instance.MarkNpcAsDead(npcName, buildingKey);
+
+            int archive = OriginalBillboardArchiveIndex;
+            int record = OriginalBillboardRecordIndex;
+            CustomNPCBridgeMod.CustomNPCBridge.Instance.MarkNpcAsDead(buildingKey, archive, record);
+
+
             MeshRenderer meshRenderer = GetComponent<MeshRenderer>();
             if (meshRenderer != null)
             {
@@ -344,7 +335,7 @@ namespace CustomStaticNPCMod
             }
 
             PlayBloodEffect(transform.position);
-            CustomNPCBridge.Instance.MarkNpcAsDead(npcName, buildingKey);
+            CustomNPCBridge.Instance.MarkNpcAsDead(buildingKey, archive, record);
 
             // Determine whether to call guards
             if (ShouldCallGuards())
