@@ -84,7 +84,6 @@ namespace LightsOutScriptMod
                 }
                 else
                 {
-                    Debug.Log($"[LightsOutScript] Waiting for game scene to load and 'Exterior' to be active, nya~!");
                     return;
                 }
             }
@@ -206,9 +205,14 @@ namespace LightsOutScriptMod
             yield return new WaitForSeconds(0.9f);
             var exterior = GameObject.Find("Exterior");
             var interior = GameObject.Find("Interior");
-
+            var songPlayer = FindObjectOfType<DaggerfallSongPlayer>();
             if (exterior?.activeInHierarchy == true && interior == null)
             {
+                stopMusicFlag = true;
+                Caught = false;
+                LightsOut = false;
+                StopCoroutine(PeriodicStealthCheckCoroutine());
+                StopCoroutine(StopMusicCoroutine(songPlayer));
                 Debug.Log("[LightsOutScript] Player is in an exterior, nya~!");
                 yield break; // Stop further logic
             }
@@ -228,11 +232,23 @@ namespace LightsOutScriptMod
             {
                 return;
             }
-
+            Debug.Log($"Hour event raised!");
+            var exterior = GameObject.Find("Exterior");
+            var interior = GameObject.Find("Interior");
+            var songPlayer = FindObjectOfType<DaggerfallSongPlayer>();
             allLocations = GameObject.FindObjectsOfType<DaggerfallLocation>(); // Populate allLocations
             ApplyTimeBasedEmissiveChanges();
+            if (exterior?.activeInHierarchy == true && interior == null)
+            {
+                stopMusicFlag = true;
+                Caught = false;
+                LightsOut = false;
+                StopCoroutine(PeriodicStealthCheckCoroutine());
+                StopCoroutine(StopMusicCoroutine(songPlayer));
+                Debug.Log($"Player detected in exerior, returning");
+                return;
+            }
             StartCoroutine(ResetShadersCoroutine(1.0f));
-            Debug.Log($"Hour event raised!");
         }
 
         private IEnumerator ResetShadersCoroutine(float waitTime)
@@ -393,6 +409,7 @@ namespace LightsOutScriptMod
                 GameManager.Instance.PlayerEntity.SpawnCityGuard(fallbackPosition, Vector3.forward);
             }
             Caught = false;
+            stopMusicFlag = true;
             Debug.Log("[LightsOutScript] Exterior transition detected!");
             var songPlayer = FindObjectOfType<DaggerfallSongPlayer>();
             // Cease the music-stopping coroutine if it's running
@@ -942,6 +959,12 @@ namespace LightsOutScriptMod
 
         private void OnTransitionExterior(DaggerfallWorkshop.Game.PlayerEnterExit.TransitionEventArgs args)
         {
+            Debug.Log($"[LightsOutScript] Transitioned to Exterior!");
+            stopMusicFlag = true;
+            LightsOut = false;
+            var songPlayer = FindObjectOfType<DaggerfallSongPlayer>();
+            StopCoroutine(StopMusicCoroutine(songPlayer));
+            StopCoroutine(PeriodicStealthCheckCoroutine());
             CheckEmissiveTextureStateFacades();
             CheckEmissiveTextureStateCombinedModels();
             ApplyTimeBasedEmissiveChanges();
@@ -949,12 +972,13 @@ namespace LightsOutScriptMod
 
         private bool Caught = false;
 
+
         private IEnumerator PeriodicStealthCheckCoroutine()
         {
             Debug.Log("[LightsOutScript] Starting periodic Stealth check coroutine, nya~!");
 
             // Keep checking until caught
-            while (!Caught)
+            while (!Caught && LightsOut)
             {
                 yield return new WaitForSeconds(8.0f); //Time to wait between checks uwu
 
@@ -974,6 +998,8 @@ namespace LightsOutScriptMod
                     // Show a message box to notify the player
                     DaggerfallMessageBox messageBox = new DaggerfallMessageBox(DaggerfallUI.Instance.UserInterfaceManager, DaggerfallUI.Instance.UserInterfaceManager.TopWindow);
                     messageBox.SetText("You've been caught!");
+                    GameManager.Instance.PlayerEntity.CrimeCommitted = PlayerEntity.Crimes.Trespassing;
+                    GameManager.Instance.PlayerEntity.CrimeCommitted = PlayerEntity.Crimes.Breaking_And_Entering;
                     messageBox.ClickAnywhereToClose = true;
                     messageBox.Show();
 
@@ -999,8 +1025,6 @@ namespace LightsOutScriptMod
                         if (foundMarker)
                         {
                             Vector3 guardDirection = Vector3.forward; // Default direction, adjust if needed
-                            GameManager.Instance.PlayerEntity.CrimeCommitted = PlayerEntity.Crimes.Trespassing;
-                            GameManager.Instance.PlayerEntity.CrimeCommitted = PlayerEntity.Crimes.Breaking_And_Entering;
                             GameManager.Instance.PlayerEntity.SpawnCityGuard(entrancePosition, guardDirection);
 
                             Debug.Log($"[LightsOutScript] Guards spawned at entrance marker position: {entrancePosition}, nya~!");
@@ -1223,7 +1247,8 @@ namespace LightsOutScriptMod
                     }
                 }
             }
-  
+
+            stopMusicFlag = false;
             var songPlayer = FindObjectOfType<DaggerfallSongPlayer>();
             if (songPlayer != null)
             {
@@ -1281,10 +1306,10 @@ namespace LightsOutScriptMod
                     Debug.Log($"[LightsOutScript] Disabled MeshRenderer for CustomStaticNPC '{customNPC.name}', nya~!");
                 }
             }
+            LightsOut = true;
             int livingNPCCount = CustomNPCBridgeMod.CustomNPCBridge.Instance.GetLivingNPCCountInInterior();
             CustomStaticNPCMod.CustomStaticNPC.NothingHereAidan();
             StartCoroutine(PeriodicStealthCheckCoroutine());
-            LightsOut = true;
         }
 
         private bool stopMusicFlag = false; // Flag to terminate the coroutine
