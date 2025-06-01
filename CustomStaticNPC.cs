@@ -101,33 +101,24 @@ namespace CustomStaticNPCMod
             }
 
             int buildingKey = GameManager.Instance.PlayerEnterExit.BuildingDiscoveryData.buildingKey;
+            string npcName = this.CustomDisplayName;
+            Billboard[] billboards = GetComponentsInChildren<Billboard>();
 
-            // Determine NPC type
-            DeadFlags myFlag = DeadFlags.None;
-            if (IsChildNPC)
-                myFlag = DeadFlags.ChildDead;
-            else if (Gender == Genders.Female)
-                myFlag = DeadFlags.WomanDead;
-            else
-                myFlag = DeadFlags.ManDead;
-
-            // If this type is dead in this building, disable myself
-            if (CustomNPCBridgeMod.CustomNPCBridge.Instance.IsBuildingNPCDead(buildingKey, myFlag))
+            if (CustomNPCBridge.Instance.IsNpcDead(npcName, buildingKey))
             {
                 MeshRenderer meshRenderer = GetComponent<MeshRenderer>();
                 if (meshRenderer != null) meshRenderer.enabled = false;
                 BoxCollider boxCollider = GetComponent<BoxCollider>();
                 if (boxCollider != null) boxCollider.enabled = false;
-                Debug.Log($"[FamiliesOfDaggerfall] Disabled {myFlag} in building {buildingKey} because dead flag set.");
-                // Optionally: skip registration, if you want dead NPCs totally "gone":
-                // return;
+                CapsuleCollider collider = GetComponent<CapsuleCollider>();
+                if (collider != null) collider.enabled = false;
             }
 
             // Update the last NPC display name
             lastNpcDisplayName = npcDisplayName;
 
             // Check if the NPC is marked as dead
-            if (CustomNPCBridgeMod.CustomNPCBridge.Instance.IsNPCDead(npcTopicHash))
+            if (CustomNPCBridgeMod.CustomNPCBridge.Instance.IsNpcDead(npcName, buildingKey))
             {
                 // Disable the MeshRenderer component
                 MeshRenderer meshRenderer = GetComponent<MeshRenderer>();
@@ -201,29 +192,10 @@ namespace CustomStaticNPCMod
 
             int buildingKey = GameManager.Instance.PlayerEnterExit.BuildingDiscoveryData.buildingKey;
 
-            // Determine NPC type
-            DeadFlags myFlag = DeadFlags.None;
-            if (IsChildNPC)
-                myFlag = DeadFlags.ChildDead;
-            else if (Gender == Genders.Female)
-                myFlag = DeadFlags.WomanDead;
-            else
-                myFlag = DeadFlags.ManDead;
-
-            // If this type is dead in this building, disable myself
-            if (CustomNPCBridgeMod.CustomNPCBridge.Instance.IsBuildingNPCDead(buildingKey, myFlag))
-            {
-                MeshRenderer meshRenderer = GetComponent<MeshRenderer>();
-                if (meshRenderer != null) meshRenderer.enabled = false;
-                BoxCollider boxCollider = GetComponent<BoxCollider>();
-                if (boxCollider != null) boxCollider.enabled = false;
-                Debug.Log($"[FamiliesOfDaggerfall] Disabled {myFlag} in building {buildingKey} because dead flag set.");
-                // Optionally: skip registration, if you want dead NPCs totally "gone":
-                // return;
-            }
-
             // Check if the NPC is marked as dead
-            if (CustomNPCBridgeMod.CustomNPCBridge.Instance.IsNPCDead(npcTopicHash))
+            string npcName = CustomDisplayName; // or use your unique name logic
+
+            if (CustomNPCBridgeMod.CustomNPCBridge.Instance.IsNpcDead(npcName, buildingKey))
             {
                 // Disable the MeshRenderer component
                 MeshRenderer meshRenderer = GetComponent<MeshRenderer>();
@@ -327,8 +299,6 @@ namespace CustomStaticNPCMod
             return false;
         }
 
-
-
         private void OnTransitionToExterior(PlayerEnterExit.TransitionEventArgs args)
         {
             aidanFired = false;
@@ -345,18 +315,21 @@ namespace CustomStaticNPCMod
             }
             if (halt)
             {
-                GameManager.Instance.PlayerEntity.SpawnCityGuards(true); // Call the method to spawn guards
+                Vector3 fallbackPosition = GameManager.Instance.PlayerEntityBehaviour.transform.position;
+                GameManager.Instance.PlayerEntity.SpawnCityGuard(fallbackPosition, Vector3.forward);
             }
         }
 
         public void OnHitByWeapon()
         {
+            int buildingKey = GameManager.Instance.PlayerEnterExit.BuildingDiscoveryData.buildingKey;
+            string npcName = this.CustomDisplayName; // Or whatever uniquely identifies your NPC
             Debug.Log($"Custom NPC {customDisplayName} (ID: {npcId}) was hit by a weapon!");
             int livingNPCCount = CustomNPCBridgeMod.CustomNPCBridge.Instance.GetLivingNPCCountInInterior();
             int playerStealth = GameManager.Instance.PlayerEntity.Skills.GetLiveSkillValue(DFCareer.Skills.Stealth);
             int playerPickpocket = GameManager.Instance.PlayerEntity.Skills.GetLiveSkillValue(DFCareer.Skills.Pickpocket);
             // Mark the NPC as dead in the NPC bridge
-            CustomNPCBridgeMod.CustomNPCBridge.Instance.MarkNPCAsDead(npcTopicHash);
+            CustomNPCBridge.Instance.MarkNpcAsDead(npcName, buildingKey);
             MeshRenderer meshRenderer = GetComponent<MeshRenderer>();
             if (meshRenderer != null)
             {
@@ -371,20 +344,7 @@ namespace CustomStaticNPCMod
             }
 
             PlayBloodEffect(transform.position);
-            // Get building key
-            int buildingKey = GameManager.Instance.PlayerEnterExit.BuildingDiscoveryData.buildingKey;
-
-            // Determine NPC type
-            DeadFlags deadFlag = DeadFlags.None;
-            if (IsChildNPC)
-                deadFlag = DeadFlags.ChildDead;
-            else if (Gender == Genders.Female)
-                deadFlag = DeadFlags.WomanDead;
-            else
-                deadFlag = DeadFlags.ManDead;
-
-            // Mark; building dead flag
-            CustomNPCBridgeMod.CustomNPCBridge.Instance.MarkBuildingNPCDead(buildingKey, deadFlag);
+            CustomNPCBridge.Instance.MarkNpcAsDead(npcName, buildingKey);
 
             // Determine whether to call guards
             if (ShouldCallGuards())
