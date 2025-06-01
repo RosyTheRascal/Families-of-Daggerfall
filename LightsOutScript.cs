@@ -182,19 +182,24 @@ namespace LightsOutScriptMod
                     Debug.Log("[LightsOutScript] Emissive textures automatically reactivated due to time, nya~!");
                 }
             }
+        }
 
-            // Handle save loading
-            SaveLoadManager.OnLoad += delegate
-            {
-                Debug.Log("[LightsOutScript] Save loaded, rechecking emissive states, nya~!");
-                LightsOut = false;
-                Caught = false;
-                StopCoroutine(PeriodicStealthCheckCoroutine());
-                ApplyTimeBasedEmissiveChanges();
+        void Start()
+        {
+            // Subscribe once when the script starts
+            SaveLoadManager.OnLoad += OnSaveLoaded;
+        }
 
-                // Add a deferred coroutine check for Exterior state
-                StartCoroutine(CheckExteriorStateAfterLoad());
-            };
+        private void OnSaveLoaded(SaveData_v1 saveData)
+        {
+            Debug.Log("[LightsOutScript] Save loaded, rechecking emissive states, nya~!");
+            LightsOut = false;
+            Caught = false;
+            StopCoroutine(PeriodicStealthCheckCoroutine());
+            ApplyTimeBasedEmissiveChanges();
+
+            // Add a deferred coroutine check for Exterior state
+            StartCoroutine(CheckExteriorStateAfterLoad());
         }
 
         private IEnumerator CheckExteriorStateAfterLoad()
@@ -407,6 +412,7 @@ namespace LightsOutScriptMod
             {
                 Vector3 fallbackPosition = GameManager.Instance.PlayerEntityBehaviour.transform.position;
                 GameManager.Instance.PlayerEntity.SpawnCityGuard(fallbackPosition, Vector3.forward);
+                GameManager.Instance.PlayerEntity.SpawnCityGuards(true);
             }
             Caught = false;
             stopMusicFlag = true;
@@ -972,22 +978,32 @@ namespace LightsOutScriptMod
 
         private bool Caught = false;
 
-
         private IEnumerator PeriodicStealthCheckCoroutine()
         {
             Debug.Log("[LightsOutScript] Starting periodic Stealth check coroutine, nya~!");
 
-            // Keep checking until caught
+            // Keep checking until caught or LightsOut disabled
             while (!Caught && LightsOut)
             {
-                yield return new WaitForSeconds(8.0f); //Time to wait between checks uwu
+                // Wait 8 seconds, but check for exit conditions every 0.1s
+                float timeWaited = 0f;
+                while (timeWaited < 5.0f)
+                {
+                    if (Caught || !LightsOut)
+                    {
+                        Debug.Log("[LightsOutScript] Coroutine exiting early due to Caught or LightsOut=false, nya~!");
+                        yield break; // Exit instantly if conditions change
+                    }
+                    yield return new WaitForSeconds(0.1f);
+                    timeWaited += 0.1f;
+                }
 
                 // Get the player's Stealth skill value
                 int playerStealth = GameManager.Instance.PlayerEntity.Skills.GetLiveSkillValue(DFCareer.Skills.Stealth);
 
                 // Calculate the probability of failing based on Stealth skill
                 float randomFactor = UnityEngine.Random.Range(-0.25f, 0.25f); // Add some randomness
-                float failureProbability = Mathf.Clamp01(0.5f - (playerStealth - 80) / 140f + randomFactor);
+                float failureProbability = Mathf.Clamp01(0.6f - (playerStealth - 80) / 140f + randomFactor);
                 Debug.Log($"[LightsOutScript] Stealth failure probability rolled: {failureProbability}, nya~!");
 
                 // Roll the dice to see if guards are called
@@ -1053,8 +1069,9 @@ namespace LightsOutScriptMod
                 }
             }
 
-            Debug.Log("[LightsOutScript] Stopping Stealth check coroutine because player was caught, nya~!");
+            Debug.Log("[LightsOutScript] Stopping Stealth check coroutine because player was caught or LightsOut turned off, nya~!");
         }
+
 
         // This is your coroutine nya~!
         private IEnumerator TriggerLightsOutCoroutine()
