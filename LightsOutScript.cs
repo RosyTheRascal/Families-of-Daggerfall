@@ -214,6 +214,44 @@ namespace LightsOutScriptMod
 
         private IEnumerator PooChungus()
         {
+            BuildingDirectory buildingDirectory = GameManager.Instance.StreamingWorld.GetCurrentBuildingDirectory();
+
+            Debug.Log($"[LightsOutScript] PooChungus called!");
+            var playerEnterExit = GameManager.Instance.PlayerEnterExit;
+            var buildingInfo = playerEnterExit.BuildingDiscoveryData;
+
+            if (buildingDirectory != null && buildingInfo.buildingKey != 0)
+            {
+                yield return null;
+                yield return null;
+                yield return new WaitForSeconds(1.0f);
+                int buildingKey = buildingInfo.buildingKey; // This is the key used in BuildingDirectory
+                int layoutX, layoutY, recordIndex;
+                BuildingDirectory.ReverseBuildingKey(buildingKey, out layoutX, out layoutY, out recordIndex);
+                Debug.Log($"Building contains key in PooChungus");
+                // Get the current location name from PlayerGPS
+                string locationName = GameManager.Instance.PlayerGPS.CurrentLocation.Name;
+                string buildingId = $"{locationName}_{layoutX}_{layoutY}_{recordIndex}";
+
+                if (processedBuildings.Contains(buildingId))
+                {
+                    playerIsInSpecialBuilding = true;
+                    currentSpecialBuildingId = buildingId;
+                    Debug.Log($"[LightsOutScript] Player loaded into a special building: {buildingId}, nya~!");
+                }
+                else
+                {
+                    Debug.Log($"[LightsOutScript] Player did not load into a special building!");
+                    playerIsInSpecialBuilding = false;
+                    currentSpecialBuildingId = null;
+                }
+            }
+            else
+            {
+                playerIsInSpecialBuilding = false;
+                currentSpecialBuildingId = null;
+            }
+
             int currentHour = DaggerfallUnity.Instance.WorldTime.Now.Hour;
 
             if (currentHour >= 22 || currentHour < 6) // Between 22:00 and 6:00 -> Deactivate emissives
@@ -221,7 +259,7 @@ namespace LightsOutScriptMod
 
                 emissiveCombinedModelsActive = false;
                 ControlEmissiveWindowTexturesInCombinedModels(emissiveCombinedModelsActive);
-                Debug.Log("[LightsOutScript] POO CHUNGUS");
+                Debug.Log("[LightsOutScript] Turning lights out in PooChungus");
                 yield return null;
                 yield return null;
                 yield return new WaitForSeconds(0.9f);
@@ -1367,10 +1405,15 @@ namespace LightsOutScriptMod
             yield return null;
 
             SpawnFacadeAtFactionBuildings(location);
-
             processedLocations.Add(location);
             locationsBeingProcessed.Remove(location);
         }
+
+        // Tracks if player is in a facade-spawned/special building
+        private bool playerIsInSpecialBuilding = false;
+
+        // Stores the current building's unique id (if inside one)
+        private string currentSpecialBuildingId = null;
 
         private void OnTransitionInterior(DaggerfallWorkshop.Game.PlayerEnterExit.TransitionEventArgs args)
         {
@@ -1382,6 +1425,30 @@ namespace LightsOutScriptMod
                 StartCoroutine(PooChungus());
             }
             StartCoroutine(TriggerLightsOutCoroutine());
+            StartCoroutine(TeleportPlayerToEnterMarkerAfterDelay(args.DaggerfallInterior, 0.5f));
+        }
+
+        private System.Collections.IEnumerator TeleportPlayerToEnterMarkerAfterDelay(DaggerfallWorkshop.DaggerfallInterior interior, float delay = 0.5f)
+        {
+            yield return new WaitForSeconds(delay);
+            Debug.Log("Teleport player coroutine called!");
+
+            // Find the first enter marker manually
+            var markers = interior.Markers;
+            DaggerfallWorkshop.DaggerfallInterior.InteriorEditorMarker? enterMarker = null;
+            for (int i = 0; i < markers.Length; i++)
+            {
+                if (markers[i].type == DaggerfallWorkshop.DaggerfallInterior.InteriorMarkerTypes.Enter)
+                {
+                    enterMarker = markers[i];
+                    break;
+                }
+            }
+            if (enterMarker != null && enterMarker.Value.gameObject != null)
+            {
+                Transform playerTransform = GameManager.Instance.PlayerObject.transform;
+                playerTransform.position = enterMarker.Value.gameObject.transform.position;
+            }
         }
 
         private void OnTransitionExterior(DaggerfallWorkshop.Game.PlayerEnterExit.TransitionEventArgs args)
