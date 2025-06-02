@@ -196,6 +196,8 @@ namespace LightsOutScriptMod
 
         private void OnSaveLoaded(SaveData_v1 saveData)
         {
+            var exterior = GameObject.Find("Exterior");
+            var interior = GameObject.Find("Interior");
             Debug.Log("[LightsOutScript] Save loaded, rechecking emissive states, nya~!");
             LightsOut = false;
             Caught = false;
@@ -203,6 +205,66 @@ namespace LightsOutScriptMod
             ApplyTimeBasedEmissiveChanges();
             StartCoroutine(DelayedFacadeCoroutine());
             StartCoroutine(CheckExteriorStateAfterLoad());
+            if (exterior?.activeInHierarchy == true && interior != null)
+            {
+                StartCoroutine(PooChungus());
+            }
+        }
+
+
+        private IEnumerator PooChungus()
+        {
+            int currentHour = DaggerfallUnity.Instance.WorldTime.Now.Hour;
+
+            if (currentHour >= 22 || currentHour < 6) // Between 22:00 and 6:00 -> Deactivate emissives
+            {
+
+                emissiveCombinedModelsActive = false;
+                ControlEmissiveWindowTexturesInCombinedModels(emissiveCombinedModelsActive);
+                Debug.Log("[LightsOutScript] POO CHUNGUS");
+                yield return null;
+                yield return null;
+                yield return new WaitForSeconds(0.9f);
+                // Disable all emission on CombinedModels to force black emission
+                var allLocations = GameObject.FindObjectsOfType<DaggerfallLocation>();
+                foreach (var location in allLocations)
+                {
+                    var blocks = location.GetComponentsInChildren<DaggerfallRMBBlock>(true);
+                    foreach (var block in blocks)
+                    {
+                        var combinedModelsTransform = block.transform.Find("Models/CombinedModels");
+                        if (combinedModelsTransform != null)
+                        {
+                            foreach (var meshRenderer in combinedModelsTransform.GetComponentsInChildren<MeshRenderer>())
+                            {
+                                foreach (var material in meshRenderer.materials)
+                                {
+                                    if (material.HasProperty("_EmissionMap") || material.HasProperty("_EmissionColor"))
+                                    {
+                                        material.DisableKeyword("_EMISSION");
+                                        material.SetColor("_EmissionColor", Color.black);
+                                        Debug.Log($"[LightsOutScript] Disabled emission for material '{material.name}', nya~!");
+                                    }
+                                }
+                            }
+                        }
+                        else
+                        {
+                            Debug.LogWarning($"[LightsOutScript] CombinedModelsTransform not found in block '{block.name}', nya~!");
+                        }
+                    }
+                }
+
+            }
+            else if (currentHour >= 6 && currentHour < 8) // Between 6:00 and 8:00 -> Reactivate emissives
+            {
+
+
+                emissiveCombinedModelsActive = true;
+                ControlEmissiveWindowTexturesInCombinedModels(emissiveCombinedModelsActive);
+                Debug.Log("[LightsOutScript] Emissive textures automatically reactivated due to time, nya~!");
+
+            }
         }
 
         private DaggerfallLocation[] allLocations;
@@ -1312,7 +1374,13 @@ namespace LightsOutScriptMod
 
         private void OnTransitionInterior(DaggerfallWorkshop.Game.PlayerEnterExit.TransitionEventArgs args)
         {
+            var exterior = GameObject.Find("Exterior");
+            var interior = GameObject.Find("Interior");
             Debug.Log($"[LightsOutScript] Transitioned to Interior: {args.DaggerfallInterior.name}, nya~!");
+            if (exterior?.activeInHierarchy == true && interior != null)
+            {
+                StartCoroutine(PooChungus());
+            }
             StartCoroutine(TriggerLightsOutCoroutine());
         }
 
