@@ -60,6 +60,7 @@ namespace LightsOutScriptMod
 
         private HashSet<DaggerfallLocation> processedLocations = new HashSet<DaggerfallLocation>();
         private HashSet<string> processedBuildings = new HashSet<string>(); // Tracks buildings processed by facade spawning
+        private HashSet<DaggerfallLocation> locationsBeingProcessed = new HashSet<DaggerfallLocation>();
 
         void Awake()
         {
@@ -89,13 +90,15 @@ namespace LightsOutScriptMod
                 }
             }
 
-            // Detect newly loaded DaggerfallLocations
             var allLocations = GameObject.FindObjectsOfType<DaggerfallLocation>();
-            var newLocations = allLocations.Where(location => !processedLocations.Contains(location)).ToList();
+            var trulyNewLocations = allLocations
+                .Where(location => !processedLocations.Contains(location) && !locationsBeingProcessed.Contains(location))
+                .ToList();
 
-            if (newLocations.Count > 0)
+            foreach (var location in trulyNewLocations)
             {
-                StartCoroutine(ProcessNewLocations(newLocations));
+                locationsBeingProcessed.Add(location);
+                StartCoroutine(ProcessNewLocation(location));
             }
 
             if (Input.GetKeyDown(KeyCode.Quote)) // Toggles emissive window textures for combined models
@@ -203,6 +206,8 @@ namespace LightsOutScriptMod
             StartCoroutine(CheckExteriorStateAfterLoad());
         }
 
+        private DaggerfallLocation[] allLocations;
+
         private IEnumerator CheckExteriorStateAfterLoad()
         {
             // Wait a few frames to ensure Exterior is fully active
@@ -229,15 +234,50 @@ namespace LightsOutScriptMod
             }
         }
 
+        private IEnumerator DelayedFacadeCoroutine()
+        {
+            Debug.Log("[LightsOutScript] Facade coroutine called!");
+            var allLocations = GameObject.FindObjectsOfType<DaggerfallLocation>();
+            yield return null;
+            yield return new WaitForSeconds(1.0f); // Pause for n seconds nya~!
+            yield return null;
+            foreach (var location in allLocations)
+            {
+                // Process each location for new facades
+                SpawnFacadeAtFactionBuildings(location);
+            }
+        }
+
         public bool LightsOut = false;
-        private DaggerfallLocation[] allLocations;
+
 
         private void HandleNewHourEvent()
         {
+
+            // Process each location for new facades
+            StartCoroutine(DelayedFacadeCoroutine());
+            var allLocations = GameObject.FindObjectsOfType<DaggerfallLocation>();
+            int currentHour = DaggerfallUnity.Instance.WorldTime.Now.Hour;
+            if (currentHour >= 8 && currentHour < 17)
+            {
+                Debug.Log($"[LightsOutScript] Scheduling 326 day coroutine");
+                StartCoroutine(Restore326_3_0EmissionMapsForDayDelayed());
+            }
+            if (currentHour < 22 && currentHour >= 17 || (currentHour >= 6 && currentHour < 8))
+            {
+                Debug.Log($"[LightsOutScript] Scheduling 326 evening coroutine");
+                StartCoroutine(Restore326_3_0EmissionMapsForEveningDelayed());
+            }
+            if ((currentHour >= 22 && currentHour <= 23) || (currentHour >= 0 && currentHour < 6))
+            {
+                Debug.Log($"[LightsOutScript] Scheduling 326 night coroutine");
+                StartCoroutine(Restore326_3_0EmissionMapsForNightDelayed());
+            }
             if (LightsOut == false)
             {
                 return;
             }
+
             Debug.Log($"Hour event raised!");
             var exterior = GameObject.Find("Exterior");
             var interior = GameObject.Find("Interior");
@@ -255,6 +295,224 @@ namespace LightsOutScriptMod
                 return;
             }
             StartCoroutine(ResetShadersCoroutine(1.0f));
+        }
+
+        private IEnumerator Restore326_3_0EmissionMapsForNightDelayed()
+        {
+            // Wait several frames to make sure DFU is done with its stuff
+            yield return null;
+            yield return null;
+            yield return null;
+            yield return null;
+            yield return null;
+            yield return null;
+            yield return null;
+            yield return null;
+            yield return null;
+            yield return null;
+            yield return null;
+            yield return null;
+            yield return null;
+            yield return null;
+            Debug.Log($"Calling 326 Nighttime black");
+            Restore326_3_0EmissionMapsForNight();
+        }
+
+        private void Restore326_3_0EmissionMapsForNight()
+        {
+            var matReader = DaggerfallUnity.Instance.MaterialReader;
+            var texReader = matReader.TextureReader;
+            var blackColor = Color.black;
+
+            var allLocations = GameObject.FindObjectsOfType<DaggerfallLocation>();
+            foreach (var location in allLocations)
+            {
+                var blocks = location.GetComponentsInChildren<DaggerfallRMBBlock>(true);
+                foreach (var block in blocks)
+                {
+                    var combinedModelsTransform = block.transform.Find("Models/CombinedModels");
+                    if (combinedModelsTransform != null)
+                    {
+                        var meshes = combinedModelsTransform.GetComponentsInChildren<MeshRenderer>();
+                        foreach (var meshRenderer in meshes)
+                        {
+                            foreach (var material in meshRenderer.materials)
+                            {
+                                if (material.name.Contains("326_3-0"))
+                                {
+                                    material.shader = Shader.Find("Daggerfall/Default");
+                                    try
+                                    {
+                                        if (texReader != null)
+                                        {
+                                            Debug.Log($"[LightsOutScript] Generating black emission map for 326_3-0");
+                                            string arena2 = DaggerfallUnity.Instance.Arena2Path;
+                                            var textureFile = new DaggerfallConnect.Arena2.TextureFile();
+                                            textureFile.Load(Path.Combine(arena2, DaggerfallConnect.Arena2.TextureFile.IndexToFileName(326)), FileUsage.UseMemory, true);
+                                            var dfBitmap = textureFile.GetDFBitmap(3, 0);
+                                            var emissionColors = textureFile.GetWindowColors32(dfBitmap);
+                                            Texture2D emissionMap = new Texture2D(dfBitmap.Width, dfBitmap.Height, TextureFormat.ARGB32, false);
+                                            emissionMap.SetPixels32(emissionColors);
+                                            emissionMap.Apply();
+                                            material.SetTexture("_EmissionMap", emissionMap);
+                                        }
+                                    }
+                                    catch (Exception ex)
+                                    {
+                                        Debug.LogWarning($"[LightsOutScript] Error generating emission map for 326_3-0: {ex}");
+                                    }
+                                    material.EnableKeyword("_EMISSION");
+                                    material.SetColor("_EmissionColor", blackColor);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        private IEnumerator Restore326_3_0EmissionMapsForEveningDelayed()
+        {
+            // Wait 10 frames to ensure DFU is done clobbering materials
+            yield return null;
+            yield return null;
+            yield return null;
+            yield return null;
+            yield return null;
+            yield return null;
+            yield return null;
+            yield return null;
+            yield return null;
+            yield return null;
+            yield return null;
+            yield return null;
+            yield return null;
+            yield return null;
+            Debug.Log($"Done waiting!");
+            Restore326_3_0EmissionMapsForEvening();
+        }
+
+        private void Restore326_3_0EmissionMapsForEvening()
+        {
+            var matReader = DaggerfallUnity.Instance.MaterialReader;
+            var texReader = matReader.TextureReader;
+            var eveningColor = matReader.NightWindowColor * matReader.NightWindowIntensity;
+
+            var allLocations = GameObject.FindObjectsOfType<DaggerfallLocation>();
+            foreach (var location in allLocations)
+            {
+                var blocks = location.GetComponentsInChildren<DaggerfallRMBBlock>(true);
+                foreach (var block in blocks)
+                {
+                    var combinedModelsTransform = block.transform.Find("Models/CombinedModels");
+                    if (combinedModelsTransform != null)
+                    {
+                        var meshes = combinedModelsTransform.GetComponentsInChildren<MeshRenderer>();
+                        foreach (var meshRenderer in meshes)
+                        {
+                            foreach (var material in meshRenderer.materials)
+                            {
+                                if (material.name.Contains("326_3-0"))
+                                {
+                                    material.shader = Shader.Find("Daggerfall/Default");
+                                    try
+                                    {
+                                        if (texReader != null)
+                                        {
+                                            Debug.Log($"[LightsOutScript] Generating yellow emission map for 326_3-0");
+                                            string arena2 = DaggerfallUnity.Instance.Arena2Path;
+                                            var textureFile = new DaggerfallConnect.Arena2.TextureFile();
+                                            textureFile.Load(Path.Combine(arena2, DaggerfallConnect.Arena2.TextureFile.IndexToFileName(326)), FileUsage.UseMemory, true);
+                                            var dfBitmap = textureFile.GetDFBitmap(3, 0);
+                                            var emissionColors = textureFile.GetWindowColors32(dfBitmap);
+                                            Texture2D emissionMap = new Texture2D(dfBitmap.Width, dfBitmap.Height, TextureFormat.ARGB32, false);
+                                            emissionMap.SetPixels32(emissionColors);
+                                            emissionMap.Apply();
+                                            material.SetTexture("_EmissionMap", emissionMap);
+                                        }
+                                    }
+                                    catch (Exception ex)
+                                    {
+                                        Debug.LogWarning($"[LightsOutScript] Error generating emission map for 326_3-0: {ex}");
+                                    }
+                                    material.EnableKeyword("_EMISSION");
+                                    material.SetColor("_EmissionColor", eveningColor);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        private IEnumerator Restore326_3_0EmissionMapsForDayDelayed()
+        {
+            // Wait 2 frames to ensure DFU is done clobbering materials
+            yield return null;
+            yield return null;
+            yield return null;
+            yield return null;
+            yield return null;
+            yield return null;
+            yield return null;
+            yield return null;
+            yield return null;
+            yield return null;
+            Debug.Log($"Done waiting!");
+            Restore326_3_0EmissionMapsForDay();
+        }
+
+        private void Restore326_3_0EmissionMapsForDay()
+        {
+            var matReader = DaggerfallUnity.Instance.MaterialReader;
+            var texReader = matReader.TextureReader;
+            var dayColor = matReader.DayWindowColor * matReader.DayWindowIntensity;
+
+            var allLocations = GameObject.FindObjectsOfType<DaggerfallLocation>();
+            foreach (var location in allLocations)
+            {
+                var blocks = location.GetComponentsInChildren<DaggerfallRMBBlock>(true);
+                foreach (var block in blocks)
+                {
+                    var combinedModelsTransform = block.transform.Find("Models/CombinedModels");
+                    if (combinedModelsTransform != null)
+                    {
+                        var meshes = combinedModelsTransform.GetComponentsInChildren<MeshRenderer>();
+                        foreach (var meshRenderer in meshes)
+                        {
+                            foreach (var material in meshRenderer.materials)
+                            {
+                                if (material.name.Contains("326_3-0"))
+                                {
+                                    material.shader = Shader.Find("Daggerfall/Default");
+                                    try
+                                    {
+                                        if (texReader != null)
+                                        {
+                                            Debug.Log($"[LightsOutScript] Generating blue emission map for 326_3-0");
+                                            string arena2 = DaggerfallUnity.Instance.Arena2Path;
+                                            var textureFile = new DaggerfallConnect.Arena2.TextureFile();
+                                            textureFile.Load(Path.Combine(arena2, DaggerfallConnect.Arena2.TextureFile.IndexToFileName(326)), FileUsage.UseMemory, true);
+                                            var dfBitmap = textureFile.GetDFBitmap(3, 0);
+                                            var emissionColors = textureFile.GetWindowColors32(dfBitmap);
+                                            Texture2D emissionMap = new Texture2D(dfBitmap.Width, dfBitmap.Height, TextureFormat.ARGB32, false);
+                                            emissionMap.SetPixels32(emissionColors);
+                                            emissionMap.Apply();
+                                            material.SetTexture("_EmissionMap", emissionMap);
+                                        }
+                                    }
+                                    catch (Exception ex)
+                                    {
+                                        Debug.LogWarning($"[LightsOutScript] Error generating emission map for 326_3-0: {ex}");
+                                    }
+                                    material.EnableKeyword("_EMISSION");
+                                    material.SetColor("_EmissionColor", dayColor);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         }
 
         private IEnumerator ResetShadersCoroutine(float waitTime)
@@ -408,6 +666,9 @@ namespace LightsOutScriptMod
 
         private void OnExteriorTransitionDetected(PlayerEnterExit.TransitionEventArgs args)
         {
+
+            StartCoroutine(DelayedFacadeCoroutine());
+
             StopCoroutine(PeriodicStealthCheckCoroutine());
             if (Caught == true)
             {
@@ -606,6 +867,16 @@ namespace LightsOutScriptMod
 
         public void SpawnFacadeAtFactionBuildings(DaggerfallLocation location)
         {
+            Debug.Log($"[LightsOutScript] SpawnFacades Called!");
+            // Check all children of this location for any existing facade objects
+            bool locationHasFacade = location.GetComponentsInChildren<Transform>(true)
+                .Any(t => t.name.IndexOf("Facade", StringComparison.OrdinalIgnoreCase) >= 0);
+            if (locationHasFacade)
+            {
+                Debug.Log($"[LightsOutScript] Facade(s) already exist in location '{location.name}', skipping SpawnFacadeAtFactionBuildings for this location, nya~!");
+                return;
+            }
+
             var blocks = location.GetComponentsInChildren<DaggerfallRMBBlock>(true);
             int width = location.Summary.BlockWidth;
             int height = location.Summary.BlockHeight;
@@ -806,6 +1077,11 @@ namespace LightsOutScriptMod
         public void ControlEmissiveWindowTexturesInCombinedModels(bool enableEmissive)
         {
             var allLocations = GameObject.FindObjectsOfType<DaggerfallLocation>();
+            var matReader = DaggerfallUnity.Instance.MaterialReader;
+            var texReader = matReader.TextureReader;
+            var nightColor = matReader != null ? matReader.NightWindowColor * matReader.NightWindowIntensity : Color.yellow;
+            var dayColor = matReader != null ? matReader.DayWindowColor * matReader.DayWindowIntensity : Color.blue;
+
             foreach (var location in allLocations)
             {
                 var blocks = location.GetComponentsInChildren<DaggerfallRMBBlock>(true);
@@ -819,16 +1095,11 @@ namespace LightsOutScriptMod
                         {
                             foreach (var material in meshRenderer.materials)
                             {
-                                // --- NEW LOGIC: Replace texture and set shader if name contains "326_3-0"
+                                // This block will forcibly assign the emission map for all windows, every time
                                 if (material.name.Contains("326_3-0"))
                                 {
                                     material.shader = Shader.Find("Daggerfall/Default");
-
-                                    // Generate emission map exactly as vanilla DFU would
-                                    var matReader = DaggerfallUnity.Instance.MaterialReader;
-                                    var texReader = matReader.TextureReader;
-                                    Texture2D emissionMap = null;
-
+                                    // Always assign emission map, do not trust existing value
                                     try
                                     {
                                         if (texReader != null)
@@ -838,30 +1109,52 @@ namespace LightsOutScriptMod
                                             textureFile.Load(Path.Combine(arena2, DaggerfallConnect.Arena2.TextureFile.IndexToFileName(326)), FileUsage.UseMemory, true);
                                             var dfBitmap = textureFile.GetDFBitmap(3, 0);
                                             var emissionColors = textureFile.GetWindowColors32(dfBitmap);
-                                            emissionMap = new Texture2D(dfBitmap.Width, dfBitmap.Height, TextureFormat.ARGB32, false);
+                                            Texture2D emissionMap = new Texture2D(dfBitmap.Width, dfBitmap.Height, TextureFormat.ARGB32, false);
                                             emissionMap.SetPixels32(emissionColors);
                                             emissionMap.Apply();
+                                            material.SetTexture("_EmissionMap", emissionMap);
                                         }
                                     }
                                     catch (Exception ex)
                                     {
                                         Debug.LogWarning($"[LightsOutScript] Error generating emission map for 326_3-0: {ex}");
                                     }
-
-                                    if (emissionMap != null)
-                                    {
-                                        material.SetTexture("_EmissionMap", emissionMap);
-                                        material.EnableKeyword("_EMISSION");
-                                        var nightColor = matReader != null ? matReader.NightWindowColor * matReader.NightWindowIntensity : Color.white;
-                                        material.SetColor("_EmissionColor", nightColor);
-                                        Debug.Log("[LightsOutScript] Assigned classic window emission map to 326_3-0 (nyan~)!");
-                                    }
-                                    else
-                                    {
-                                        Debug.LogWarning("[LightsOutScript] Could not assign classic emission map to 326_3-0, nya~!");
-                                    }
+                                    material.EnableKeyword("_EMISSION");
+                                    material.SetColor("_EmissionColor", enableEmissive ? nightColor : dayColor);
+                                    continue;
                                 }
-                                // --- Existing emissive logic (leave as is)
+
+                                // Other classic windows
+                                if (IsProbablyWindowMaterial(material))
+                                {
+                                    // Always forcibly reassign their emission map (rebuild from main texture if needed)
+                                    // Try to obtain the albedo/main texture as the window source
+                                    try
+                                    {
+                                        Texture mainTex = material.GetTexture("_MainTex");
+                                        Texture2D emissionMap = null;
+                                        if (mainTex is Texture2D mainTex2D)
+                                        {
+                                            // Cheap fallback: clone the albedo as emission, since we don't have DFU's palette logic here
+                                            emissionMap = new Texture2D(mainTex2D.width, mainTex2D.height, TextureFormat.ARGB32, false);
+                                            emissionMap.SetPixels32(mainTex2D.GetPixels32());
+                                            emissionMap.Apply();
+                                        }
+                                        if (emissionMap != null)
+                                        {
+                                            material.SetTexture("_EmissionMap", emissionMap);
+                                        }
+                                    }
+                                    catch (Exception ex)
+                                    {
+                                        Debug.LogWarning($"[LightsOutScript] Error generating fallback emission for window: {material.name}: {ex}");
+                                    }
+                                    material.EnableKeyword("_EMISSION");
+                                    material.SetColor("_EmissionColor", enableEmissive ? nightColor : dayColor);
+                                    continue;
+                                }
+
+                                // Non-window, classic logic
                                 if (material.HasProperty("_EmissionMap"))
                                 {
                                     if (enableEmissive)
@@ -878,6 +1171,13 @@ namespace LightsOutScriptMod
                     }
                 }
             }
+        }
+
+        // Simple heuristic for window materials (expand as needed)
+        private bool IsProbablyWindowMaterial(Material material)
+        {
+            string name = material.name.ToLowerInvariant();
+            return name.Contains("window") || name.Contains("glass");
         }
 
         public void ControlEmissiveWindowTexturesInFacades(bool enableEmissive)
@@ -979,20 +1279,16 @@ namespace LightsOutScriptMod
             }
         }
 
-        private IEnumerator ProcessNewLocations(List<DaggerfallLocation> newLocations)
+        private IEnumerator ProcessNewLocation(DaggerfallLocation location)
         {
             // Wait a couple of frames to ensure all info is loaded
             yield return null;
             yield return null;
 
-            foreach (var location in newLocations)
-            {
-                // Process each location for new facades
-                SpawnFacadeAtFactionBuildings(location);
+            SpawnFacadeAtFactionBuildings(location);
 
-                // Add this location to the processed list
-                processedLocations.Add(location);
-            }
+            processedLocations.Add(location);
+            locationsBeingProcessed.Remove(location);
         }
 
         private void OnTransitionInterior(DaggerfallWorkshop.Game.PlayerEnterExit.TransitionEventArgs args)
