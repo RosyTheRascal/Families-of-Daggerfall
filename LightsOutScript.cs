@@ -201,8 +201,7 @@ namespace LightsOutScriptMod
             Caught = false;
             StopCoroutine(PeriodicStealthCheckCoroutine());
             ApplyTimeBasedEmissiveChanges();
-
-            // Add a deferred coroutine check for Exterior state
+            StartCoroutine(DelayedFacadeCoroutine());
             StartCoroutine(CheckExteriorStateAfterLoad());
         }
 
@@ -239,7 +238,9 @@ namespace LightsOutScriptMod
             Debug.Log("[LightsOutScript] Facade coroutine called!");
             var allLocations = GameObject.FindObjectsOfType<DaggerfallLocation>();
             yield return null;
+            yield return null;
             yield return new WaitForSeconds(1.0f); // Pause for n seconds nya~!
+            yield return null;
             yield return null;
             foreach (var location in allLocations)
             {
@@ -1079,8 +1080,12 @@ namespace LightsOutScriptMod
             var allLocations = GameObject.FindObjectsOfType<DaggerfallLocation>();
             var matReader = DaggerfallUnity.Instance.MaterialReader;
             var texReader = matReader.TextureReader;
-            var nightColor = matReader != null ? matReader.NightWindowColor * matReader.NightWindowIntensity : Color.yellow;
+            int hour = DaggerfallUnity.Instance.WorldTime.Now.Hour;
+            Debug.Log($"[LightsOutScript] Control Windows called!");
+            // You can customize these colors as you like (using DFU values as fallback)
             var dayColor = matReader != null ? matReader.DayWindowColor * matReader.DayWindowIntensity : Color.blue;
+            var eveningColor = new Color(0.3f, 0.3f, 0.5f); // example: dimmer/warmer
+            var nightColor = Color.black;
 
             foreach (var location in allLocations)
             {
@@ -1095,11 +1100,11 @@ namespace LightsOutScriptMod
                         {
                             foreach (var material in meshRenderer.materials)
                             {
-                                // This block will forcibly assign the emission map for all windows, every time
+                                // Special logic for 326_3-0
                                 if (material.name.Contains("326_3-0"))
                                 {
                                     material.shader = Shader.Find("Daggerfall/Default");
-                                    // Always assign emission map, do not trust existing value
+                                    // Always assign emission map
                                     try
                                     {
                                         if (texReader != null)
@@ -1119,23 +1124,33 @@ namespace LightsOutScriptMod
                                     {
                                         Debug.LogWarning($"[LightsOutScript] Error generating emission map for 326_3-0: {ex}");
                                     }
-                                    material.EnableKeyword("_EMISSION");
-                                    material.SetColor("_EmissionColor", enableEmissive ? nightColor : dayColor);
+
+                                    // ==== Time-of-day color logic for 326_3-0 ====
+                                    if (hour >= 8 && hour < 17)
+                                        material.SetColor("_EmissionColor", dayColor);
+                                    else if ((hour >= 17 && hour < 22) || (hour >= 6 && hour < 8))
+                                        material.SetColor("_EmissionColor", eveningColor);
+                                    else // (hour >= 22 || hour < 6)
+                                        material.SetColor("_EmissionColor", nightColor);
+
+                                    // Always enable emission for 326_3-0 if enableEmissive is true & not night
+                                    if (enableEmissive && (hour >= 6 && hour < 22))
+                                        material.EnableKeyword("_EMISSION");
+                                    else
+                                        material.DisableKeyword("_EMISSION");
+
                                     continue;
                                 }
 
-                                // Other classic windows
+                                // Other classic windows (unchanged)
                                 if (IsProbablyWindowMaterial(material))
                                 {
-                                    // Always forcibly reassign their emission map (rebuild from main texture if needed)
-                                    // Try to obtain the albedo/main texture as the window source
                                     try
                                     {
                                         Texture mainTex = material.GetTexture("_MainTex");
                                         Texture2D emissionMap = null;
                                         if (mainTex is Texture2D mainTex2D)
                                         {
-                                            // Cheap fallback: clone the albedo as emission, since we don't have DFU's palette logic here
                                             emissionMap = new Texture2D(mainTex2D.width, mainTex2D.height, TextureFormat.ARGB32, false);
                                             emissionMap.SetPixels32(mainTex2D.GetPixels32());
                                             emissionMap.Apply();
@@ -1149,8 +1164,12 @@ namespace LightsOutScriptMod
                                     {
                                         Debug.LogWarning($"[LightsOutScript] Error generating fallback emission for window: {material.name}: {ex}");
                                     }
-                                    material.EnableKeyword("_EMISSION");
-                                    material.SetColor("_EmissionColor", enableEmissive ? nightColor : dayColor);
+                                    // Use day/evening/night color if you want, or just default
+                                    material.SetColor("_EmissionColor", enableEmissive ? dayColor : nightColor);
+                                    if (enableEmissive)
+                                        material.EnableKeyword("_EMISSION");
+                                    else
+                                        material.DisableKeyword("_EMISSION");
                                     continue;
                                 }
 
