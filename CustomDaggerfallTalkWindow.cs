@@ -2282,9 +2282,11 @@ namespace CustomDaggerfallTalkWindowMod
             playerRequestItem.textLabel.HorizontalTextAlignment = TextLabel.HorizontalTextAlignmentSetting.Right;
             playerRequestItem.textColor = Color.white;
 
-            // Perform personality check
+            // Perform probability check based on personality
             int playerPersonality = GameManager.Instance.PlayerEntity.Stats.LivePersonality;
-            int checkValue = 70; // Define a threshold value for personality check
+
+            // Harsher probability formula: chance = 0.006 * Personality - 0.20 (capped 0-1)
+            float chance = Mathf.Clamp01(0.006f * playerPersonality - 0.20f);
 
             string npcResponse;
 
@@ -2295,7 +2297,11 @@ namespace CustomDaggerfallTalkWindowMod
                 npcAlreadyItem.textColor = melon;
                 return;
             }
-            if (playerPersonality >= checkValue)
+
+            // Roll!
+            float roll = UnityEngine.Random.value; // 0.0 to 1.0
+
+            if (roll < chance)
             {
                 // Successful check
                 npcResponse = "You must be exhausted from your journey. Very well.";
