@@ -246,13 +246,18 @@ namespace CustomStaticNPCMod
 
         public static void NothingHereAidan()
         {
-            if (aidanFired) return; // Never fire again if already fired (safety net)
+            Debug.Log($"Aidan entered");
+            if (aidanFired)
+            {
+                return;
+                Debug.Log($"Aidan flagged already");
+            }
+
             aidanFired = true;
             int livingNPCCount = CustomNPCBridgeMod.CustomNPCBridge.Instance.GetLivingNPCCountInInterior();
             int playerStealth = GameManager.Instance.PlayerEntity.Skills.GetLiveSkillValue(DFCareer.Skills.Stealth);
             int playerPickpocket = GameManager.Instance.PlayerEntity.Skills.GetLiveSkillValue(DFCareer.Skills.Pickpocket);
-            GameManager.Instance.PlayerEntity.Skills.SetPermanentSkillValue(DFCareer.Skills.Stealth, (short)(playerStealth + 80));
-            GameManager.Instance.PlayerEntity.Skills.SetPermanentSkillValue(DFCareer.Skills.Pickpocket, (short)(playerPickpocket + 80));
+            GameManager.Instance.PlayerEntity.Skills.SetPermanentSkillValue(DFCareer.Skills.Pickpocket, (short)(playerPickpocket + 100));
             CustomNPCBridgeMod.CustomNPCBridge.Instance.SetBoost();
             Debug.Log($"Nothing here Aidan");
         }
@@ -295,8 +300,7 @@ namespace CustomStaticNPCMod
 
             if (CustomNPCBridgeMod.CustomNPCBridge.Instance.boostData.IsBoosted)
             {
-                GameManager.Instance.PlayerEntity.Skills.SetPermanentSkillValue(DFCareer.Skills.Stealth, (short)(playerStealth - 80));
-                GameManager.Instance.PlayerEntity.Skills.SetPermanentSkillValue(DFCareer.Skills.Pickpocket, (short)(playerPickpocket - 80));
+                GameManager.Instance.PlayerEntity.Skills.SetPermanentSkillValue(DFCareer.Skills.Pickpocket, (short)(playerPickpocket - 100));
                 CustomNPCBridgeMod.CustomNPCBridge.Instance.boostData.IsBoosted = false;
                 Debug.Log($"Chungus");
             }

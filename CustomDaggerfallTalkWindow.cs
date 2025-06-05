@@ -1548,6 +1548,11 @@ namespace CustomDaggerfallTalkWindowMod
                     recordIndex = 438;
                     Debug.Log($"Forced portrait selection: Archive 357, Record 1 -> CommonFaces, Record Index: {recordIndex}");
                 }
+                else if (customNpc.Data.billboardArchiveIndex == 182 && customNpc.Data.billboardRecordIndex == 22)
+                {
+                    recordIndex = 441;
+                    Debug.Log($"Forced portrait selection: Archive 357, Record 1 -> CommonFaces, Record Index: {recordIndex}");
+                }
                 else if (customNpc.Data.billboardArchiveIndex == 182 && customNpc.Data.billboardRecordIndex == 47)
                 {
                     recordIndex = 420;
@@ -2285,10 +2290,61 @@ namespace CustomDaggerfallTalkWindowMod
             // Perform probability check based on personality
             int playerPersonality = GameManager.Instance.PlayerEntity.Stats.LivePersonality;
 
-            // Harsher probability formula: chance = 0.006 * Personality - 0.20 (capped 0-1)
-            float chance = Mathf.Clamp01(0.006f * playerPersonality - 0.20f);
+            // Base chance formula: chance = 0.006 * Personality - 0.20
+            float baseChance = 0.006f * playerPersonality - 0.20f;
+
+            // Determine greeting section multiplier
+            float sectionMultiplier = 1f;
+            int greetingSection = 2; // Default to 2 if not found
+
+            // Get the current NPC
+            var customNpc = CustomTalkManagerMod.CustomTalkManager.Instance.GetTargetCustomNPC();
+            string npcName = customNpc != null ? customNpc.CustomDisplayName : "Unknown";
+            int buildingKey = GameManager.Instance.PlayerEnterExit.BuildingDiscoveryData.buildingKey;
+            string uniqueKey = GetNPCUniqueKey(npcName, buildingKey);
+            if (customNpc != null)
+            {
+                int npcId = customNpc.GetInstanceID();
+                var bridge = CustomNPCBridgeMod.CustomNPCBridge.Instance;
+                int? section = bridge.GetGreetingSection(npcId);
+                if (section.HasValue)
+                {
+                    greetingSection = section.Value;
+                }
+            }
+
+            // Apply multiplier based on section
+            switch (greetingSection)
+            {
+                case 1:
+                    sectionMultiplier = 0.7f;
+                    break;
+                case 2:
+                    sectionMultiplier = 1.0f;
+                    break;
+                case 3:
+                    sectionMultiplier = 1.1f;
+                    break;
+                case 4:
+                    sectionMultiplier = 1.2f;
+                    break;
+                default:
+                    sectionMultiplier = 1.0f;
+                    break;
+            }
+
+            float chance = Mathf.Clamp01(baseChance * sectionMultiplier);
 
             string npcResponse;
+
+            if (rejectedNPCs.Contains(uniqueKey))
+            {
+                npcResponse = "I can't accommodate anyone right now, sorry.";
+                Debug.Log($"You are being denied because you already asked once, imbécil!");
+                listboxConversation.AddItem(npcResponse, out ListBox.ListItem npcRejectItem);
+                npcRejectItem.textColor = melon;
+                return;
+            }
 
             if (HomeStay)
             {
@@ -2301,6 +2357,8 @@ namespace CustomDaggerfallTalkWindowMod
             // Roll!
             float roll = UnityEngine.Random.value; // 0.0 to 1.0
 
+            Debug.Log($"[PlaceToStay] Personality: {playerPersonality}, GreetingSection: {greetingSection}, Chance: {chance:F3}, Roll: {roll:F3}");
+
             if (roll < chance)
             {
                 // Successful check
@@ -2312,6 +2370,7 @@ namespace CustomDaggerfallTalkWindowMod
             {
                 // Failed check
                 npcResponse = "I can't accommodate anyone right now, sorry.";
+                rejectedNPCs.Add(uniqueKey);
             }
 
             // Add NPC's response to conversation listbox
@@ -2569,7 +2628,12 @@ namespace CustomDaggerfallTalkWindowMod
             DaggerfallUI.Instance.StartCoroutine(ResetListboxTopicsClickedFlag());
         }
 
+        private static HashSet<string> rejectedNPCs = new HashSet<string>();
 
+        private string GetNPCUniqueKey(string npcName, int buildingKey)
+        {
+            return $"{npcName}_{buildingKey}";
+        }
 
         private void RentRoomAtCurrentLocation(int rentalDurationHours)
         {
