@@ -149,6 +149,9 @@ namespace CustomStaticNPCMod
             yield return null;
             yield return null;
             yield return null;
+            yield return null;
+            yield return null;
+            yield return null;
 
             // Update flag just in case (safe redundancy)
             CustomStaticNPC.UpdateSpecialBillboardsFlag();
@@ -247,19 +250,31 @@ namespace CustomStaticNPCMod
         public static void NothingHereAidan()
         {
             Debug.Log($"Aidan entered");
+            DaggerfallMessageBox messageBox = new DaggerfallMessageBox(DaggerfallUI.Instance.UserInterfaceManager, DaggerfallUI.Instance.UserInterfaceManager.TopWindow);
+            messageBox.SetText("NothingHereAidan called");
+            messageBox.ClickAnywhereToClose = true;
+            messageBox.Show();
+
             if (aidanFired)
             {
-                return;
                 Debug.Log($"Aidan flagged already");
+                return;
             }
 
             aidanFired = true;
-            int livingNPCCount = CustomNPCBridgeMod.CustomNPCBridge.Instance.GetLivingNPCCountInInterior();
-            int playerStealth = GameManager.Instance.PlayerEntity.Skills.GetLiveSkillValue(DFCareer.Skills.Stealth);
-            int playerPickpocket = GameManager.Instance.PlayerEntity.Skills.GetLiveSkillValue(DFCareer.Skills.Pickpocket);
-            GameManager.Instance.PlayerEntity.Skills.SetPermanentSkillValue(DFCareer.Skills.Pickpocket, (short)(playerPickpocket + 100));
-            CustomNPCBridgeMod.CustomNPCBridge.Instance.SetBoost();
-            Debug.Log($"Nothing here Aidan");
+            try
+            {
+                int livingNPCCount = CustomNPCBridgeMod.CustomNPCBridge.Instance.GetLivingNPCCountInInterior();
+                int playerStealth = GameManager.Instance.PlayerEntity.Skills.GetLiveSkillValue(DFCareer.Skills.Stealth);
+                int playerPickpocket = GameManager.Instance.PlayerEntity.Skills.GetLiveSkillValue(DFCareer.Skills.Pickpocket);
+                GameManager.Instance.PlayerEntity.Skills.SetPermanentSkillValue(DFCareer.Skills.Pickpocket, (short)(playerPickpocket + 100));
+                CustomNPCBridgeMod.CustomNPCBridge.Instance.SetBoost();
+                Debug.Log($"Nothing here Aidan");
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"NothingHereAidan Exception: {ex}");
+            }
         }
 
         private bool IsInResidentialBuilding()
@@ -303,6 +318,10 @@ namespace CustomStaticNPCMod
                 GameManager.Instance.PlayerEntity.Skills.SetPermanentSkillValue(DFCareer.Skills.Pickpocket, (short)(playerPickpocket - 100));
                 CustomNPCBridgeMod.CustomNPCBridge.Instance.boostData.IsBoosted = false;
                 Debug.Log($"Chungus");
+                DaggerfallMessageBox messageBox = new DaggerfallMessageBox(DaggerfallUI.Instance.UserInterfaceManager, DaggerfallUI.Instance.UserInterfaceManager.TopWindow);
+                messageBox.SetText("Pickpocket reset!");
+                messageBox.ClickAnywhereToClose = true;
+                messageBox.Show();
             }
             if (halt)
             {

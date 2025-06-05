@@ -173,7 +173,6 @@ namespace LightsOutScriptMod
                                     {
                                         material.DisableKeyword("_EMISSION");
                                         material.SetColor("_EmissionColor", Color.black);
-                                        Debug.Log($"[LightsOutScript] Disabled emission for material '{material.name}', nya~!");
                                     }
                                 }
                             }
@@ -303,14 +302,27 @@ namespace LightsOutScriptMod
 
                     // Check time-based emissive activation/deactivation
                     int currentHour = DaggerfallUnity.Instance.WorldTime.Now.Hour;
-               
-                      
+
+                    if (currentHour >= 8 && currentHour < 17)
+                    {
+                        Debug.Log($"[LightsOutScript] Scheduling 326 day coroutine");
+                        StartCoroutine(Restore326_3_0EmissionMapsForDayDelayed());
+                    }
+                    if (currentHour < 18 && currentHour >= 17 || (currentHour >= 6 && currentHour < 8))
+                    {
+                        Debug.Log($"[LightsOutScript] Scheduling 326 evening coroutine");
+                        StartCoroutine(Restore326_3_0EmissionMapsForEveningDelayed());
+                    }
+                    if ((currentHour >= 18 && currentHour <= 23) || (currentHour >= 0 && currentHour < 6))
+                    {
+                        Debug.Log($"[LightsOutScript] Scheduling 326 night coroutine");
+                        StartCoroutine(Restore326_3_0EmissionMapsForNightDelayed());
+                    }
+
                     foreach (var location in allLocations)
                     {
                             SpawnFacadeAtFactionBuildings(location);
                     }
-
-                    HandleNewHourEvent();
 
                     if (currentHour >= 18 || currentHour < 6)
                     {
@@ -632,7 +644,6 @@ namespace LightsOutScriptMod
                                 {
                                     material.DisableKeyword("_EMISSION");
                                     material.SetColor("_EmissionColor", Color.black);
-                                    Debug.Log($"[LightsOutScript] Disabled emission for material '{material.name}', nya~!");
                                 }
                             }
                         }
@@ -1492,6 +1503,10 @@ namespace LightsOutScriptMod
             var billboards = GameObject.FindObjectsOfType<DaggerfallBillboard>();
             foreach (var billboard in billboards)
             {
+                // Only consider billboards under the "Interior" root
+                if (billboard.transform.root == null || billboard.transform.root.name != "Interior")
+                    continue;
+
                 var summary = billboard.Summary;
                 foreach (var record in GuardDogBillboardRecords)
                 {
@@ -1515,6 +1530,7 @@ namespace LightsOutScriptMod
                 {
                     if (Caught || !LightsOut)
                     {
+                        CustomStaticNPCMod.CustomStaticNPC.aidanFired = false;
                         Debug.Log("[LightsOutScript] Coroutine exiting early due to Caught or LightsOut=false, nya~!");
                         yield break; // Exit instantly if conditions change
                     }
@@ -1526,7 +1542,7 @@ namespace LightsOutScriptMod
                 int playerStealth = GameManager.Instance.PlayerEntity.Skills.GetLiveSkillValue(DFCareer.Skills.Stealth);
 
                 // Calculate the probability of failing based on Stealth skill
-                float randomFactor = UnityEngine.Random.Range(-0.1f, 0.1f); // Add some randomness
+                float randomFactor = UnityEngine.Random.Range(-0.15f, 0.15f); // Add some randomness
                 float failureProbability = Mathf.Clamp01(1.0f - (playerStealth) / 100f + randomFactor);
 
                 if (IsGuardDogPresentInScene())
@@ -1792,7 +1808,6 @@ namespace LightsOutScriptMod
                                 {
                                     material.DisableKeyword("_EMISSION");
                                     material.SetColor("_EmissionColor", Color.black);
-                                    Debug.Log($"[LightsOutScript] Disabled emission for material '{material.name}', nya~!");
                                 }
                             }
                         }
