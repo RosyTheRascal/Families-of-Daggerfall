@@ -1895,7 +1895,8 @@ namespace CustomDaggerfallTalkWindowMod
                     switch (recordIndex)
                     {
                         case 0: return "BosmerFemale0.png";
-                        case 1: return "BosmerMale0.png";
+                        case 1: return "TFAC00I0.RCI_1302001-0.png";
+                        case 2: return "TFAC00I0.RCI_1302002-0.png";
                         default: return null;
                     }
                 case 1305:

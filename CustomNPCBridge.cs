@@ -43,6 +43,7 @@ namespace CustomNPCBridgeMod
         public int OriginalBillboardArchiveIndex { get; private set; }
         public int OriginalBillboardRecordIndex { get; private set; }
         private HashSet<string> deadNPCs = new HashSet<string>();
+        public const int PickpocketBuffAmount = 100;
 
         public static string MakeDeadNpcKey(int buildingKey, int archive, int record)
         {
@@ -58,6 +59,47 @@ namespace CustomNPCBridgeMod
         public bool IsNpcDead(int buildingKey, int archive, int record)
         {
             return deadNPCs.Contains(MakeDeadNpcKey(buildingKey, archive, record));
+        }
+
+        public void EnsurePickpocketBuffConsistency()
+        {
+            // Only use IsBoosted as the single source of truth, nya~
+            int playerPickpocket = GameManager.Instance.PlayerEntity.Skills.GetLiveSkillValue(DFCareer.Skills.Pickpocket);
+
+            if (boostData.IsBoosted)
+            {
+                GameManager.Instance.PlayerEntity.Skills.SetPermanentSkillValue(
+                    DFCareer.Skills.Pickpocket,
+                    (short)(playerPickpocket < PickpocketBuffAmount ? playerPickpocket + PickpocketBuffAmount : playerPickpocket)
+                );
+            }
+            else
+            {
+                GameManager.Instance.PlayerEntity.Skills.SetPermanentSkillValue(
+                    DFCareer.Skills.Pickpocket,
+                    (short)(playerPickpocket >= PickpocketBuffAmount ? playerPickpocket - PickpocketBuffAmount : playerPickpocket)
+                );
+            }
+        }
+
+        public void ApplyPickpocketBuff()
+        {
+            int playerPickpocket = GameManager.Instance.PlayerEntity.Skills.GetLiveSkillValue(DFCareer.Skills.Pickpocket);
+            GameManager.Instance.PlayerEntity.Skills.SetPermanentSkillValue(
+           DFCareer.Skills.Pickpocket,
+           (short)(GameManager.Instance.PlayerEntity.Skills.GetLiveSkillValue(DFCareer.Skills.Pickpocket) + PickpocketBuffAmount));
+            boostData.IsBoosted = true;
+            Debug.Log("Pickpocket buff applied!");
+        }
+
+        public void RemovePickpocketBuff()
+        {
+            int playerPickpocket = GameManager.Instance.PlayerEntity.Skills.GetLiveSkillValue(DFCareer.Skills.Pickpocket);
+            GameManager.Instance.PlayerEntity.Skills.SetPermanentSkillValue(
+                  DFCareer.Skills.Pickpocket,
+                  (short)(GameManager.Instance.PlayerEntity.Skills.GetLiveSkillValue(DFCareer.Skills.Pickpocket) - PickpocketBuffAmount));
+            boostData.IsBoosted = false;
+            Debug.Log("Pickpocket buff removed!");
         }
 
         private static HashSet<int> emptyBuildings = new HashSet<int>();
@@ -104,10 +146,7 @@ namespace CustomNPCBridgeMod
                 foreach (var hash in boostData.DeadNPCs)
                     deadNPCs.Add(hash);
             }
-            if (boostData.IsBoosted == true)
-            {
-                RemoveBoost();
-            }
+            EnsurePickpocketBuffConsistency();
         }
 
         public void SetBoost()

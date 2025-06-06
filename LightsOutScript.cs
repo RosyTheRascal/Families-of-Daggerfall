@@ -324,21 +324,73 @@ namespace LightsOutScriptMod
                             SpawnFacadeAtFactionBuildings(location);
                     }
 
-                    if (currentHour >= 18 || currentHour < 6)
+                    // === Update CombinedModels window emission color based on time of day, nya! ===
+                    // === Update CombinedModels window emission color based on time of day, nya! ===
+                    var matReader = DaggerfallUnity.Instance.MaterialReader;
+                    if (matReader != null)
                     {
-                     
-                            emissiveCombinedModelsActive = false;
-                            ControlEmissiveWindowTexturesInCombinedModels(emissiveCombinedModelsActive);
-                            Debug.Log("[LightsOutScript] Emissive textures automatically deactivated due to time, nya~!");
-                        
+                        Color dayColor = matReader.DayWindowColor * matReader.DayWindowIntensity;
+                        Color eveningColor = matReader.NightWindowColor * matReader.NightWindowIntensity;
+                        Color nightColor = Color.black;
+                        int hour = DaggerfallUnity.Instance.WorldTime.Now.Hour;
+
+                        Debug.Log($"[LightsOutScript] [Emission Debug] Current hour: {hour}");
+
+                        foreach (var location in allLocations)
+                        {
+                            var blocks = location.GetComponentsInChildren<DaggerfallRMBBlock>(true);
+                            foreach (var block in blocks)
+                            {
+                                var combinedModelsTransform = block.transform.Find("Models/CombinedModels");
+                                if (combinedModelsTransform != null)
+                                {
+                                    var renderers = combinedModelsTransform.GetComponentsInChildren<MeshRenderer>();
+                                    if (renderers.Length == 0)
+                                    {
+                                        Debug.Log($"[LightsOutScript] [Emission Debug] No MeshRenderers found in CombinedModels of block {block.name}");
+                                    }
+
+                                    foreach (var meshRenderer in renderers)
+                                    {
+                                        foreach (var material in meshRenderer.materials)
+                                        {
+                                            Debug.Log($"[LightsOutScript] [Emission Debug] Found material: {material.name} (shader: {material.shader.name}) on block {block.name}");
+
+                                            // Only update materials that have _EmissionMap and _EmissionColor properties
+                                            if (material.HasProperty("_EmissionMap") && material.HasProperty("_EmissionColor"))
+                                            {
+                                                if ((hour >= 6 && hour < 8) || (hour >= 17 && hour < 18))
+                                                {
+                                                    material.SetColor("_EmissionColor", eveningColor);
+                                                    material.EnableKeyword("_EMISSION");
+                                                    Debug.Log($"[LightsOutScript] [Emission Debug] Set {material.name} emission to EVENING (yellow-orange) color: {eveningColor} on block {block.name} at hour {hour}");
+                                                }
+                                                else if (hour >= 8 && hour < 17)
+                                                {
+                                                    material.SetColor("_EmissionColor", dayColor);
+                                                    material.EnableKeyword("_EMISSION");
+                                                    Debug.Log($"[LightsOutScript] [Emission Debug] Set {material.name} emission to DAY (blue-grey) color: {dayColor} on block {block.name} at hour {hour}");
+                                                }
+                                                else // 18pm–6am
+                                                {
+                                                    material.SetColor("_EmissionColor", nightColor);
+                                                    material.DisableKeyword("_EMISSION");
+                                                    Debug.Log($"[LightsOutScript] [Emission Debug] Set {material.name} emission to NIGHT (black) color: {nightColor} on block {block.name} at hour {hour}");
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                                else
+                                {
+                                    Debug.Log($"[LightsOutScript] [Emission Debug] CombinedModelsTransform not found in block '{block.name}'");
+                                }
+                            }
+                        }
                     }
-                    else if (currentHour >= 6 && currentHour < 8)
+                    else
                     {
-                    
-                            emissiveCombinedModelsActive = true;
-                            ControlEmissiveWindowTexturesInCombinedModels(emissiveCombinedModelsActive);
-                            Debug.Log("[LightsOutScript] Emissive textures automatically reactivated due to time, nya~!");
-                        
+                        Debug.LogWarning("[LightsOutScript] [Emission Debug] MaterialReader instance is null!");
                     }
                     Debug.Log("[LightsOutScript] Main CoRoutine is running nyan!");
                 }
@@ -672,7 +724,7 @@ namespace LightsOutScriptMod
 
                 Debug.Log("[LightsOutScript] Applied time-based emissive deactivation, nya~!");
             }
-            else if (currentHour >= 6 && currentHour < 8)
+            else if (currentHour >= 6 && currentHour < 18)
             {
                 emissiveCombinedModelsActive = true;
                 ControlEmissiveWindowTexturesInCombinedModels(emissiveCombinedModelsActive);
@@ -1409,7 +1461,7 @@ namespace LightsOutScriptMod
             Debug.Log($"[LightsOutScript] Starting CoRoutine from Transition");
             StartCoroutine(TriggerLightsOutCoroutine());
             poop = true;
-            StartCoroutine(TeleportPlayerToEnterDoorOrMarkerAfterDelay(args.DaggerfallInterior, args.StaticDoor, 0.3f));
+            //StartCoroutine(TeleportPlayerToEnterDoorOrMarkerAfterDelay(args.DaggerfallInterior, args.StaticDoor, 0.3f));
         }
 
         private IEnumerator TeleportPlayerToEnterDoorOrMarkerAfterDelay(
@@ -1520,13 +1572,14 @@ namespace LightsOutScriptMod
         private IEnumerator PeriodicStealthCheckCoroutine()
         {
             Debug.Log("[LightsOutScript] Starting periodic Stealth check coroutine, nya~!");
+            float runningTimeAccum = 0f;
 
             // Keep checking until caught or LightsOut disabled
             while (!Caught && LightsOut)
             {
-                // Wait 8 seconds, but check for exit conditions every 0.1s
+                runningTimeAccum = 0f;
                 float timeWaited = 0f;
-                while (timeWaited < 5.0f)
+                while (timeWaited < 7.0f)
                 {
                     if (Caught || !LightsOut)
                     {
@@ -1534,6 +1587,13 @@ namespace LightsOutScriptMod
                         Debug.Log("[LightsOutScript] Coroutine exiting early due to Caught or LightsOut=false, nya~!");
                         yield break; // Exit instantly if conditions change
                     }
+
+                    var playerMotor = GameManager.Instance.PlayerMotor;
+                    if (playerMotor != null && playerMotor.IsRunning)
+                    {
+                        runningTimeAccum += 0.1f; // Add .1s for each .1s interval spent running
+                    }
+
                     yield return new WaitForSeconds(0.1f);
                     timeWaited += 0.1f;
                 }
@@ -1543,12 +1603,15 @@ namespace LightsOutScriptMod
 
                 // Calculate the probability of failing based on Stealth skill
                 float randomFactor = UnityEngine.Random.Range(-0.15f, 0.15f); // Add some randomness
-                float failureProbability = Mathf.Clamp01(1.0f - (playerStealth) / 100f + randomFactor);
+                float failureProbability = Mathf.Clamp01(0.7f - (playerStealth) / 100f + randomFactor);
+
+                failureProbability += runningTimeAccum;
+                Debug.Log($"[LightsOutScript] Added running penalty ({runningTimeAccum}) to failureProbability, new value: {failureProbability}, nya~!");
 
                 if (IsGuardDogPresentInScene())
                 {
                     float before = failureProbability;
-                    failureProbability = failureProbability + 0.5f;
+                    failureProbability = failureProbability + 0.4f;
                     Debug.Log($"[LightsOutScript] Doggo present! Failure probability increased from {before} to {failureProbability}, nya~!");
                 }
                 Debug.Log($"[LightsOutScript] Stealth failure probability rolled: {failureProbability}, nya~!");
@@ -1611,8 +1674,8 @@ namespace LightsOutScriptMod
                 else
                 {
                     Debug.Log("[LightsOutScript] Stealth check passed, nya~!");
-                    GameManager.Instance.PlayerEntity.TallySkill(DFCareer.Skills.Stealth, 1);
-                    Debug.Log("[LightsOutScript] Tallied 1 Stealth skill use for player, nya~!");
+                    GameManager.Instance.PlayerEntity.TallySkill(DFCareer.Skills.Stealth, 3);
+                    Debug.Log("[LightsOutScript] Tallied 3 Stealth skill uses for player, nya~!");
                 }
             }
 
@@ -1790,34 +1853,6 @@ namespace LightsOutScriptMod
                     }
                 }
             }
-  
-            var allLocations = GameObject.FindObjectsOfType<DaggerfallLocation>();
-            foreach (var location in allLocations)
-            {
-                var blocks = location.GetComponentsInChildren<DaggerfallRMBBlock>(true);
-                foreach (var block in blocks)
-                {
-                    var combinedModelsTransform = block.transform.Find("Models/CombinedModels");
-                    if (combinedModelsTransform != null)
-                    {
-                        foreach (var meshRenderer in combinedModelsTransform.GetComponentsInChildren<MeshRenderer>())
-                        {
-                            foreach (var material in meshRenderer.materials)
-                            {
-                                if (material.HasProperty("_EmissionMap") || material.HasProperty("_EmissionColor"))
-                                {
-                                    material.DisableKeyword("_EMISSION");
-                                    material.SetColor("_EmissionColor", Color.black);
-                                }
-                            }
-                        }
-                    }
-                    else
-                    {
-                        Debug.LogWarning($"[LightsOutScript] CombinedModelsTransform not found in block '{block.name}', nya~!");
-                    }
-                }
-            }
 
             stopMusicFlag = false;
             var songPlayer = FindObjectOfType<DaggerfallSongPlayer>();
@@ -1876,16 +1911,15 @@ namespace LightsOutScriptMod
                     meshRenderer.enabled = false; // Disable the mesh renderer nya~!
                     Debug.Log($"[LightsOutScript] Disabled MeshRenderer for CustomStaticNPC '{customNPC.name}', nya~!");
                 }
-                BoxCollider boxCollider = GetComponent<BoxCollider>();
+                BoxCollider boxCollider = customNPC.GetComponent<BoxCollider>();
                 if (boxCollider != null)
                 {
                     boxCollider.enabled = false;
                 }
-                CapsuleCollider collider = GetComponent<CapsuleCollider>();
+                CapsuleCollider collider = customNPC.GetComponent<CapsuleCollider>();
                 if (collider != null)
                 {
-                    collider.enabled = false; 
-
+                    collider.enabled = false;
                 }
             }
             LightsOut = true;
