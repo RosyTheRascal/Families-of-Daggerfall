@@ -324,6 +324,23 @@ namespace LightsOutScriptMod
                             SpawnFacadeAtFactionBuildings(location);
                     }
 
+                    if (currentHour >= 18 || currentHour < 6)
+                    {
+                     
+                            emissiveCombinedModelsActive = false;
+                            ControlEmissiveWindowTexturesInCombinedModels(emissiveCombinedModelsActive);
+                            Debug.Log("[LightsOutScript] Emissive textures automatically deactivated due to time, nya~!");
+                        
+                    }
+                    else if (currentHour >= 6 && currentHour < 18)
+                    {
+                    
+                            emissiveCombinedModelsActive = true;
+                            ControlEmissiveWindowTexturesInCombinedModels(emissiveCombinedModelsActive);
+                            Debug.Log("[LightsOutScript] Emissive textures automatically reactivated due to time, nya~!");
+                        
+                    }
+
                     // === Update CombinedModels window emission color based on time of day, nya! ===
                     // === Update CombinedModels window emission color based on time of day, nya! ===
                     var matReader = DaggerfallUnity.Instance.MaterialReader;
@@ -352,30 +369,36 @@ namespace LightsOutScriptMod
 
                                     foreach (var meshRenderer in renderers)
                                     {
+                                        // Get the Interior GameObject once at the top
+                                        GameObject interior = GameObject.Find("Interior");
+
                                         foreach (var material in meshRenderer.materials)
                                         {
                                             Debug.Log($"[LightsOutScript] [Emission Debug] Found material: {material.name} (shader: {material.shader.name}) on block {block.name}");
 
-                                            // Only update materials that have _EmissionMap and _EmissionColor properties
                                             if (material.HasProperty("_EmissionMap") && material.HasProperty("_EmissionColor"))
                                             {
-                                                if ((hour >= 6 && hour < 8) || (hour >= 17 && hour < 18))
+                                                // Only proceed if there's actually an emission map assigned
+                                                if (material.GetTexture("_EmissionMap") != null)
                                                 {
-                                                    material.SetColor("_EmissionColor", eveningColor);
-                                                    material.EnableKeyword("_EMISSION");
-                                                    Debug.Log($"[LightsOutScript] [Emission Debug] Set {material.name} emission to EVENING (yellow-orange) color: {eveningColor} on block {block.name} at hour {hour}");
-                                                }
-                                                else if (hour >= 8 && hour < 17)
-                                                {
-                                                    material.SetColor("_EmissionColor", dayColor);
-                                                    material.EnableKeyword("_EMISSION");
-                                                    Debug.Log($"[LightsOutScript] [Emission Debug] Set {material.name} emission to DAY (blue-grey) color: {dayColor} on block {block.name} at hour {hour}");
-                                                }
-                                                else // 18pm–6am
-                                                {
-                                                    material.SetColor("_EmissionColor", nightColor);
-                                                    material.DisableKeyword("_EMISSION");
-                                                    Debug.Log($"[LightsOutScript] [Emission Debug] Set {material.name} emission to NIGHT (black) color: {nightColor} on block {block.name} at hour {hour}");
+                                                        if ((hour >= 6 && hour < 8) || (hour >= 17 && hour < 18))
+                                                        {
+                                                            material.SetColor("_EmissionColor", eveningColor);
+                                                            material.EnableKeyword("_EMISSION");
+                                                            Debug.Log($"[LightsOutScript] [Emission Debug] Set {material.name} emission to EVENING (yellow-orange) color: {eveningColor} on block {block.name} at hour {hour}");
+                                                        }
+                                                        else if (hour >= 8 && hour < 17)
+                                                        {
+                                                            material.SetColor("_EmissionColor", dayColor);
+                                                            material.EnableKeyword("_EMISSION");
+                                                            Debug.Log($"[LightsOutScript] [Emission Debug] Set {material.name} emission to DAY (blue-grey) color: {dayColor} on block {block.name} at hour {hour}");
+                                                        }
+                                                        else // 18pm–6am
+                                                        {
+                                                            material.SetColor("_EmissionColor", nightColor);
+                                                            material.DisableKeyword("_EMISSION");
+                                                            Debug.Log($"[LightsOutScript] [Emission Debug] Set {material.name} emission to NIGHT (black) color: {nightColor} on block {block.name} at hour {hour}");
+                                                        }
                                                 }
                                             }
                                         }
@@ -444,6 +467,7 @@ namespace LightsOutScriptMod
                 return;
             }
             StartCoroutine(ResetShadersCoroutine(1.0f));
+            StopCoroutine(FacadeMinuteWatcher());
         }
 
         private IEnumerator Restore326_3_0EmissionMapsForNightDelayed()
@@ -487,7 +511,7 @@ namespace LightsOutScriptMod
                         {
                             foreach (var material in meshRenderer.materials)
                             {
-                                if (material.name.Contains("326_3-0"))
+                                if (material.name.Contains("326_3-0") || material.name.Contains("TEXTURE.172 [Index=3]"))
                                 {
                                     material.shader = Shader.Find("Daggerfall/Default");
                                     try
@@ -848,6 +872,7 @@ namespace LightsOutScriptMod
             LightsOut = false;
             StopCoroutine(StopMusicCoroutine(songPlayer));
             ApplyTimeBasedEmissiveChanges();
+            StatCoroutine(FacadeMinuteWatcher());
         }
 
         private bool deferred = false;
@@ -1850,6 +1875,34 @@ namespace LightsOutScriptMod
                     {
                         meshRenderer.enabled = false; // Disabwe the mesh wendewew fow wight biwwboawds, nya~!
                         Debug.Log($"[LightsOutScript] Disabwed DaggerfallBillboard '{billboard.name}' because it is part of TEXTURE.210 and a light billboard, nya~!");
+                    }
+                }
+            }
+  
+            var allLocations = GameObject.FindObjectsOfType<DaggerfallLocation>();
+            foreach (var location in allLocations)
+            {
+                var blocks = location.GetComponentsInChildren<DaggerfallRMBBlock>(true);
+                foreach (var block in blocks)
+                {
+                    var combinedModelsTransform = block.transform.Find("Models/CombinedModels");
+                    if (combinedModelsTransform != null)
+                    {
+                        foreach (var meshRenderer in combinedModelsTransform.GetComponentsInChildren<MeshRenderer>())
+                        {
+                            foreach (var material in meshRenderer.materials)
+                            {
+                                if (material.HasProperty("_EmissionMap") || material.HasProperty("_EmissionColor"))
+                                {
+                                    material.DisableKeyword("_EMISSION");
+                                    material.SetColor("_EmissionColor", Color.black);
+                                }
+                            }
+                        }
+                    }
+                    else
+                    {
+                        Debug.LogWarning($"[LightsOutScript] CombinedModelsTransform not found in block '{block.name}', nya~!");
                     }
                 }
             }
