@@ -164,7 +164,7 @@ namespace CustomTalkManagerMod
 
         public CustomTalkManager()
         {
-            // Manually define the specific faction IDs you want to include
+        
             infoFactionIDs = new int[] { 40, 41, 42, 108, 129, 306, 353, 67, 82, 84, 88, 92, 94, 106, 36, 83, 85, 89, 93, 95, 98, 99, 107, 37, 368, 408, 409, 410, 411, 413, 414, 415, 416, 98 };
             listItemData = new Dictionary<TalkManager.ListItem, (string PlayerQuestion, string NpcResponse)>();
         }

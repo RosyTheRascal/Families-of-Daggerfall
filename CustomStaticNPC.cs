@@ -64,17 +64,17 @@ namespace CustomStaticNPCMod
             mod.IsReady = true;
         }
 
-        // Add a default race property
+
         public Races DefaultRace { get; set; } = Races.Breton;
 
-        // Add the Race property
+
         public Races Race
         {
             get { return npcData.race; }
             set { npcData.race = value; }
         }
 
-        // Add the Gender property
+
         public Genders Gender
         {
             get { return npcData.gender; }
@@ -98,7 +98,6 @@ namespace CustomStaticNPCMod
             // Check if the NPC display name is different from the last one
             if (npcDisplayName != lastNpcDisplayName)
             {
-                // Reset any necessary flags or states here
                 Debug.Log("NPC display name has changed, resetting necessary states.");
             }
 
@@ -145,7 +144,7 @@ namespace CustomStaticNPCMod
 
         private IEnumerator DelayedNPCCheck()
         {
-            // Wait 1 frame (or you can increase to 2-3 if needed)
+
             yield return null;
             yield return null;
             yield return null;
@@ -153,12 +152,10 @@ namespace CustomStaticNPCMod
             yield return null;
             yield return null;
 
-            // Update flag just in case (safe redundancy)
             CustomStaticNPC.UpdateSpecialBillboardsFlag();
 
             int livingNPCCount = CustomNPCBridgeMod.CustomNPCBridge.Instance.GetLivingNPCCountInInterior();
 
-            // ... everything else from your original Start(), except the OnTransitionExterior line!
             int playerStealth = GameManager.Instance.PlayerEntity.Skills.GetLiveSkillValue(DFCareer.Skills.Stealth);
             int playerPickpocket = GameManager.Instance.PlayerEntity.Skills.GetLiveSkillValue(DFCareer.Skills.Pickpocket);
             string npcDisplayName = CustomDisplayName;
@@ -167,13 +164,13 @@ namespace CustomStaticNPCMod
             int record = OriginalBillboardRecordIndex;
             npcTopicHash = GenerateHash(npcDisplayName, houseID);
 
-            // Log the current and last NPC display names
+       
             Debug.Log($"Hashbrowns: {npcDisplayName}");
 
-            // Check if the NPC display name is different from the last one
+
             if (npcDisplayName != lastNpcDisplayName)
             {
-                // Reset any necessary flags or states here
+              
                 Debug.Log("NPC display name has changed, resetting necessary states.");
             }
 
@@ -183,18 +180,18 @@ namespace CustomStaticNPCMod
             int buildingKey = GameManager.Instance.PlayerEnterExit.BuildingDiscoveryData.buildingKey;
 
             // Check if the NPC is marked as dead
-            string npcName = CustomDisplayName; // or use your unique name logic
+            string npcName = CustomDisplayName; 
 
             if (CustomNPCBridgeMod.CustomNPCBridge.Instance.IsNpcDead(buildingKey, archive, record))
             {
-                // Disable the MeshRenderer component
+            
                 MeshRenderer meshRenderer = GetComponent<MeshRenderer>();
                 if (meshRenderer != null)
                 {
                     meshRenderer.enabled = false;
                 }
 
-                // Disable the BoxCollider component
+           
                 BoxCollider boxCollider = GetComponent<BoxCollider>();
                 if (boxCollider != null)
                 {
@@ -203,10 +200,10 @@ namespace CustomStaticNPCMod
             }
             else
             {
-                // Register the NPC with CustomNPCBridge
+                
                 CustomNPCBridgeMod.CustomNPCBridge.Instance.RegisterCustomNPC(GetInstanceID(), this);
             }
-            // Get the current number of living custom NPCs in the interior
+      
             if (livingNPCCount <= 0 && !CustomStaticNPC.AnySpecialBillboardsPresent && !CustomStaticNPC.aidanFired)
             {
                 NothingHereAidan();
@@ -239,7 +236,7 @@ namespace CustomStaticNPCMod
             set
             {
                 customDisplayName = value;
-                // Update the display name if NPC is already initialized
+   
                 if (npcData.nameSeed != 0)
                 {
                     SetCustomDisplayName(customDisplayName);
@@ -312,7 +309,7 @@ namespace CustomStaticNPCMod
         public void OnHitByWeapon()
         {
             int buildingKey = GameManager.Instance.PlayerEnterExit.BuildingDiscoveryData.buildingKey;
-            string npcName = this.CustomDisplayName; // Or whatever uniquely identifies your NPC
+            string npcName = this.CustomDisplayName; 
             Debug.Log($"Custom NPC {customDisplayName} (ID: {npcId}) was hit by a weapon!");
             int livingNPCCount = CustomNPCBridgeMod.CustomNPCBridge.Instance.GetLivingNPCCountInInterior();
             int playerStealth = GameManager.Instance.PlayerEntity.Skills.GetLiveSkillValue(DFCareer.Skills.Stealth);
@@ -349,15 +346,15 @@ namespace CustomStaticNPCMod
                 messageBox.SetText("You've been caught!");
                 messageBox.ClickAnywhereToClose = true;
                 messageBox.Show();
-                GameManager.Instance.PlayerEntity.SpawnCityGuards(true); // Call the method to spawn guards
+                GameManager.Instance.PlayerEntity.SpawnCityGuards(true); // 
                 GameManager.Instance.PlayerEntity.CrimeCommitted = PlayerEntity.Crimes.Murder;
                 GameManager.Instance.PlayerEntity.CrimeCommitted = PlayerEntity.Crimes.Assault;
 
-                // Get the entrance position of the building
+               
                 Vector3 entrancePosition = GameManager.Instance.PlayerEnterExit.Interior.transform.position;
                 Vector3 forwardDirection = GameManager.Instance.PlayerEnterExit.Interior.transform.forward;
 
-                // Spawn guards at the entrance
+                
                 GameManager.Instance.PlayerEntity.SpawnCityGuard(entrancePosition, forwardDirection);
                 RegisterBuildingAsEmpty();
                 halt = true;
@@ -380,7 +377,7 @@ namespace CustomStaticNPCMod
 
         public static bool ShouldCallGuards()
         {
-            if (guardsCalled) return false; // Don't call guards again if already called this session!
+            if (guardsCalled) return false; 
 
             int numNPCs = CustomNPCBridgeMod.CustomNPCBridge.Instance.GetLivingNPCCountInInterior();
             int playerStealth = GameManager.Instance.PlayerEntity.Skills.GetLiveSkillValue(DFCareer.Skills.Stealth);
@@ -388,7 +385,7 @@ namespace CustomStaticNPCMod
             float probability = 1f / (1f + Mathf.Exp(-(0.5f * numNPCs - 2 + randomFactor) + (playerStealth - 50) / 25f));
             Debug.Log($"Guard probability rolled: {probability}");
             bool shouldCall = UnityEngine.Random.value < probability;
-            if (shouldCall) guardsCalled = true; // Set the flag when called!
+            if (shouldCall) guardsCalled = true; 
             return shouldCall;
         }
 
@@ -396,10 +393,10 @@ namespace CustomStaticNPCMod
         private void PlayBloodEffect(Vector3 position)
         {
             const int bloodArchive = 380;
-            const int bloodIndex = 0; // You can change this to the appropriate blood index
-            const float yOffset = .4f; // Adjust this value to set how much higher the blood effect should appear
+            const int bloodIndex = 0; 
+            const float yOffset = .4f; 
 
-            // Create oneshot animated billboard for blood effect
+            
             DaggerfallUnity dfUnity = DaggerfallUnity.Instance;
             if (dfUnity)
             {
@@ -541,7 +538,7 @@ namespace CustomStaticNPCMod
                 }
                 else
                 {
-                    // Generate a unique "son of ---" last name for non-child Hammerfell NPCs
+                   
                     string redguardFirstName = DaggerfallUnity.Instance.NameHelper.FirstName(NameHelper.BankTypes.Redguard, Genders.Male);
                     familyLastName = $"son of {redguardFirstName}";
                 }

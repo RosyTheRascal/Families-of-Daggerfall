@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Collections;
 using UnityEngine;
 using DaggerfallConnect;
 using DaggerfallConnect.Arena2;
@@ -39,8 +40,35 @@ namespace CustomBedActivatorMod
             mod.IsReady = true;
         }
 
+        void Awake()
+        {
+            DaggerfallWorkshop.Game.PlayerEnterExit.OnTransitionInterior += OnTransitionInterior;
+        }
+
+       private void OnTransitionInterior(DaggerfallWorkshop.Game.PlayerEnterExit.TransitionEventArgs args)
+       {
+            Debug.Log("Player walked into an interior!");
+            var enterMarkers = args.DaggerfallInterior.Markers;
+            for (int i = 0; i < enterMarkers.Length; i++)
+            {
+                if (enterMarkers[i].type == DaggerfallWorkshop.DaggerfallInterior.InteriorMarkerTypes.Enter)
+                {
+                    Vector3 pos = enterMarkers[i].gameObject.transform.position;
+                    pos.y += 0.2f;
+                    enterMarkers[i].gameObject.transform.position = pos;
+                }
+            }
+       }
+
+        private static void OnTransitionToInteriorStatic(PlayerEnterExit.TransitionEventArgs args)
+        {
+            Debug.Log("STATIC: Player walked into an interior!");
+        }
+
         private void Start()
         {
+            PlayerEnterExit.OnTransitionInterior += OnTransitionToInteriorStatic;
+            DontDestroyOnLoad(this.gameObject);
             Debug.Log("Start called, registering custom activations...");
             LoadAudio();
             PlayerActivate.RegisterCustomActivation(mod, 41000, SleepActivator);

@@ -356,7 +356,11 @@ namespace FamilyNameModifierMod
                 }
             }
 
-            // Generate a unique first name per NPC (using race/gender as usual)
+            // ------- CONSISTENT FIRST NAME LOGIC (MATCHES VANILLA STATIC NPCS) -------
+            // Build a deterministic nameSeed for this billboard-NPC
+
+            int nameSeed = (buildingId + "-" + archiveIndex + "-" + billboard.Summary.Record).GetHashCode();
+            DFRandom.srand(nameSeed);
             string firstName = DaggerfallUnity.Instance.NameHelper.FirstName(race, gender);
 
             // Set the display name

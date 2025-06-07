@@ -59,10 +59,10 @@ namespace CustomNPCClickHandlerMod
         {
             if (GameManager.IsGamePaused)
             {
-                return; // Do not process clicks if the game is paused
+                return;
             }
 
-            if (Input.GetMouseButtonDown(0) && !clickHandled) // Ensure the click is handled only once
+            if (Input.GetMouseButtonDown(0) && !clickHandled) 
             {
                 clickHandled = true;
                 Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
@@ -92,7 +92,7 @@ namespace CustomNPCClickHandlerMod
                         }
 
 
-                        // Enable the custom talk manager before starting the conversation
+                        
                         CustomTalkManagerMod.CustomTalkManager.Instance.enabled = true;
                         CustomTalkManagerMod.CustomTalkManager.Instance.StartConversation(customNPC);
                     }

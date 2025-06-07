@@ -75,8 +75,8 @@ namespace FlowerDeActivatorMod
             if (interiorParent != null && interiorParent.activeSelf)
             {
                 Debug.LogWarning("Player loaded into an interior");
-                DisableTargetComponents();
-                NudgeInteriorChildrenUpwards();
+               DisableTargetComponents();
+               NudgeInteriorChildrenUpwards();
             }
         }
 
@@ -112,21 +112,66 @@ namespace FlowerDeActivatorMod
                 marker.gameObject.transform.position = pos;
             }
             Debug.Log($"Player walked into an interior!");
-            StartCoroutine(TeleportPlayerToEnterMarkerAfterDelay(args.DaggerfallInterior, 0.5f));
+            StartCoroutine(TeleportPlayerToEnterDoorOrMarkerAfterDelay(args.DaggerfallInterior, args.StaticDoor, 0.3f));
             DisableTargetComponents();
             NudgeInteriorChildrenUpwards();
         }
 
-        private IEnumerator TeleportPlayerToEnterMarkerAfterDelay(DaggerfallWorkshop.DaggerfallInterior interior, float delay = 0.5f)
+        private IEnumerator TeleportPlayerToEnterDoorOrMarkerAfterDelay(
+                 DaggerfallWorkshop.DaggerfallInterior interior,
+                 DaggerfallWorkshop.StaticDoor entryDoor,
+                 float delay = 0.3f)
         {
+            // Wait extra frames for timing/stability
+            yield return null;
+            yield return null;
+            yield return null;
+            yield return null;
+            yield return null;
+            yield return null;
+            yield return null;
+            yield return null;
+            yield return null;
             yield return new WaitForSeconds(delay);
 
-            Debug.Log($"Teleport player coroutine called!");
-            var enterMarker = interior.Markers.FirstOrDefault(m => m.type == DaggerfallWorkshop.DaggerfallInterior.InteriorMarkerTypes.Enter);
-            if (enterMarker.gameObject != null)
+            Vector3 entryWorldPos = DaggerfallStaticDoors.GetDoorPosition(entryDoor);
+            Debug.Log($"[DBG] Entry door world pos: {entryWorldPos}");
+
+            // 2. Fallback: use the closest enter marker (nudged up)
+            DaggerfallWorkshop.DaggerfallInterior.InteriorEditorMarker? closestMarker = null;
+            float minMarkerDist = float.MaxValue;
+            foreach (var marker in interior.Markers)
             {
-                Transform playerTransform = GameManager.Instance.PlayerObject.transform;
-                playerTransform.position = enterMarker.gameObject.transform.position;
+                if (marker.type == DaggerfallWorkshop.DaggerfallInterior.InteriorMarkerTypes.Enter)
+                {
+                    Vector3 markerPos = marker.gameObject.transform.position;
+                    float dist = Vector3.Distance(markerPos, entryWorldPos);
+                    Debug.Log($"[DBG] Enter marker at {markerPos}, distance to entry door: {dist}");
+                    if (dist < minMarkerDist)
+                    {
+                        minMarkerDist = dist;
+                        closestMarker = marker;
+                    }
+                }
+            }
+            if (closestMarker != null && closestMarker.Value.gameObject != null)
+            {
+                Vector3 markerPos = closestMarker.Value.gameObject.transform.position;
+                Vector3 toDoor = (entryWorldPos - markerPos).normalized;
+                Vector3 fakeNormal = -toDoor; // "inside" direction
+
+                float upNudge = 0.3f; // vertical
+                float height = GameManager.Instance.PlayerController ? GameManager.Instance.PlayerController.height : 1.8f;
+
+                Vector3 spawnPos = markerPos
+                    + Vector3.up * (height * upNudge);
+
+                GameManager.Instance.PlayerObject.transform.position = spawnPos;
+                Debug.Log($"[DBG] Fallback: teleported to closest enter marker at {spawnPos} (distance: {minMarkerDist})");
+            }
+            else
+            {
+                Debug.LogWarning("[DBG] No enter markers found, player position unchanged!");
             }
         }
 

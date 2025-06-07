@@ -59,22 +59,33 @@ namespace LightsOutScriptMod
         }
 
         private int lastMinute = -1;
+        private int lastHourChecked = -1;
+        private PlayerGPS playerGPS;
+        private Coroutine clockWatcherCoroutine;
+        private HashSet<string> robbedBuildings = new HashSet<string>();
         private HashSet<DaggerfallLocation> processedLocations = new HashSet<DaggerfallLocation>();
         private HashSet<string> processedBuildings = new HashSet<string>(); // Tracks buildings processed by facade spawning
         private HashSet<DaggerfallLocation> locationsBeingProcessed = new HashSet<DaggerfallLocation>();
 
         void Awake()
         {
+            DaggerfallWorkshop.Game.UserInterfaceWindows.DaggerfallRestWindow.OnSleepEnd += OnSleepEnd;
             DaggerfallWorkshop.Game.PlayerEnterExit.OnTransitionInterior += OnTransitionInterior;
             emissiveCombinedModelsActive = CheckEmissiveTextureStateCombinedModels();
             PlayerEnterExit.OnTransitionExterior += OnExteriorTransitionDetected;
             WorldTime.OnNewHour += HandleNewHourEvent;
             Debug.Log($"[LightsOutScript] Initial emissiveCombinedModelsActive state: {(emissiveCombinedModelsActive ? "ACTIVE" : "INACTIVE")}, nya~!");
             Debug.Log($"[LightsOutScript] Initial emissiveFacadesActive state: {(emissiveFacadesActive ? "ACTIVE" : "INACTIVE")}, nya~!");
+            playerGPS = GameManager.Instance.PlayerGPS; // Safe in Awake, but if null, move to Start()!
+            if (playerGPS != null)
+                PlayerGPS.OnEnterLocationRect += OnEnterLocationRect;
+            else
+                Debug.LogWarning("[LightsOutScript] PlayerGPS not found in Awake! Will try again in Start, nya~!");
         }
 
         void Start()
         {
+            StartCoroutine(ClockWatcher());
             StartCoroutine(FacadeMinuteWatcher());
             SaveLoadManager.OnLoad += OnSaveLoaded;
         }
@@ -100,6 +111,109 @@ namespace LightsOutScriptMod
             {
                 StartCoroutine(PooChungus());
             }
+
+            foreach (var source in cricketSources)
+            {
+                if (source != null && source.isPlaying)
+                {
+                    source.Stop();
+                    Debug.Log("[LightsOutScript] Stopped cricket sound source.");
+                }
+                Destroy(source);
+                Debug.Log("[LightsOutScript] Destroyed cricket AudioSource.");
+            }
+            cricketSources.Clear(); //
+            if (cricketAudio != null)
+            {
+                if (cricketAudio.isPlaying)
+                {
+                    cricketAudio.Stop();
+                    Debug.Log("[LightsOutScript] Cricket sound stopped!");
+                }
+                Destroy(cricketAudio);
+                cricketAudio = null;
+                Debug.Log("[LightsOutScript] Cricket AudioSource destroyed!");
+            }
+        }
+
+        void OnDestroy()
+        {
+            DaggerfallWorkshop.Game.UserInterfaceWindows.DaggerfallRestWindow.OnSleepEnd -= OnSleepEnd;
+            DaggerfallWorkshop.Game.PlayerEnterExit.OnTransitionInterior -= OnTransitionInterior;
+            PlayerEnterExit.OnTransitionExterior -= OnExteriorTransitionDetected;
+            WorldTime.OnNewHour -= HandleNewHourEvent;
+            SaveLoadManager.OnLoad -= OnSaveLoaded;
+
+            if (playerGPS != null)
+                PlayerGPS.OnEnterLocationRect -= OnEnterLocationRect;
+
+            StopCoroutine(FacadeMinuteWatcher());
+
+            // Stop and clean up cricket AudioSources
+            foreach (var source in cricketSources)
+            {
+                if (source != null)
+                {
+                    source.Stop();
+                    Destroy(source);
+                }
+            }
+            cricketSources.Clear();
+
+            StopCoroutine(PeriodicStealthCheckCoroutine());
+            if (stopMusicCoroutine != null)
+                StopCoroutine(stopMusicCoroutine);
+
+            if (clockWatcherCoroutine != null)
+            {
+                StopCoroutine(clockWatcherCoroutine);
+                clockWatcherCoroutine = null;
+            }
+
+            Debug.Log("[LightsOutScript] OnDestroy called, cleaned up event handlers and resources, nya~!");
+        }
+
+        private void OnSleepEnd()
+        {
+            Debug.Log("[LightsOutScript] Player finished resting/loitering, nya~!");
+            StartCoroutine(FacadeMinuteWatcher());
+        }
+
+        private void OnEnterLocationRect(DFLocation location)                                                   
+        {
+            Debug.Log("[LightsOutScript] Player entered a new location rect, nya~!");
+            StartCoroutine(FacadeMinuteWatcher());
+        }
+
+        private bool clockWatcherRunning = false;
+
+        private IEnumerator ClockWatcher()
+        {
+            if (clockWatcherRunning)
+            {
+                Debug.Log("[LightsOutScript] ClockWatcher called but already running, nya~!");
+                yield break; // Exit early if already running
+            }
+
+            clockWatcherRunning = true;
+            Debug.Log("[LightsOutScript] ClockWatcher entered!");
+
+            while (true)
+            {
+                int currentHour = DaggerfallUnity.Instance.WorldTime.Now.Hour;
+                if (currentHour != lastHourChecked)
+                {
+                    lastHourChecked = currentHour;
+
+                  
+                    GameObject interior = GameObject.Find("Interior");
+
+                    Debug.Log("[LightsOutScript] Hour boundary crossed! Calling FacadeMinuteWatcher, nya~!");
+                    StartCoroutine(FacadeMinuteWatcher());
+                }
+                yield return new WaitForSeconds(1f);
+            }
+            // clockWatcherRunning = false;
         }
 
         public bool poop = false;
@@ -233,16 +347,15 @@ namespace LightsOutScriptMod
             yield return null;
             yield return null;
             yield return null;
-            yield return new WaitForSeconds(0.3f);
-            while (true)
-            {
+            yield return new WaitForSeconds(1.5f);
+          
                 // Wait until the minute changes
                 int currentMinute = DaggerfallUnity.Instance.WorldTime.Now.Minute;
                 if (currentMinute != lastMinute)
                 {
                     lastMinute = currentMinute;
 
-                    // === Begin your "Update" logic here ===
+                  
 
                     if (!initialized)
                     {
@@ -254,11 +367,7 @@ namespace LightsOutScriptMod
                             initialized = true;
                             Debug.Log($"[LightsOutScript] Combined Models and Facades initialized, nya~!");
                         }
-                        else
-                        {
-                            yield return null;
-                            continue;
-                        }
+   
                     }
 
                     var allLocations = GameObject.FindObjectsOfType<DaggerfallLocation>();
@@ -324,22 +433,7 @@ namespace LightsOutScriptMod
                             SpawnFacadeAtFactionBuildings(location);
                     }
 
-                    if (currentHour >= 18 || currentHour < 6)
-                    {
-                     
-                            emissiveCombinedModelsActive = false;
-                            ControlEmissiveWindowTexturesInCombinedModels(emissiveCombinedModelsActive);
-                            Debug.Log("[LightsOutScript] Emissive textures automatically deactivated due to time, nya~!");
-                        
-                    }
-                    else if (currentHour >= 6 && currentHour < 18)
-                    {
-                    
-                            emissiveCombinedModelsActive = true;
-                            ControlEmissiveWindowTexturesInCombinedModels(emissiveCombinedModelsActive);
-                            Debug.Log("[LightsOutScript] Emissive textures automatically reactivated due to time, nya~!");
-                        
-                    }
+
 
                     // === Update CombinedModels window emission color based on time of day, nya! ===
                     // === Update CombinedModels window emission color based on time of day, nya! ===
@@ -415,10 +509,26 @@ namespace LightsOutScriptMod
                     {
                         Debug.LogWarning("[LightsOutScript] [Emission Debug] MaterialReader instance is null!");
                     }
-                    Debug.Log("[LightsOutScript] Main CoRoutine is running nyan!");
+                if (currentHour >= 18 || currentHour < 6)
+                {
+
+                    emissiveCombinedModelsActive = false;
+                    ControlEmissiveWindowTexturesInCombinedModels(emissiveCombinedModelsActive);
+                    Debug.Log("[LightsOutScript] Emissive textures automatically deactivated due to time, nya~!");
+
                 }
-                yield return null; // Wait for next frame to check again
-            }
+                else if (currentHour >= 6 && currentHour < 18)
+                {
+
+                    emissiveCombinedModelsActive = true;
+                    ControlEmissiveWindowTexturesInCombinedModels(emissiveCombinedModelsActive);
+                    Debug.Log("[LightsOutScript] Emissive textures automatically reactivated due to time, nya~!");
+
+                }
+                Debug.Log("[LightsOutScript] Main CoRoutine is running nyan!");
+                }
+                //yield return null; // Wait for next frame to check again
+            
         }
 
         public bool LightsOut = false;
@@ -445,10 +555,6 @@ namespace LightsOutScriptMod
                 Debug.Log($"[LightsOutScript] Scheduling 326 night coroutine");
                 StartCoroutine(Restore326_3_0EmissionMapsForNightDelayed());
             }
-            if (LightsOut == false)
-            {
-                return;
-            }
 
             Debug.Log($"Hour event raised!");
             var exterior = GameObject.Find("Exterior");
@@ -467,7 +573,6 @@ namespace LightsOutScriptMod
                 return;
             }
             StartCoroutine(ResetShadersCoroutine(1.0f));
-            StopCoroutine(FacadeMinuteWatcher());
         }
 
         private IEnumerator Restore326_3_0EmissionMapsForNightDelayed()
@@ -511,7 +616,7 @@ namespace LightsOutScriptMod
                         {
                             foreach (var material in meshRenderer.materials)
                             {
-                                if (material.name.Contains("326_3-0") || material.name.Contains("TEXTURE.172 [Index=3]"))
+                                if (material.name.Contains("326_3-0"))
                                 {
                                     material.shader = Shader.Find("Daggerfall/Default");
                                     try
@@ -620,7 +725,7 @@ namespace LightsOutScriptMod
 
         private IEnumerator Restore326_3_0EmissionMapsForDayDelayed()
         {
-            // Wait 2 frames to ensure DFU is done clobbering materials
+       
             yield return null;
             yield return null;
             yield return null;
@@ -870,9 +975,14 @@ namespace LightsOutScriptMod
             }
             cricketSources.Clear(); //
             LightsOut = false;
+            if (clockWatcherCoroutine == null)
+            {
+                clockWatcherCoroutine = StartCoroutine(ClockWatcher());
+                Debug.Log("[LightsOutScript] ClockWatcher started in exterior, nya~!");
+            }
             StopCoroutine(StopMusicCoroutine(songPlayer));
             ApplyTimeBasedEmissiveChanges();
-            StatCoroutine(FacadeMinuteWatcher());
+            StartCoroutine(FacadeMinuteWatcher());
         }
 
         private bool deferred = false;
@@ -1250,7 +1360,7 @@ namespace LightsOutScriptMod
             var texReader = matReader.TextureReader;
             int hour = DaggerfallUnity.Instance.WorldTime.Now.Hour;
             Debug.Log($"[LightsOutScript] Control Windows called!");
-            // You can customize these colors as you like (using DFU values as fallback)
+         
             var dayColor = matReader != null ? matReader.DayWindowColor * matReader.DayWindowIntensity : Color.blue;
             var eveningColor = new Color(0.3f, 0.3f, 0.5f); // example: dimmer/warmer
             var nightColor = Color.black;
@@ -1317,7 +1427,7 @@ namespace LightsOutScriptMod
                                     {
                                         Debug.LogWarning($"[LightsOutScript] Error generating fallback emission for window: {material.name}: {ex}");
                                     }
-                                    // Use day/evening/night color if you want, or just default
+                               
                                     material.SetColor("_EmissionColor", enableEmissive ? dayColor : nightColor);
                                     if (enableEmissive)
                                         material.EnableKeyword("_EMISSION");
@@ -1396,11 +1506,11 @@ namespace LightsOutScriptMod
             switch (buildingType)
             {
                 case DFLocation.BuildingTypes.Alchemist:
-                    return currentHour < 22 && currentHour >= 8;
+                    return currentHour < 22 && currentHour >= 7;
                 case DFLocation.BuildingTypes.Armorer:
                     return currentHour < 19 && currentHour >= 8;
                 case DFLocation.BuildingTypes.Bank:
-                    return currentHour < 18 && currentHour >= 8;
+                    return currentHour < 17 && currentHour >= 8;
                 case DFLocation.BuildingTypes.Bookseller:
                     return currentHour < 21 && currentHour >= 8;
                 case DFLocation.BuildingTypes.ClothingStore:
@@ -1408,15 +1518,15 @@ namespace LightsOutScriptMod
                 case DFLocation.BuildingTypes.GemStore:
                     return currentHour < 18 && currentHour >= 8;
                 case DFLocation.BuildingTypes.GeneralStore:
-                    return currentHour < 23 && currentHour >= 8;
+                    return currentHour < 23 && currentHour >= 6;
                 case DFLocation.BuildingTypes.Library:
                     return currentHour < 23 && currentHour >= 8;
                 case DFLocation.BuildingTypes.PawnShop:
                     return currentHour < 20 && currentHour >= 8;
                 case DFLocation.BuildingTypes.FurnitureStore:
-                    return currentHour < 20 && currentHour >= 8;
+                    return currentHour < 20 && currentHour >= 6;
                 case DFLocation.BuildingTypes.WeaponSmith:
-                    return currentHour < 19 && currentHour >= 8;
+                    return currentHour < 20 && currentHour >= 8;
                 case DFLocation.BuildingTypes.GuildHall:
                     return currentHour < 23 && currentHour >= 8;
                 case DFLocation.BuildingTypes.Temple:
@@ -1487,6 +1597,11 @@ namespace LightsOutScriptMod
             StartCoroutine(TriggerLightsOutCoroutine());
             poop = true;
             //StartCoroutine(TeleportPlayerToEnterDoorOrMarkerAfterDelay(args.DaggerfallInterior, args.StaticDoor, 0.3f));
+            if (clockWatcherCoroutine == null)
+            {
+                clockWatcherCoroutine = StartCoroutine(ClockWatcher());
+                Debug.Log("[LightsOutScript] ClockWatcher started in interior, nya~!");
+            }
         }
 
         private IEnumerator TeleportPlayerToEnterDoorOrMarkerAfterDelay(
@@ -1625,10 +1740,11 @@ namespace LightsOutScriptMod
 
                 // Get the player's Stealth skill value
                 int playerStealth = GameManager.Instance.PlayerEntity.Skills.GetLiveSkillValue(DFCareer.Skills.Stealth);
+                int playerLuck = GameManager.Instance.PlayerEntity.Stats.GetLiveStatValue(DFCareer.Stats.Luck);
+                float luckBias = playerLuck / 1000f;
 
-                // Calculate the probability of failing based on Stealth skill
-                float randomFactor = UnityEngine.Random.Range(-0.15f, 0.15f); // Add some randomness
-                float failureProbability = Mathf.Clamp01(0.7f - (playerStealth) / 100f + randomFactor);
+                float randomFactor = UnityEngine.Random.Range(-0.1f, 0.1f) + luckBias;
+                float failureProbability = Mathf.Clamp01(0.5f - (playerStealth) / 180f + randomFactor);
 
                 failureProbability += runningTimeAccum;
                 Debug.Log($"[LightsOutScript] Added running penalty ({runningTimeAccum}) to failureProbability, new value: {failureProbability}, nya~!");
@@ -1636,7 +1752,7 @@ namespace LightsOutScriptMod
                 if (IsGuardDogPresentInScene())
                 {
                     float before = failureProbability;
-                    failureProbability = failureProbability + 0.4f;
+                    failureProbability = failureProbability * 3.5f + .1f;
                     Debug.Log($"[LightsOutScript] Doggo present! Failure probability increased from {before} to {failureProbability}, nya~!");
                 }
                 Debug.Log($"[LightsOutScript] Stealth failure probability rolled: {failureProbability}, nya~!");
@@ -1699,8 +1815,8 @@ namespace LightsOutScriptMod
                 else
                 {
                     Debug.Log("[LightsOutScript] Stealth check passed, nya~!");
-                    GameManager.Instance.PlayerEntity.TallySkill(DFCareer.Skills.Stealth, 3);
-                    Debug.Log("[LightsOutScript] Tallied 3 Stealth skill uses for player, nya~!");
+                    GameManager.Instance.PlayerEntity.TallySkill(DFCareer.Skills.Stealth, 5);
+                    Debug.Log("[LightsOutScript] Tallied 5 Stealth skill uses for player, nya~!");
                 }
             }
 
@@ -1785,10 +1901,10 @@ namespace LightsOutScriptMod
                     if (currentHour >= 9 && currentHour < 20) return; // Only fire between 20:00 and 9:00
                     break;
                 case DFLocation.BuildingTypes.FurnitureStore:
-                    if (currentHour >= 10 && currentHour < 20) return; // Only fire between 20:00 and 9:00
+                    if (currentHour >= 10 && currentHour < 23) return; // Only fire between 20:00 and 9:00
                     break;
                 case DFLocation.BuildingTypes.WeaponSmith:
-                    if (currentHour >= 9 && currentHour < 19) return; // Only fire between 19:00 and 9:00
+                    if (currentHour >= 9 && currentHour < 20) return; // Only fire between 19:00 and 9:00
                     break;
                 case DFLocation.BuildingTypes.GuildHall:
                     if (currentHour >= 11 && currentHour < 23) return; // Only fire between 23:00 and 11:00
@@ -1980,6 +2096,88 @@ namespace LightsOutScriptMod
             CustomStaticNPCMod.CustomStaticNPC.NothingHereAidan();
             Debug.Log("[LightsOutScript] NothingHereAidan called");
             StartCoroutine(PeriodicStealthCheckCoroutine());
+
+            int mapId = GameManager.Instance.PlayerGPS.CurrentMapID;
+            int buildingKey = playerEnterExit.BuildingDiscoveryData.buildingKey;
+            string uniqueBuildingId = $"{mapId}_{buildingKey}";
+            var randomMarkers = new List<DaggerfallBillboard>();
+            foreach (var billboard in GameObject.FindObjectsOfType<DaggerfallBillboard>())
+            {
+                if (billboard.transform.root != null &&
+                    billboard.transform.root.name == "Interior" &&
+                    billboard.Summary.Archive == 199 &&
+                    billboard.Summary.Record == 20)
+                {
+                    randomMarkers.Add(billboard);
+                }
+            }
+
+            if (buildingKey == 0)
+            {
+                Debug.LogWarning("[LightsOutScript] Could not determine buildingKey, loot pile spawn aborted, nya~!");
+                return;
+            }
+
+            if (robbedBuildings.Contains(uniqueBuildingId))
+            {
+                Debug.Log("[LightsOutScript] This building was already robbed, no more loot piles for you, nya~!");
+                return;
+            }
+
+            // 2. If any found, pick one at random and spawn loot container
+            if (randomMarkers.Count > 0)
+            {
+                int chosen = UnityEngine.Random.Range(0, randomMarkers.Count);
+                DaggerfallBillboard selectedMarker = randomMarkers[chosen];
+
+                var meshRenderer = selectedMarker.GetComponent<MeshRenderer>();
+
+                Vector3 markerPos = selectedMarker.transform.position;
+                Transform markerParent = selectedMarker.transform.parent;
+
+                // Destroy the old marker
+                GameObject.Destroy(selectedMarker.gameObject);
+
+                // Create the loot object
+                DaggerfallLoot loot = GameObjectHelper.CreateLootContainer(
+                    LootContainerTypes.RandomTreasure,
+                    InventoryContainerImages.Chest,
+                    markerPos,
+                    markerParent,
+                    253,  // archive
+                    36    // record (chest icon)
+                );
+
+                // Add a SerializableLootContainer if not present
+                if (loot.GetComponent<SerializableLootContainer>() == null)
+                    loot.gameObject.AddComponent<SerializableLootContainer>();
+
+                // Enable the MeshRenderer if it exists (should be on the loot object, not the destroyed marker)
+                var lootMeshRenderer = loot.GetComponent<MeshRenderer>();
+                if (lootMeshRenderer != null)
+                {
+                    lootMeshRenderer.enabled = true;
+                    Debug.Log($"[LightsOutScript] Enabled MeshRenderer on loot chest!");
+                }
+
+                // Add a SphereCollider for interaction if not present
+                if (loot.GetComponent<SphereCollider>() == null)
+                {
+                    var sphere = loot.gameObject.AddComponent<SphereCollider>();
+                    sphere.isTrigger = true;
+                    sphere.radius = 0.4f;
+                }
+
+                // Optionally fill with random loot
+                loot.Items.Clear();
+                DaggerfallLoot.GenerateItems("K", loot.Items);
+                robbedBuildings.Add(uniqueBuildingId);
+                Debug.Log("[LightsOutScript] Spawned interactable random loot chest at a random marker, nya~!");
+            }
+            else
+            {
+                Debug.Log("[LightsOutScript] No random treasure marker billboards found for loot, nya~!");
+            }
         }
 
         private bool stopMusicFlag = false; // Flag to terminate the coroutine

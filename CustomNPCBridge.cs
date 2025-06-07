@@ -63,7 +63,7 @@ namespace CustomNPCBridgeMod
 
         public void EnsurePickpocketBuffConsistency()
         {
-            // Only use IsBoosted as the single source of truth, nya~
+            // Only use IsBoosted as the single source nya
             int playerPickpocket = GameManager.Instance.PlayerEntity.Skills.GetLiveSkillValue(DFCareer.Skills.Pickpocket);
 
             if (boostData.IsBoosted)
@@ -275,26 +275,23 @@ namespace CustomNPCBridgeMod
 
         private void RescanAndRegisterCustomBillboards()
         {
-            // These are the archive indices you care about, nyan~
+          
             int[] targetArchives = { 1300, 1301, 1302, 1305 };
 
-            // Find all billboards in the scene, meow~
+            // Find all billboards in the scene
             var billboards = GameObject.FindObjectsOfType<DaggerfallBillboard>();
             foreach (var billboard in billboards)
             {
                 if (billboard == null || billboard.gameObject == null)
                     continue;
 
-                // Check if it's one of the target archives, uwu
+                // Check if it's one of the target archives uwu
                 if (targetArchives.Contains(billboard.Summary.Archive))
                 {
                     // Try to get the CustomStaticNPC component or add it if missing
                     var customNpc = billboard.GetComponent<CustomStaticNPCMod.CustomStaticNPC>();
                     if (customNpc == null)
                     {
-                        // Optionally, you could AddComponent here, but only do this if that's how your pipeline works
-                        // customNpc = billboard.gameObject.AddComponent<CustomStaticNPCMod.CustomStaticNPC>();
-                        // You may want to skip adding if you want to avoid side effects
                         continue;
                     }
 
