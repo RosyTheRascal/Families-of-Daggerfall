@@ -25,6 +25,7 @@ using DaggerfallWorkshop.Utility;
 using DaggerfallWorkshop.Game.Utility;
 using DaggerfallWorkshop.Utility.AssetInjection;
 using DaggerfallConnect.Utility;
+using DaggerfallWorkshop.Game.Utility.ModSupport.ModSettings;
 using DaggerfallWorkshop.Game.MagicAndEffects.MagicEffects;
 using UnityEngine.SceneManagement; // Add this line
 using DaggerfallWorkshop.Utility.AssetInjection;
@@ -67,8 +68,18 @@ namespace LightsOutScriptMod
         private HashSet<string> processedBuildings = new HashSet<string>(); // Tracks buildings processed by facade spawning
         private HashSet<DaggerfallLocation> locationsBeingProcessed = new HashSet<DaggerfallLocation>();
 
+        private bool breakInScriptEnabled;
+        private bool lightsOutScriptEnabled;
+        private bool talkWindowScriptEnabled;
+
         void Awake()
         {
+            ModSettings settings = mod.GetSettings();
+
+            breakInScriptEnabled = settings.GetBool("MyModSettings", "BreakInScript");
+            lightsOutScriptEnabled = settings.GetBool("MyModSettings", "LightsOutScript");
+            talkWindowScriptEnabled = settings.GetBool("MyModSettings", "TalkWindowScript");
+
             DaggerfallWorkshop.Game.UserInterfaceWindows.DaggerfallRestWindow.OnSleepEnd += OnSleepEnd;
             DaggerfallWorkshop.Game.PlayerEnterExit.OnTransitionInterior += OnTransitionInterior;
             emissiveCombinedModelsActive = CheckEmissiveTextureStateCombinedModels();
@@ -81,6 +92,8 @@ namespace LightsOutScriptMod
                 PlayerGPS.OnEnterLocationRect += OnEnterLocationRect;
             else
                 Debug.LogWarning("[LightsOutScript] PlayerGPS not found in Awake! Will try again in Start, nya~!");
+
+            mod.IsReady = true;
         }
 
         void Start()
@@ -189,6 +202,11 @@ namespace LightsOutScriptMod
 
         private IEnumerator ClockWatcher()
         {
+            if (!lightsOutScriptEnabled)
+            {
+                yield break;
+            }
+
             if (clockWatcherRunning)
             {
                 Debug.Log("[LightsOutScript] ClockWatcher called but already running, nya~!");
@@ -220,6 +238,11 @@ namespace LightsOutScriptMod
 
         private IEnumerator PooChungus()
         {
+            if (!lightsOutScriptEnabled)
+            {
+                yield break;
+            }
+
             BuildingDirectory buildingDirectory = GameManager.Instance.StreamingWorld.GetCurrentBuildingDirectory();
 
             Debug.Log($"[LightsOutScript] PooChungus called!");
@@ -339,6 +362,11 @@ namespace LightsOutScriptMod
 
         private IEnumerator FacadeMinuteWatcher()
         {
+            if (!lightsOutScriptEnabled)
+            {
+                yield break;
+            }
+
             yield return null;
             yield return null;
             yield return null;
@@ -535,9 +563,11 @@ namespace LightsOutScriptMod
 
         private void HandleNewHourEvent()
         {
+            if (!lightsOutScriptEnabled)
+            {
+                return;
+            }
 
-            // Process each location for new facades
-           
             var allLocations = GameObject.FindObjectsOfType<DaggerfallLocation>();
             int currentHour = DaggerfallUnity.Instance.WorldTime.Now.Hour;
             if (currentHour >= 8 && currentHour < 17)
@@ -795,6 +825,11 @@ namespace LightsOutScriptMod
 
         private IEnumerator ResetShadersCoroutine(float waitTime)
         {
+            if (!lightsOutScriptEnabled)
+            {
+                yield break;
+            }
+
 
             Debug.Log($"[LightsOutScript] Coroutine started, nya~! Waiting for {waitTime} seconds..."); // Debug log for tracking nya~!
             if (LightsOut == false)
@@ -841,6 +876,11 @@ namespace LightsOutScriptMod
 
         private void ApplyTimeBasedEmissiveChanges()
         {
+            if (!lightsOutScriptEnabled)
+            {
+                return;
+            }
+
             int currentHour = DaggerfallUnity.Instance.WorldTime.Now.Hour;
 
             if (currentHour >= 18 || currentHour < 6)
@@ -1147,6 +1187,11 @@ namespace LightsOutScriptMod
 
         public void SpawnFacadeAtFactionBuildings(DaggerfallLocation location)
         {
+            if (!lightsOutScriptEnabled)
+            {
+                return;
+            }
+
             Debug.Log($"[LightsOutScript] SpawnFacades Called!");
             // Check all children of this location for any existing facade objects
             bool locationHasFacade = location.GetComponentsInChildren<Transform>(true)
@@ -1355,6 +1400,11 @@ namespace LightsOutScriptMod
 
         public void ControlEmissiveWindowTexturesInCombinedModels(bool enableEmissive)
         {
+            if (!lightsOutScriptEnabled)
+            {
+                return;
+            }
+
             var allLocations = GameObject.FindObjectsOfType<DaggerfallLocation>();
             var matReader = DaggerfallUnity.Instance.MaterialReader;
             var texReader = matReader.TextureReader;
@@ -1464,6 +1514,11 @@ namespace LightsOutScriptMod
 
         public void ControlEmissiveWindowTexturesInFacades(bool enableEmissive)
         {
+            if (!lightsOutScriptEnabled)
+            {
+                return;
+            }
+
             var allLocations = GameObject.FindObjectsOfType<DaggerfallLocation>();
             foreach (var location in allLocations)
             {
@@ -1841,8 +1896,15 @@ namespace LightsOutScriptMod
             Debug.Log("[LightsOutScript] TurnOutTheLights method called, nya~!"); // Log the method execution nya~!
         }
 
+        public bool skipStealthCheck;
+
         private void TurnOutTheLights()
         {
+            if (!breakInScriptEnabled) 
+            {
+                return;
+            }
+
             int currentHour = DaggerfallUnity.Instance.WorldTime.Now.Hour;
             // Get the PlayerEnterExit instance nya~!
             PlayerEnterExit playerEnterExit = GameManager.Instance.PlayerEnterExit;
@@ -1868,6 +1930,23 @@ namespace LightsOutScriptMod
             {
                 Debug.Log($"[LightsOutScript] TurnOutTheLights() skipped because the player is in a {buildingType}, nya~!");
                 return;
+            }
+
+            BuildingDirectory buildingDirectory = GameManager.Instance.StreamingWorld.GetCurrentBuildingDirectory();
+            if (buildingDirectory != null)
+            {
+                // Get the building summary
+                BuildingSummary buildingSummary;
+                if (buildingDirectory.GetBuildingSummary(playerEnterExit.BuildingDiscoveryData.buildingKey, out buildingSummary))
+                {
+                    // Check for Thieves Guild (42) or Dark Brotherhood (108) by raw number
+                    // regardless of building type since they use regular house types
+                    if (buildingSummary.FactionId == 42 || buildingSummary.FactionId == 108 || buildingSummary.FactionId == 77)
+                    {
+                        Debug.Log($"[LightsOutScript] TurnOutTheLights() skipped because player is in a special faction building (Faction ID: {buildingSummary.FactionId}, Building Type: {buildingType})");
+                        return;
+                    }
+                }
             }
 
             // Add time-based conditions for other building types nya~
@@ -2095,7 +2174,39 @@ namespace LightsOutScriptMod
             int livingNPCCount = CustomNPCBridgeMod.CustomNPCBridge.Instance.GetLivingNPCCountInInterior();
             CustomStaticNPCMod.CustomStaticNPC.NothingHereAidan();
             Debug.Log("[LightsOutScript] NothingHereAidan called");
-            StartCoroutine(PeriodicStealthCheckCoroutine());
+            bool skipStealthCheck = false;
+            if (buildingType == DFLocation.BuildingTypes.GuildHall)
+            {
+                if (buildingDirectory != null)
+                {
+                    BuildingSummary buildingSummary;
+                    if (buildingDirectory.GetBuildingSummary(playerEnterExit.BuildingDiscoveryData.buildingKey, out buildingSummary))
+                    {
+                        PlayerGPS.DiscoveredBuilding discoveredBuilding;
+                        if (GameManager.Instance.PlayerGPS.GetDiscoveredBuilding(playerEnterExit.BuildingDiscoveryData.buildingKey, out discoveredBuilding))
+                        {
+                            GuildManager guildManager = GameManager.Instance.GuildManager;
+                            if (guildManager != null)
+                            {
+                                IGuild guild = guildManager.GetGuild(discoveredBuilding.factionID);
+                                if (guild != null && guild.IsMember() && guild.Rank >= 5)
+                                {
+                                    skipStealthCheck = true;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            if (!skipStealthCheck)
+            {
+                StartCoroutine(PeriodicStealthCheckCoroutine());
+            }
+            else
+            {
+                Debug.Log("[LightsOutScript] Skipping stealth checks due to high guild rank in this guild");
+            }
 
             int mapId = GameManager.Instance.PlayerGPS.CurrentMapID;
             int buildingKey = playerEnterExit.BuildingDiscoveryData.buildingKey;

@@ -24,6 +24,7 @@ using DaggerfallWorkshop.Utility;
 using DaggerfallWorkshop.Game.Utility;
 using DaggerfallWorkshop.Utility.AssetInjection;
 using DaggerfallConnect.Utility;
+using DaggerfallWorkshop.Game.Utility.ModSupport.ModSettings;
 using DaggerfallWorkshop.Game.MagicAndEffects.MagicEffects;
 using UnityEngine.SceneManagement; 
 using System.Reflection;
@@ -68,6 +69,10 @@ namespace FamilyNameModifierMod
             mod.IsReady = true;
             Debug.Log("FamilyNameModifier initialized.");
         }
+
+        private bool breakInScriptEnabled;
+        private bool lightsOutScriptEnabled;
+        private bool talkWindowScriptEnabled;
 
         void Start()
         {
@@ -184,8 +189,36 @@ namespace FamilyNameModifierMod
             }
         }
 
+        private Vector3? GetQuestMarkerPosition()
+        {
+            var playerEnterExit = GameManager.Instance.PlayerEnterExit;
+            if (playerEnterExit == null || !playerEnterExit.IsPlayerInsideBuilding)
+                return null;
+
+            var interior = playerEnterExit.Interior;
+            if (interior == null)
+                return null;
+
+            // Find the marker with archive 199, record 11
+            foreach (var marker in interior.Markers)
+            {
+                // DaggerfallInterior.InteriorEditorMarker
+                var go = marker.gameObject;
+                var billboard = go.GetComponent<Billboard>();
+                if (billboard != null &&
+                    billboard.Summary.Archive == 199 &&
+                    billboard.Summary.Record == 11)
+                {
+                    return go.transform.position;
+                }
+            }
+            return null;
+        }
+
         public void ReplaceAllNPCs()
         {
+            if (!talkWindowScriptEnabled) return;
+
             Debug.Log("Calling ReplaceAllNPCs. Locating 'interior' parent.");
 
             GameObject interiorParent = null;
@@ -205,12 +238,39 @@ namespace FamilyNameModifierMod
                 return;
             }
 
+            var playerEnterExit = GameManager.Instance.PlayerEnterExit;
+            BuildingDirectory buildingDirectory = GameManager.Instance.StreamingWorld.GetCurrentBuildingDirectory();
+            if (buildingDirectory != null)
+            {
+                BuildingSummary buildingSummary;
+                if (buildingDirectory.GetBuildingSummary(playerEnterExit.BuildingDiscoveryData.buildingKey, out buildingSummary))
+                {
+                    if (buildingSummary.FactionId == 42 || buildingSummary.FactionId == 108 || buildingSummary.FactionId == 77)
+                    {
+                        Debug.Log($"ReplaceAndRegister skipped because player is in a special faction building (Faction ID: {buildingSummary.FactionId})");
+                        return;
+                    }
+                }
+            }
+
             Debug.Log($"ReplaceAllNPCs: Found 'interior' parent: {interiorParent.name}. Searching for NPCs in the hierarchy.");
 
             // Find all StaticNPCs within the "interior" parent
             StaticNPC[] originalNPCs = interiorParent.GetComponentsInChildren<StaticNPC>();
+
+
+            // Get the quest marker position once
+            Vector3? questMarkerPos = GetQuestMarkerPosition();
+
             foreach (StaticNPC originalNpc in originalNPCs)
             {
+                // Skip this NPC if it has a QuestResourceBehaviour component
+                if (originalNpc.GetComponent<QuestResourceBehaviour>() != null)
+                {
+                    Debug.Log($"Skipping NPC '{originalNpc.name}' because it has a QuestResourceBehaviour.");
+                    continue;
+                }
+
                 Debug.Log($"ReplaceAllNPCs: Found NPC '{originalNpc.name}' in hierarchy. Applying ReplaceAndRegisterNPC.");
                 ReplaceAndRegisterNPC(originalNpc);
             }
@@ -518,6 +578,14 @@ namespace FamilyNameModifierMod
 
         void Awake()
         {
+            ModSettings settings = mod.GetSettings();
+
+            breakInScriptEnabled = settings.GetBool("MyModSettings", "BreakInScript");
+            lightsOutScriptEnabled = settings.GetBool("MyModSettings", "LightsOutScript");
+            talkWindowScriptEnabled = settings.GetBool("MyModSettings", "TalkWindowScript");
+
+            mod.IsReady = true;
+
             PlayerEnterExit.OnTransitionInterior += OnTransitionToInterior;
             PlayerEnterExit.OnTransitionExterior += OnTransitionToExterior;
             SceneManager.sceneLoaded += OnSceneLoaded;
